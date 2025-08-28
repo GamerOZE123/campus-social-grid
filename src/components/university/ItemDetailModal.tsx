@@ -71,41 +71,43 @@ export default function ItemDetailModal({ item, onClose }: ItemDetailModalProps)
           </div>
 
           {/* Right side - Details */}
-          <div className="w-96 p-6 flex flex-col">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-foreground">{item.title}</h2>
-              <Button variant="ghost" size="sm" onClick={onClose}>
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
+          <div className="w-96 p-6 flex flex-col justify-between">
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-foreground">{item.title}</h2>
+                <Button variant="ghost" size="sm" onClick={onClose}>
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
 
-            {/* Price */}
-            <div className="mb-6">
-              <p className="text-3xl font-bold text-primary">${item.price}</p>
-            </div>
+              {/* Price */}
+              <div className="mb-6">
+                <p className="text-3xl font-bold text-primary">${item.price}</p>
+              </div>
 
-            {/* Location and Date */}
-            <div className="flex items-center gap-4 mb-6 text-muted-foreground">
-              {item.location && (
-                <div className="flex items-center gap-1">
-                  <MapPin className="w-4 h-4" />
-                  <span className="text-sm">{item.location}</span>
+              {/* Location and Date */}
+              <div className="flex flex-col gap-2 mb-6 text-muted-foreground">
+                {item.location && (
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4" />
+                    <span className="text-sm">{item.location}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  <span className="text-sm">Listed {formatDate(item.created_at)}</span>
                 </div>
-              )}
-              <div className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                <span className="text-sm">Listed {formatDate(item.created_at)}</span>
+              </div>
+
+              {/* Description */}
+              <div className="mb-6">
+                <h3 className="font-semibold text-foreground mb-3">Description</h3>
+                <p className="text-muted-foreground leading-relaxed">{item.description}</p>
               </div>
             </div>
 
-            {/* Description */}
-            <div className="mb-6 flex-1">
-              <h3 className="font-semibold text-foreground mb-2">Description</h3>
-              <p className="text-muted-foreground">{item.description}</p>
-            </div>
-
             {/* Action buttons */}
-            <div className="space-y-3 mb-6">
+            <div className="mt-auto">
               <Button variant="outline" className="w-full" size="lg">
                 <Heart className="w-4 h-4 mr-2" />
                 Save to Favorites
