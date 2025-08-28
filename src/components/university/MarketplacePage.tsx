@@ -259,9 +259,9 @@ export default function MarketplacePage() {
           <TabsContent value="buysell" className="space-y-4">
 
             {filteredItems.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
                 {filteredItems.map((item) => (
-                  <div key={item.id} className="post-card group">
+                  <div key={item.id} className="post-card group hover:shadow-lg transition-shadow duration-200">
                     <div className="relative mb-4">
                       {renderImageCarousel(item.image_urls, item.title, () => setSelectedItem(item))}
                       
@@ -359,14 +359,14 @@ export default function MarketplacePage() {
             </div>
 
             {filteredAuctions.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
                 {filteredAuctions.map((auction) => {
                   const timeLeft = new Date(auction.end_time).getTime() - new Date().getTime();
                   const hoursLeft = Math.max(0, Math.floor(timeLeft / (1000 * 60 * 60)));
                   const minutesLeft = Math.max(0, Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60)));
 
                   return (
-                    <div key={auction.id} className="post-card group">
+                    <div key={auction.id} className="post-card group hover:shadow-lg transition-shadow duration-200">
                       <div className="relative mb-4">
                         {renderImageCarousel(auction.image_urls, auction.title, () => setSelectedAuction(auction))}
                         

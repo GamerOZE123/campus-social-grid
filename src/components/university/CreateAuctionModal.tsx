@@ -167,7 +167,7 @@ export default function CreateAuctionModal({ auction, onClose, onSuccess }: Crea
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="starting_price">Starting Price ($)</Label>
+              <Label htmlFor="starting_price">Starting Price (₹)</Label>
               <Input
                 id="starting_price"
                 name="starting_price"
@@ -180,7 +180,7 @@ export default function CreateAuctionModal({ auction, onClose, onSuccess }: Crea
               />
             </div>
             <div>
-              <Label htmlFor="reserve_price">Reserve Price ($)</Label>
+              <Label htmlFor="reserve_price">Reserve Price (₹)</Label>
               <Input
                 id="reserve_price"
                 name="reserve_price"

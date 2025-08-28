@@ -188,7 +188,7 @@ export default function CreateMarketplaceItemModal({ item, onClose, onSuccess }:
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-foreground mb-2">Price ($)</label>
+              <label className="block text-sm font-medium text-foreground mb-2">Price (₹)</label>
               <input
                 type="number"
                 step="0.01"

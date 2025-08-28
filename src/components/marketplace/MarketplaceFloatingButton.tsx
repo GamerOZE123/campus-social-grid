@@ -26,7 +26,7 @@ export default function MarketplaceFloatingButton({ onItemCreated, onAuctionCrea
 
   return (
     <>
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-20 md:bottom-6 right-6 z-50">
         <Button
           size="lg"
           className="w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-all duration-200"

@@ -70,11 +70,11 @@ export default function AuctionCard({ auction, onClick }: AuctionCardProps) {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-muted-foreground">Current Bid</p>
-            <p className="text-xl font-bold text-primary">${auction.current_price}</p>
+            <p className="text-xl font-bold text-primary">₹{auction.current_price}</p>
           </div>
           <div className="text-right">
             <p className="text-sm text-muted-foreground">Starting</p>
-            <p className="text-sm font-medium text-foreground">${auction.starting_price}</p>
+            <p className="text-sm font-medium text-foreground">₹{auction.starting_price}</p>
           </div>
         </div>
 

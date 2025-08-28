@@ -115,7 +115,7 @@ export default function MarketplaceItemCard({
 
         <div className="flex items-center justify-between mb-4">
           <div className="text-2xl font-bold text-primary">
-            ${item.price}
+            ₹{item.price}
           </div>
           {item.location && (
             <div className="text-sm text-muted-foreground">

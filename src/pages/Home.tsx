@@ -47,11 +47,11 @@ export default function Home() {
     try {
       console.log('Fetching posts...');
       
-      // First get all posts in random order
+      // First get all posts 
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select('*')
-        .order('random()');
+        .order('created_at', { ascending: false });
       
       if (postsError) {
         console.error('Error fetching posts:', postsError);
@@ -80,16 +80,17 @@ export default function Home() {
         throw profilesError;
       }
       
-      console.log('Fetched profiles:', profilesData);
-      
       // Create a map of user_id to profile for quick lookup
       const profilesMap = new Map();
       profilesData?.forEach(profile => {
         profilesMap.set(profile.user_id, profile);
       });
       
+      // Shuffle posts for random order
+      const shuffledPosts = [...postsData].sort(() => Math.random() - 0.5);
+      
       // Transform posts data with profile information
-      const transformedPosts: TransformedPost[] = postsData.map((post) => {
+      const transformedPosts: TransformedPost[] = shuffledPosts.map((post) => {
         const profile = profilesMap.get(post.user_id);
         
         // Create user display data with proper fallbacks  
