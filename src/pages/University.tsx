@@ -14,6 +14,8 @@ import {
   Target,
   Dumbbell
 } from 'lucide-react';
+import MobileHeader from '@/components/layout/MobileHeader';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const universityOptions = [
   {
@@ -77,6 +79,7 @@ export default function University() {
   const { user } = useAuth();
   const [userType, setUserType] = useState<'student' | 'company'>('student');
   const [loading, setLoading] = useState(true);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const fetchUserType = async () => {
@@ -120,6 +123,9 @@ export default function University() {
 
   return (
     <Layout>
+      {/* Mobile Header */}
+      {isMobile && <MobileHeader />}
+      
       <div className="space-y-6">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-foreground mb-2">University Hub</h1>

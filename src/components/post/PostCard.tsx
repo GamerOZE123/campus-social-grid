@@ -47,8 +47,22 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
   const [showEditModal, setShowEditModal] = useState(false);
   const { isLiked, likesCount, loading: likesLoading, toggleLike } = useLikes(post.id);
 
-  const handleHashtagClick = (hashtag: string) => {
+  const handleHashtagClick = (hashtag: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     navigate(`/hashtag/${hashtag}`);
+  };
+
+  const handleLikeClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleLike();
+  };
+
+  const handleCommentClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigate(`/post/${post.id}`);
   };
 
   const handleDeletePost = async () => {
@@ -129,7 +143,7 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
             {post.hashtags.map((hashtag, index) => (
               <button
                 key={index}
-                onClick={() => handleHashtagClick(hashtag)}
+                onClick={(e) => handleHashtagClick(hashtag, e)}
                 className="text-blue-500 hover:text-blue-700 hover:underline text-sm font-medium cursor-pointer transition-colors"
               >
                 #{hashtag}
@@ -143,8 +157,8 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
             commentsCount={post.comments_count}
             isLiked={isLiked}
             likesLoading={likesLoading}
-            onLike={toggleLike}
-            onComment={() => navigate(`/post/${post.id}`)}
+            onLike={handleLikeClick}
+            onComment={handleCommentClick}
             onShare={onShare}
             postId={post.id}
             postContent={post.content}

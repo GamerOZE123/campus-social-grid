@@ -916,14 +916,18 @@ export type Database = {
       }
       profiles: {
         Row: {
+          area: string | null
           avatar_url: string | null
           bio: string | null
+          country: string | null
           created_at: string
+          email: string | null
           followers_count: number | null
           following_count: number | null
           full_name: string | null
           id: string
           major: string | null
+          state: string | null
           university: string | null
           updated_at: string
           user_id: string
@@ -931,14 +935,18 @@ export type Database = {
           username: string
         }
         Insert: {
+          area?: string | null
           avatar_url?: string | null
           bio?: string | null
+          country?: string | null
           created_at?: string
+          email?: string | null
           followers_count?: number | null
           following_count?: number | null
           full_name?: string | null
           id?: string
           major?: string | null
+          state?: string | null
           university?: string | null
           updated_at?: string
           user_id: string
@@ -946,14 +954,18 @@ export type Database = {
           username: string
         }
         Update: {
+          area?: string | null
           avatar_url?: string | null
           bio?: string | null
+          country?: string | null
           created_at?: string
+          email?: string | null
           followers_count?: number | null
           following_count?: number | null
           full_name?: string | null
           id?: string
           major?: string | null
+          state?: string | null
           university?: string | null
           updated_at?: string
           user_id?: string

@@ -8,8 +8,8 @@ import ShareModal from './ShareModal';
 interface PostActionsProps {
   likesCount: number;
   commentsCount: number;
-  onLike?: () => void;
-  onComment?: () => void;
+  onLike?: (e?: React.MouseEvent) => void;
+  onComment?: (e?: React.MouseEvent) => void;
   onShare?: () => void;
   isLiked?: boolean;
   likesLoading?: boolean;
@@ -45,7 +45,7 @@ export default function PostActions({
           <Button
             variant="ghost"
             size="sm"
-            onClick={onLike}
+            onClick={(e) => onLike(e)}
             disabled={likesLoading}
             className={cn(
               "flex items-center gap-2 hover:bg-muted/50",
@@ -59,7 +59,7 @@ export default function PostActions({
           <Button
             variant="ghost"
             size="sm"
-            onClick={onComment}
+            onClick={(e) => onComment(e)}
             className="flex items-center gap-2 hover:bg-muted/50"
           >
             <MessageCircle className="w-5 h-5" />

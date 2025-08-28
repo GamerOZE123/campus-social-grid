@@ -6,6 +6,8 @@ import MessageButton from '@/components/profile/MessageButton';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserPlus, UserMinus, Edit } from 'lucide-react';
+import MobileHeader from '@/components/layout/MobileHeader';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useParams } from 'react-router-dom';
@@ -60,6 +62,7 @@ export default function Profile() {
   const { userId } = useParams<{ userId?: string }>();
   const isOwnProfile = !userId || userId === user?.id;
   const profileId = userId || user?.id;
+  const isMobile = useIsMobile();
 
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [posts, setPosts] = useState<PostWithProfile[]>([]);
@@ -210,6 +213,9 @@ export default function Profile() {
 
   return (
     <Layout>
+      {/* Mobile Header */}
+      {isMobile && <MobileHeader />}
+      
       <div className="space-y-6">
         {/* Profile Header */}
         <div className="post-card">

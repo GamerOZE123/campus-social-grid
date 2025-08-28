@@ -5,6 +5,8 @@ import PostCard from '@/components/post/PostCard';
 import ImageUploadButton from '@/components/post/ImageUploadButton';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import MobileHeader from '@/components/layout/MobileHeader';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PostData {
   id: string;
@@ -42,6 +44,7 @@ export default function Home() {
   const { user } = useAuth();
   const [posts, setPosts] = useState<TransformedPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const isMobile = useIsMobile();
 
   const fetchPosts = async () => {
     try {
@@ -163,6 +166,9 @@ export default function Home() {
 
   return (
     <Layout>
+      {/* Mobile Header */}
+      {isMobile && <MobileHeader />}
+      
       <div className="max-w-2xl mx-auto pt-6 -mt-4">
         <div className="space-y-6">
           {posts.length > 0 ? (

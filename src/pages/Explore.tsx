@@ -6,6 +6,8 @@ import { useUsers } from '@/hooks/useUsers';
 import { useNavigate } from 'react-router-dom';
 import TrendingHashtags from '@/components/explore/TrendingHashtags';
 import { supabase } from '@/integrations/supabase/client';
+import MobileHeader from '@/components/layout/MobileHeader';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PostImage {
   id: string;
@@ -18,6 +20,7 @@ export default function Explore() {
   const [imagesLoading, setImagesLoading] = useState(true);
   const { users, loading, searchUsers } = useUsers();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
@@ -57,6 +60,9 @@ export default function Explore() {
 
   return (
     <Layout>
+      {/* Mobile Header */}
+      {isMobile && <MobileHeader />}
+      
       <div className="space-y-6">
         {/* Search Header */}
         <div className="post-card">
