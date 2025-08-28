@@ -3,7 +3,7 @@ import Layout from '@/components/layout/Layout';
 import PostCard from '@/components/post/PostCard';
 import EditProfileModal from '@/components/profile/EditProfileModal';
 import MessageButton from '@/components/profile/MessageButton';
-import LocationUpdate from '@/components/profile/LocationUpdate';
+
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserPlus, UserMinus, Edit } from 'lucide-react';
@@ -281,12 +281,6 @@ export default function Profile() {
                       <Edit className="w-4 h-4" />
                       Edit Profile
                     </Button>
-                    <LocationUpdate
-                      currentCountry={profileData.country}
-                      currentState={profileData.state}
-                      currentArea={profileData.area}
-                      onLocationUpdated={handleProfileUpdate}
-                    />
                   </div>
                 ) : (
                   <>
