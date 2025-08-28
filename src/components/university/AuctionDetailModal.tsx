@@ -131,7 +131,7 @@ export default function AuctionDetailModal({ auction, onClose, onBidPlaced }: Au
             {/* Price overlay */}
             <div className="absolute bottom-4 left-4 bg-black/70 text-white p-3 lg:p-4 rounded-xl">
               <p className="text-xs lg:text-sm opacity-90">Current Bid</p>
-              <p className="text-xl lg:text-3xl font-bold">${auction.current_price}</p>
+              <p className="text-xl lg:text-3xl font-bold">₹{auction.current_price}</p>
             </div>
           </div>
 
@@ -174,7 +174,7 @@ export default function AuctionDetailModal({ auction, onClose, onBidPlaced }: Au
                     step="0.01"
                     value={bidAmount}
                     onChange={(e) => setBidAmount(e.target.value)}
-                    placeholder={`Min: $${auction.current_price + 0.01}`}
+                    placeholder={`Min: ₹${auction.current_price + 0.01}`}
                     className="flex-1"
                   />
                   <Button onClick={handleBid} disabled={loading} className="flex items-center gap-2">
@@ -200,7 +200,7 @@ export default function AuctionDetailModal({ auction, onClose, onBidPlaced }: Au
                           Anonymous Bidder
                         </span>
                       </div>
-                      <span className="text-sm font-medium text-primary">${bid.amount}</span>
+                      <span className="text-sm font-medium text-primary">₹{bid.amount}</span>
                     </div>
                   ))
                 ) : (

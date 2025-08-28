@@ -8,6 +8,7 @@ import CreateMarketplaceItemModal from './CreateMarketplaceItemModal';
 import CreateAuctionModal from './CreateAuctionModal';
 import ItemDetailModal from './ItemDetailModal';
 import AuctionDetailModal from './AuctionDetailModal';
+import MarketplaceFloatingButton from '@/components/marketplace/MarketplaceFloatingButton';
 import {
   Carousel,
   CarouselContent,
@@ -256,12 +257,6 @@ export default function MarketplacePage() {
           </TabsList>
 
           <TabsContent value="buysell" className="space-y-4">
-            <div className="flex justify-end">
-              <Button onClick={() => setShowCreateItemModal(true)} className="flex items-center gap-2">
-                <Plus className="w-4 h-4" />
-                List Item
-              </Button>
-            </div>
 
             {filteredItems.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
@@ -271,7 +266,7 @@ export default function MarketplacePage() {
                       {renderImageCarousel(item.image_urls, item.title, () => setSelectedItem(item))}
                       
                       <div className="absolute top-2 right-2 bg-primary text-primary-foreground px-2 py-1 rounded-lg text-xs font-medium">
-                        ${item.price}
+                        ₹{item.price}
                       </div>
                       
                       {user?.id === item.user_id && (
@@ -304,7 +299,7 @@ export default function MarketplacePage() {
 
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-lg md:text-xl font-bold text-primary">${item.price}</p>
+                          <p className="text-lg md:text-xl font-bold text-primary">₹{item.price}</p>
                           <p className="text-xs text-muted-foreground">{item.condition}</p>
                         </div>
                         <Button 
@@ -356,15 +351,11 @@ export default function MarketplacePage() {
                 <div className="text-center p-4 bg-surface rounded-xl">
                   <TrendingUp className="w-6 h-6 md:w-8 md:h-8 mx-auto mb-2 text-primary" />
                   <p className="text-lg md:text-2xl font-bold text-foreground">
-                    ${auctions.reduce((sum, auction) => sum + auction.current_price, 0).toFixed(2)}
+                    ₹{auctions.reduce((sum, auction) => sum + auction.current_price, 0).toFixed(2)}
                   </p>
                   <p className="text-xs md:text-sm text-muted-foreground">Total Value</p>
                 </div>
               </div>
-              <Button onClick={() => setShowCreateAuctionModal(true)} className="flex items-center gap-2">
-                <Plus className="w-4 h-4" />
-                Create Auction
-              </Button>
             </div>
 
             {filteredAuctions.length > 0 ? (
@@ -420,11 +411,11 @@ export default function MarketplacePage() {
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-xs text-muted-foreground">Current Bid</p>
-                            <p className="text-lg md:text-xl font-bold text-primary">${auction.current_price}</p>
+                            <p className="text-lg md:text-xl font-bold text-primary">₹{auction.current_price}</p>
                           </div>
                           <div className="text-right">
                             <p className="text-xs text-muted-foreground">Starting</p>
-                            <p className="text-sm font-medium text-foreground">${auction.starting_price}</p>
+                            <p className="text-sm font-medium text-foreground">₹{auction.starting_price}</p>
                           </div>
                         </div>
 
@@ -518,6 +509,11 @@ export default function MarketplacePage() {
           onBidPlaced={fetchAuctions}
         />
       )}
+
+      <MarketplaceFloatingButton
+        onItemCreated={fetchItems}
+        onAuctionCreated={fetchAuctions}
+      />
     </div>
   );
 }

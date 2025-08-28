@@ -1,13 +1,21 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Search, User } from 'lucide-react';
 import { useUsers } from '@/hooks/useUsers';
 import { useNavigate } from 'react-router-dom';
 import TrendingHashtags from '@/components/explore/TrendingHashtags';
+import { supabase } from '@/integrations/supabase/client';
+
+interface PostImage {
+  id: string;
+  image_url: string;
+}
 
 export default function Explore() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [postImages, setPostImages] = useState<PostImage[]>([]);
+  const [imagesLoading, setImagesLoading] = useState(true);
   const { users, loading, searchUsers } = useUsers();
   const navigate = useNavigate();
 
@@ -19,6 +27,32 @@ export default function Explore() {
 
   const handleUserClick = (userId: string) => {
     navigate(`/profile/${userId}`);
+  };
+
+  const fetchPostImages = async () => {
+    try {
+      const { data: posts, error } = await supabase
+        .from('posts')
+        .select('id, image_url')
+        .not('image_url', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      setPostImages(posts || []);
+    } catch (error) {
+      console.error('Error fetching post images:', error);
+    } finally {
+      setImagesLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPostImages();
+  }, []);
+
+  const handleImageClick = (postId: string) => {
+    navigate(`/post/${postId}`);
   };
 
   return (
@@ -94,10 +128,36 @@ export default function Explore() {
           </div>
         )}
 
-        {/* Content placeholder when no search */}
+        {/* Image Collage when no search */}
         {!searchQuery && (
-          <div className="post-card text-center py-12">
-            <p className="text-muted-foreground">Start searching to discover users and content</p>
+          <div className="post-card">
+            <h3 className="text-lg font-semibold text-foreground mb-4">Recent Posts</h3>
+            {imagesLoading ? (
+              <div className="text-center py-8">
+                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+                <p className="text-muted-foreground mt-2">Loading images...</p>
+              </div>
+            ) : postImages.length > 0 ? (
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+                {postImages.map((post) => (
+                  <div
+                    key={post.id}
+                    onClick={() => handleImageClick(post.id)}
+                    className="aspect-square bg-surface rounded-lg overflow-hidden cursor-pointer hover:opacity-75 transition-opacity"
+                  >
+                    <img
+                      src={post.image_url}
+                      alt="Post"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No images to display yet</p>
+              </div>
+            )}
           </div>
         )}
       </div>

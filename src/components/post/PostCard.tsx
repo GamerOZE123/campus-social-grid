@@ -8,8 +8,10 @@ import PostHeader from './PostHeader';
 import PostContent from './PostContent';
 import PostActions from './PostActions';
 import EditPostModal from './EditPostModal';
+import ClickablePostCard from './ClickablePostCard';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLikes } from '@/hooks/useLikes';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -43,6 +45,7 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
   const navigate = useNavigate();
   const { user } = useAuth();
   const [showEditModal, setShowEditModal] = useState(false);
+  const { isLiked, likesCount, loading: likesLoading, toggleLike } = useLikes(post.id);
 
   const handleHashtagClick = (hashtag: string) => {
     navigate(`/hashtag/${hashtag}`);
@@ -82,8 +85,9 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
 
   return (
     <>
-      <Card className="w-full bg-card border border-border hover:shadow-md transition-shadow">
-        <div className="p-4 space-y-4">
+      <ClickablePostCard postId={post.id}>
+        <Card className="w-full bg-card border border-border hover:shadow-md transition-shadow">
+          <div className="p-4 space-y-4">
           <div className="flex items-start justify-between">
             <PostHeader 
               username={username}
@@ -135,16 +139,19 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
         )}
         
           <PostActions 
-            likesCount={post.likes_count}
+            likesCount={likesCount}
             commentsCount={post.comments_count}
-            onLike={onLike}
-            onComment={onComment}
+            isLiked={isLiked}
+            likesLoading={likesLoading}
+            onLike={toggleLike}
+            onComment={() => navigate(`/post/${post.id}`)}
             onShare={onShare}
             postId={post.id}
             postContent={post.content}
           />
-        </div>
-      </Card>
+          </div>
+        </Card>
+      </ClickablePostCard>
 
       {/* Edit Post Modal */}
       {showEditModal && (

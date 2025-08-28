@@ -47,11 +47,11 @@ export default function Home() {
     try {
       console.log('Fetching posts...');
       
-      // First get all posts
+      // First get all posts in random order
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('random()');
       
       if (postsError) {
         console.error('Error fetching posts:', postsError);

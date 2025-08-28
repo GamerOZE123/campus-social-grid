@@ -82,7 +82,7 @@ export default function ItemDetailModal({ item, onClose }: ItemDetailModalProps)
 
               {/* Price */}
               <div className="mb-6">
-                <p className="text-3xl font-bold text-primary">${item.price}</p>
+                <p className="text-3xl font-bold text-primary">₹{item.price}</p>
               </div>
 
               {/* Location and Date */}
