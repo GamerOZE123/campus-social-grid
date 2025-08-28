@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Layout from '@/components/layout/Layout';
-import { ArrowLeft, X, Plus } from 'lucide-react';
+import { ArrowLeft, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,9 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import DetailedJobForm from '@/components/jobs/DetailedJobForm';
 import StudentApplicationForm from '@/components/jobs/StudentApplicationForm';
 import StudentJobsView from '@/components/jobs/StudentJobsView';
-import CompanyJobsView from '@/components/jobs/CompanyJobsView';
 import CompanyApplicantsView from '@/components/jobs/CompanyApplicantsView';
-import CreateJobModal from '@/components/jobs/CreateJobModal';
 
 export default function JobsInternships() {
   const navigate = useNavigate();
@@ -20,7 +18,7 @@ export default function JobsInternships() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [hasProfile, setHasProfile] = useState(false);
-  const [showCreateJob, setShowCreateJob] = useState(false);
+  
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -166,27 +164,6 @@ export default function JobsInternships() {
         </div>
 
         {userType === 'student' ? <StudentJobsView /> : <CompanyApplicantsView />}
-        
-        {/* Floating Add Job Button for Companies */}
-        {userType === 'company' && (
-          <div className="fixed bottom-6 right-6 z-50">
-            <Button
-              size="lg"
-              className="rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-shadow"
-              onClick={() => setShowCreateJob(true)}
-            >
-              <Plus className="w-6 h-6" />
-            </Button>
-          </div>
-        )}
-
-        {/* Create Job Modal */}
-        {userType === 'company' && (
-          <CreateJobModal 
-            open={showCreateJob} 
-            onOpenChange={setShowCreateJob}
-          />
-        )}
       </div>
     </Layout>
   );
