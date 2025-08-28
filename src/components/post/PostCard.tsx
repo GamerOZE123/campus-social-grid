@@ -1,10 +1,17 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { MoreVertical, Edit, Trash2 } from 'lucide-react';
 import PostHeader from './PostHeader';
 import PostContent from './PostContent';
 import PostActions from './PostActions';
+import EditPostModal from './EditPostModal';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface Post {
   id: string;
@@ -29,31 +36,83 @@ interface PostCardProps {
   onLike?: () => void;
   onComment?: () => void;
   onShare?: () => void;
+  onPostUpdated?: () => void;
 }
 
-export default function PostCard({ post, onLike, onComment, onShare }: PostCardProps) {
+export default function PostCard({ post, onLike, onComment, onShare, onPostUpdated }: PostCardProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const handleHashtagClick = (hashtag: string) => {
     navigate(`/hashtag/${hashtag}`);
+  };
+
+  const handleDeletePost = async () => {
+    if (!window.confirm('Are you sure you want to delete this post?')) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', post.id);
+
+      if (error) {
+        console.error('Error deleting post:', error);
+        throw error;
+      }
+
+      toast.success('Post deleted successfully!');
+      onPostUpdated?.();
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      toast.error('Failed to delete post');
+    }
   };
 
   // Extract user info from either profiles object or direct properties
   const username = post.profiles?.username || post.user_username || 'user';
   const fullName = post.profiles?.full_name || post.user_name || 'Anonymous User';
   const avatarUrl = post.profiles?.avatar_url;
+  const isOwnPost = user?.id === post.user_id;
 
   console.log('PostCard - post hashtags:', post.hashtags); // Debug log
 
   return (
-    <Card className="w-full bg-card border border-border hover:shadow-md transition-shadow">
-      <div className="p-4 space-y-4">
-        <PostHeader 
-          username={username}
-          fullName={fullName}
-          avatarUrl={avatarUrl}
-          createdAt={post.created_at}
-        />
+    <>
+      <Card className="w-full bg-card border border-border hover:shadow-md transition-shadow">
+        <div className="p-4 space-y-4">
+          <div className="flex items-start justify-between">
+            <PostHeader 
+              username={username}
+              fullName={fullName}
+              avatarUrl={avatarUrl}
+              createdAt={post.created_at}
+            />
+            
+            {/* Three dots menu for post owner */}
+            {isOwnPost && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setShowEditModal(true)}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleDeletePost} className="text-destructive">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         
         <PostContent 
           content={post.content}
@@ -75,16 +134,34 @@ export default function PostCard({ post, onLike, onComment, onShare }: PostCardP
           </div>
         )}
         
-        <PostActions 
-          likesCount={post.likes_count}
-          commentsCount={post.comments_count}
-          onLike={onLike}
-          onComment={onComment}
-          onShare={onShare}
-          postId={post.id}
-          postContent={post.content}
+          <PostActions 
+            likesCount={post.likes_count}
+            commentsCount={post.comments_count}
+            onLike={onLike}
+            onComment={onComment}
+            onShare={onShare}
+            postId={post.id}
+            postContent={post.content}
+          />
+        </div>
+      </Card>
+
+      {/* Edit Post Modal */}
+      {showEditModal && (
+        <EditPostModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          onPostUpdated={() => {
+            onPostUpdated?.();
+            setShowEditModal(false);
+          }}
+          post={{
+            id: post.id,
+            content: post.content,
+            hashtags: post.hashtags
+          }}
         />
-      </div>
-    </Card>
+      )}
+    </>
   );
 }

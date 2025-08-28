@@ -50,9 +50,9 @@ export default function FileUploadModal({ isOpen, onClose, onPostCreated }: File
 
       return new Promise((resolve) => {
         img.onload = async () => {
-          // Calculate new dimensions based on file size and maintain aspect ratio
-          const maxWidth = file.size > 10 * 1024 * 1024 ? 800 : 1200; // Smaller max for very large files
-          const maxHeight = file.size > 10 * 1024 * 1024 ? 800 : 1200;
+          // Calculate new dimensions for better sizing - reduce portrait image sizes
+          const maxWidth = 800; // Reduced max width for better sizing
+          const maxHeight = 600; // Reduced max height especially for portraits
           let { width, height } = img;
 
           if (width > height) {
@@ -296,7 +296,7 @@ export default function FileUploadModal({ isOpen, onClose, onPostCreated }: File
             </Button>
             <Button 
               onClick={handleUpload} 
-              disabled={uploading || (!selectedImage && !caption.trim())}
+              disabled={uploading || !caption.trim()}
               className="flex-1"
             >
               {uploading ? (

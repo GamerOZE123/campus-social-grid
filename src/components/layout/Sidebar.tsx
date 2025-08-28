@@ -9,9 +9,9 @@ import { Button } from '@/components/ui/button';
 const navigation = [
   { name: 'Home', href: '/', icon: Home },
   { name: 'Explore', href: '/explore', icon: Search },
+  { name: 'University', href: '/university', icon: GraduationCap },
   { name: 'Chat', href: '/chat', icon: MessageCircle },
-  { name: 'Profile', href: '/profile', icon: User },
-  { name: 'University', href: '/university', icon: GraduationCap }
+  { name: 'Profile', href: '/profile', icon: User }
 ];
 
 export default function Sidebar() {

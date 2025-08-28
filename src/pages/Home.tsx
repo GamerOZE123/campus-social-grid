@@ -162,11 +162,15 @@ export default function Home() {
 
   return (
     <Layout>
-      <div className="max-w-2xl mx-auto pt-2">
+      <div className="max-w-2xl mx-auto pt-6 -mt-4">
         <div className="space-y-6">
           {posts.length > 0 ? (
             posts.map((post) => (
-              <PostCard key={post.id} post={post} />
+              <PostCard 
+                key={post.id} 
+                post={post} 
+                onPostUpdated={fetchPosts}
+              />
             ))
           ) : (
             <div className="post-card text-center py-12">
