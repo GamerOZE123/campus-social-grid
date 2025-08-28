@@ -3,6 +3,7 @@ import Layout from '@/components/layout/Layout';
 import PostCard from '@/components/post/PostCard';
 import EditProfileModal from '@/components/profile/EditProfileModal';
 import MessageButton from '@/components/profile/MessageButton';
+import LocationUpdate from '@/components/profile/LocationUpdate';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserPlus, UserMinus, Edit } from 'lucide-react';
@@ -24,6 +25,9 @@ interface ProfileData {
   bio: string;
   followers_count: number;
   following_count: number;
+  country?: string;
+  state?: string;
+  area?: string;
 }
 
 interface PostWithProfile {
@@ -137,7 +141,7 @@ export default function Profile() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('user_id, username, full_name, avatar_url, university, major, bio, followers_count, following_count')
+        .select('user_id, username, full_name, avatar_url, university, major, bio, followers_count, following_count, country, state, area')
         .eq('user_id', userId)
         .single();
 
@@ -241,6 +245,11 @@ export default function Profile() {
                 {profileData.major && (
                   <p className="text-sm">{profileData.major}</p>
                 )}
+                {(profileData.area || profileData.state || profileData.country) && (
+                  <p className="text-sm text-muted-foreground">
+                    📍 {[profileData.area, profileData.state, profileData.country].filter(Boolean).join(', ')}
+                  </p>
+                )}
                 {profileData.bio && (
                   <p className="text-sm mt-2">{profileData.bio}</p>
                 )}
@@ -263,14 +272,22 @@ export default function Profile() {
               
               <div className="flex justify-center md:justify-start gap-2">
                 {isOwnProfile ? (
-                  <Button
-                    onClick={() => setIsEditModalOpen(true)}
-                    variant="outline"
-                    className="flex items-center gap-2"
-                  >
-                    <Edit className="w-4 h-4" />
-                    Edit Profile
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => setIsEditModalOpen(true)}
+                      variant="outline"
+                      className="flex items-center gap-2"
+                    >
+                      <Edit className="w-4 h-4" />
+                      Edit Profile
+                    </Button>
+                    <LocationUpdate
+                      currentCountry={profileData.country}
+                      currentState={profileData.state}
+                      currentArea={profileData.area}
+                      onLocationUpdated={handleProfileUpdate}
+                    />
+                  </div>
                 ) : (
                   <>
                     <Button
