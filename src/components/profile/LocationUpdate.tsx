@@ -36,7 +36,7 @@ export default function LocationUpdate({
   };
 
   const handleManualUpdate = async () => {
-    if (!country.trim() || !state.trim() || !area.trim()) {
+    if (!country?.trim() || !state?.trim() || !area?.trim()) {
       return;
     }
     
@@ -136,7 +136,7 @@ export default function LocationUpdate({
               <div className="flex gap-2">
                 <Button 
                   onClick={handleManualUpdate} 
-                  disabled={loading || !country.trim() || !state.trim() || !area.trim()}
+                  disabled={loading || !country?.trim() || !state?.trim() || !area?.trim()}
                   className="flex-1"
                 >
                   {loading ? (

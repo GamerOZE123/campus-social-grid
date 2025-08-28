@@ -10,7 +10,7 @@ import DetailedJobForm from '@/components/jobs/DetailedJobForm';
 import StudentApplicationForm from '@/components/jobs/StudentApplicationForm';
 import StudentJobsView from '@/components/jobs/StudentJobsView';
 import CompanyJobsView from '@/components/jobs/CompanyJobsView';
-import StudentProfilesView from '@/components/jobs/StudentProfilesView';
+import CompanyApplicantsView from '@/components/jobs/CompanyApplicantsView';
 import CreateJobModal from '@/components/jobs/CreateJobModal';
 
 export default function JobsInternships() {
@@ -150,7 +150,7 @@ export default function JobsInternships() {
               <ArrowLeft className="w-4 h-4" />
             </Button>
             <h1 className="text-2xl font-bold text-foreground">
-              {userType === 'student' ? 'Explore Jobs' : 'Student Talent Pool'}
+              {userType === 'student' ? 'Explore Jobs' : 'Job Applications'}
             </h1>
           </div>
           {userType === 'company' && (
@@ -165,7 +165,7 @@ export default function JobsInternships() {
           )}
         </div>
 
-        {userType === 'student' ? <StudentJobsView /> : <StudentProfilesView />}
+        {userType === 'student' ? <StudentJobsView /> : <CompanyApplicantsView />}
         
         {/* Floating Add Job Button for Companies */}
         {userType === 'company' && (
