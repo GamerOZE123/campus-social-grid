@@ -54,7 +54,7 @@ export default function CreateAuctionModal({ auction, onClose, onSuccess }: Crea
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setImages(Array.from(e.target.files));
+      setImages(Array.from(e.target.files).slice(0, 10)); // Max 10 images
     }
   };
 

@@ -53,21 +53,12 @@ const universityOptions = [
     allowedFor: ['student']
   },
   {
-    id: 'buysell',
-    title: 'Buy & Sell',
-    description: 'Marketplace for students to buy and sell items',
+    id: 'marketplace',
+    title: 'Marketplace',
+    description: 'Buy, sell, and bid on items with fellow students',
     icon: Store,
-    path: '/buy-sell',
+    path: '/marketplace',
     color: 'bg-green-500',
-    allowedFor: ['student']
-  },
-  {
-    id: 'auction',
-    title: 'Auction',
-    description: 'Bid on items and auction your belongings',
-    icon: Gavel,
-    path: '/auction',
-    color: 'bg-red-500',
     allowedFor: ['student']
   },
   {

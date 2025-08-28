@@ -16,6 +16,7 @@ import University from '@/pages/University';
 import Clubs from '@/pages/Clubs';
 import BuySell from '@/pages/BuySell';
 import Auction from '@/pages/Auction';
+import Marketplace from '@/pages/Marketplace';
 import Jobs from '@/pages/Jobs';
 import JobsInternships from '@/pages/JobsInternships';
 import Notifications from '@/pages/Notifications';
@@ -50,6 +51,7 @@ function App() {
             <Route path="/clubs" element={<ProtectedRoute><Clubs /></ProtectedRoute>} />
             <Route path="/buy-sell" element={<ProtectedRoute><BuySell /></ProtectedRoute>} />
             <Route path="/auction" element={<ProtectedRoute><Auction /></ProtectedRoute>} />
+            <Route path="/marketplace" element={<ProtectedRoute><Marketplace /></ProtectedRoute>} />
             <Route path="/jobs" element={<ProtectedRoute><Jobs /></ProtectedRoute>} />
             <Route path="/jobs-internships" element={<ProtectedRoute><JobsInternships /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />

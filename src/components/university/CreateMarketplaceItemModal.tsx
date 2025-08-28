@@ -67,7 +67,7 @@ export default function CreateMarketplaceItemModal({ item, onClose, onSuccess }:
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    setImages(prev => [...prev, ...files].slice(0, 5)); // Max 5 images
+    setImages(prev => [...prev, ...files].slice(0, 10)); // Max 10 images
   };
 
   const removeImage = (index: number) => {
@@ -263,7 +263,7 @@ export default function CreateMarketplaceItemModal({ item, onClose, onSuccess }:
           )}
 
           <div>
-            <label className="block text-sm font-medium text-foreground mb-2">Images (Max 5)</label>
+            <label className="block text-sm font-medium text-foreground mb-2">Images (Max 10)</label>
             <div className="border-2 border-dashed border-border rounded-lg p-6">
               <input
                 type="file"
