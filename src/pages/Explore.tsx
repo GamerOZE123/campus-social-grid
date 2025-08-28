@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import TrendingHashtags from '@/components/explore/TrendingHashtags';
 import { supabase } from '@/integrations/supabase/client';
 import MobileHeader from '@/components/layout/MobileHeader';
+// Re-importing to force refresh
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PostImage {

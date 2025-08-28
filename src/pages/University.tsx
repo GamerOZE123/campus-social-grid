@@ -15,6 +15,7 @@ import {
   Dumbbell
 } from 'lucide-react';
 import MobileHeader from '@/components/layout/MobileHeader';
+// Re-importing to force refresh
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const universityOptions = [

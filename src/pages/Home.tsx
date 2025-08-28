@@ -6,6 +6,7 @@ import ImageUploadButton from '@/components/post/ImageUploadButton';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import MobileHeader from '@/components/layout/MobileHeader';
+// Re-importing to force refresh
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PostData {

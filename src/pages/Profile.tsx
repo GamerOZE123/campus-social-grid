@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserPlus, UserMinus, Edit } from 'lucide-react';
 import MobileHeader from '@/components/layout/MobileHeader';
+// Re-importing to force refresh
 import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
