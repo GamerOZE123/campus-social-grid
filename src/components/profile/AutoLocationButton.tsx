@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { MapPin, Loader2 } from 'lucide-react';
+import { MapPin, Loader2, Globe } from 'lucide-react';
 import { useLocation } from '@/hooks/useLocation';
 
 interface AutoLocationButtonProps {
@@ -8,18 +8,20 @@ interface AutoLocationButtonProps {
   variant?: 'default' | 'outline' | 'ghost';
   size?: 'sm' | 'lg' | 'icon';
   showText?: boolean;
+  useIP?: boolean;
 }
 
 export default function AutoLocationButton({ 
   onLocationUpdated, 
   variant = 'outline',
   size = 'sm',
-  showText = true 
+  showText = true,
+  useIP = false
 }: AutoLocationButtonProps) {
-  const { fetchAndUpdateLocation, loading } = useLocation();
+  const { fetchAndUpdateLocation, getLocationFromIP, loading } = useLocation();
 
   const handleLocationUpdate = async () => {
-    const success = await fetchAndUpdateLocation();
+    const success = useIP ? await getLocationFromIP() : await fetchAndUpdateLocation();
     if (success) {
       onLocationUpdated?.();
     }
@@ -35,10 +37,12 @@ export default function AutoLocationButton({
     >
       {loading ? (
         <Loader2 className="w-4 h-4 animate-spin" />
+      ) : useIP ? (
+        <Globe className="w-4 h-4" />
       ) : (
         <MapPin className="w-4 h-4" />
       )}
-      {showText && (loading ? 'Getting Location...' : 'Update Location')}
+      {showText && (loading ? 'Getting Location...' : useIP ? 'Auto-Detect Location' : 'GPS Location')}
     </Button>
   );
 }

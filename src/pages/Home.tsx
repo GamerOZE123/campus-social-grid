@@ -192,8 +192,18 @@ export default function Home() {
               <p className="text-sm text-muted-foreground">
                 Click the + button below to create your first post.
               </p>
-              <div className="mt-4">
-                <AutoLocationButton onLocationUpdated={() => {}} />
+              <div className="mt-4 flex gap-2 justify-center">
+                <AutoLocationButton 
+                  onLocationUpdated={() => window.location.reload()} 
+                  useIP={true}
+                  variant="default"
+                />
+                <AutoLocationButton 
+                  onLocationUpdated={() => window.location.reload()} 
+                  useIP={false}
+                  variant="outline"
+                  showText={false}
+                />
               </div>
             </div>
           )}

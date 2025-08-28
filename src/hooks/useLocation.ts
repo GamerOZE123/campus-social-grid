@@ -7,8 +7,9 @@ interface LocationData {
   country: string;
   state: string;
   area: string;
-  latitude: number;
-  longitude: number;
+  latitude?: number;
+  longitude?: number;
+  ip?: string;
 }
 
 export const useLocation = () => {
@@ -164,9 +165,48 @@ export const useLocation = () => {
     }
   };
 
+  // Get location from IP address using edge function
+  const getLocationFromIP = async () => {
+    if (!user) {
+      toast.error('Please log in to update your location');
+      return false;
+    }
+
+    setLoading(true);
+    try {
+      toast.info('Detecting location from IP...');
+      
+      const { data, error } = await supabase.functions.invoke('get-location-from-ip', {
+        headers: {
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+        },
+      });
+
+      if (error) {
+        console.error('Error getting location from IP:', error);
+        throw error;
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      setLocationData(data.location);
+      toast.success(`Location detected: ${data.location.area}, ${data.location.state}, ${data.location.country}`);
+      return true;
+    } catch (error) {
+      console.error('Error getting location from IP:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to detect location from IP');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     fetchAndUpdateLocation,
     updateLocationManually,
+    getLocationFromIP,
     loading,
     locationData
   };
