@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { MultipleImageUpload } from '@/components/ui/multiple-image-upload';
 import { GraduationCap, Mail, Lock, User, ArrowLeft, Building2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -27,6 +28,7 @@ export default function Auth() {
     university: '',
     companyName: ''
   });
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
 
   // Check if user is already logged in
   useEffect(() => {
@@ -100,7 +102,8 @@ export default function Auth() {
             university: userType === 'student' ? formData.university : undefined,
             company_name: userType === 'company' ? formData.companyName : undefined,
             username: formData.name || formData.email.split('@')[0],
-            user_type: userType
+            user_type: userType,
+            uploaded_images: uploadedImages.length > 0 ? uploadedImages : undefined
           }
         }
       });
@@ -341,6 +344,18 @@ export default function Auth() {
                         required
                       />
                     </div>
+                  </div>
+                )}
+
+                {mode === 'signup' && (
+                  <div className="space-y-3">
+                    <Label>Upload Photos (Optional)</Label>
+                    <MultipleImageUpload
+                      onImagesUploaded={setUploadedImages}
+                      maxImages={5}
+                      bucketName="post-images"
+                      className="mt-2"
+                    />
                   </div>
                 )}
               </>
