@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
 import PostCard from '@/components/post/PostCard';
+import AdvertisingPostCard from '@/components/advertising/AdvertisingPostCard';
 import ImageUploadButton from '@/components/post/ImageUploadButton';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -42,9 +43,30 @@ interface TransformedPost {
   hashtags?: string[];
 }
 
+interface AdvertisingPost {
+  id: string;
+  title: string;
+  description?: string;
+  image_url: string;
+  redirect_url: string;
+  click_count: number;
+  likes_count: number;
+  created_at: string;
+  company_id: string;
+  company_profiles?: {
+    company_name: string;
+    logo_url?: string;
+  } | null;
+}
+
+interface MixedPost {
+  type: 'regular' | 'advertising';
+  data: TransformedPost | AdvertisingPost;
+}
+
 export default function Home() {
   const { user } = useAuth();
-  const [posts, setPosts] = useState<TransformedPost[]>([]);
+  const [mixedPosts, setMixedPosts] = useState<MixedPost[]>([]);
   const [loading, setLoading] = useState(true);
   const isMobile = useIsMobile();
 
@@ -52,7 +74,7 @@ export default function Home() {
     try {
       console.log('Fetching posts...');
       
-      // First get all posts 
+      // Fetch regular posts
       const { data: postsData, error: postsError } = await supabase
         .from('posts')
         .select('*')
@@ -63,15 +85,34 @@ export default function Home() {
         throw postsError;
       }
       
+      // Fetch advertising posts with company profiles
+      const { data: advertisingData, error: advertisingError } = await supabase
+        .from('advertising_posts')
+        .select(`
+          *,
+          company_profiles (
+            company_name,
+            logo_url
+          )
+        `)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false});
+      
+      if (advertisingError) {
+        console.error('Error fetching advertising posts:', advertisingError);
+        throw advertisingError;
+      }
+
       console.log('Fetched posts:', postsData);
+      console.log('Fetched advertising posts:', advertisingData);
       
       if (!postsData || postsData.length === 0) {
-        setPosts([]);
+        setMixedPosts([]);
         setLoading(false);
         return;
       }
       
-      // Get unique user IDs from posts
+      // Get unique user IDs from regular posts
       const userIds = [...new Set(postsData.map(post => post.user_id))];
       
       // Fetch profiles for all users
@@ -91,11 +132,8 @@ export default function Home() {
         profilesMap.set(profile.user_id, profile);
       });
       
-      // Shuffle posts for random order
-      const shuffledPosts = [...postsData].sort(() => Math.random() - 0.5);
-      
-      // Transform posts data with profile information
-      const transformedPosts: TransformedPost[] = shuffledPosts.map((post) => {
+      // Transform regular posts data with profile information
+      const transformedPosts: TransformedPost[] = postsData.map((post) => {
         const profile = profilesMap.get(post.user_id);
         
         // Create user display data with proper fallbacks  
@@ -117,11 +155,38 @@ export default function Home() {
           hashtags: post.hashtags || []
         };
       });
+
+      // Create algorithm to intersperse advertising posts
+      const mixedArray: MixedPost[] = [];
+      let advertisingIndex = 0;
       
-      setPosts(transformedPosts);
+      // Shuffle advertising posts for random order and type check
+      const shuffledAds = advertisingData ? [...advertisingData].filter(ad => 
+        ad && typeof ad === 'object' && 'id' in ad
+      ).sort(() => Math.random() - 0.5) : [];
+      
+      transformedPosts.forEach((post, index) => {
+        // Add regular post
+        mixedArray.push({
+          type: 'regular',
+          data: post
+        });
+        
+        // Add advertising post after every 3-4 posts
+        if ((index + 1) % 4 === 0 && advertisingIndex < shuffledAds.length) {
+          const adPost = shuffledAds[advertisingIndex];
+          mixedArray.push({
+            type: 'advertising',
+            data: adPost as any
+          });
+          advertisingIndex++;
+        }
+      });
+      
+      setMixedPosts(mixedArray);
     } catch (error) {
       console.error('Error fetching posts:', error);
-      setPosts([]);
+      setMixedPosts([]);
     } finally {
       setLoading(false);
     }
@@ -144,6 +209,20 @@ export default function Home() {
         { event: 'UPDATE', schema: 'public', table: 'posts' },
         (payload) => {
           console.log('Post updated:', payload);
+          fetchPosts();
+        }
+      )
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'advertising_posts' },
+        (payload) => {
+          console.log('New advertising post added:', payload);
+          fetchPosts();
+        }
+      )
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'advertising_posts' },
+        (payload) => {
+          console.log('Advertising post updated:', payload);
           fetchPosts();
         }
       )
@@ -173,13 +252,20 @@ export default function Home() {
       
       <div className="max-w-2xl mx-auto pt-6 -mt-4">
         <div className="space-y-6">
-          {posts.length > 0 ? (
-            posts.map((post) => (
-              <PostCard 
-                key={post.id} 
-                post={post} 
-                onPostUpdated={fetchPosts}
-              />
+          {mixedPosts.length > 0 ? (
+            mixedPosts.map((mixedPost, index) => (
+              mixedPost.type === 'regular' ? (
+                <PostCard 
+                  key={`regular-${mixedPost.data.id}`}
+                  post={mixedPost.data as TransformedPost} 
+                  onPostUpdated={fetchPosts}
+                />
+              ) : (
+                <AdvertisingPostCard
+                  key={`ad-${mixedPost.data.id}`}
+                  post={mixedPost.data as AdvertisingPost}
+                />
+              )
             ))
           ) : (
             <div className="post-card text-center py-12">
