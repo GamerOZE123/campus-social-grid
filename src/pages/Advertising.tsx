@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
-import { ArrowLeft, Star, Users, Briefcase, Target, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Star, Users, Briefcase, Target, TrendingUp, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import CreateAdvertisingPostModal from '@/components/advertising/CreateAdvertisingPostModal';
+import AdvertisingPostCard from '@/components/advertising/AdvertisingPostCard';
 
 const advertisingPackages = [
   {
@@ -87,6 +89,46 @@ export default function Advertising() {
     activeCompanies: 0,
     jobsPosted: 0
   });
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [advertisingPosts, setAdvertisingPosts] = useState([]);
+  const [userLikes, setUserLikes] = useState<Set<string>>(new Set());
+
+  const fetchAdvertisingPosts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('advertising_posts')
+        .select(`
+          *,
+          company_profiles (
+            company_name,
+            logo_url
+          )
+        `)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setAdvertisingPosts(data || []);
+    } catch (error) {
+      console.error('Error fetching advertising posts:', error);
+    }
+  };
+
+  const fetchUserLikes = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('advertising_likes')
+        .select('advertising_post_id')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      setUserLikes(new Set(data?.map(like => like.advertising_post_id) || []));
+    } catch (error) {
+      console.error('Error fetching user likes:', error);
+    }
+  };
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -116,6 +158,12 @@ export default function Advertising() {
           activeCompanies: companiesResult.count || 0,
           jobsPosted: jobsResult.count || 0
         });
+
+        // Fetch advertising posts and user likes
+        await Promise.all([
+          fetchAdvertisingPosts(),
+          fetchUserLikes()
+        ]);
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -186,6 +234,26 @@ export default function Advertising() {
             <div className="text-sm text-muted-foreground">Active Job Postings</div>
           </Card>
         </div>
+
+        {/* Advertising Posts Section */}
+        {advertisingPosts.length > 0 && (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-foreground text-center">Your Advertising Posts</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {advertisingPosts.map((post: any) => (
+                <AdvertisingPostCard
+                  key={post.id}
+                  post={post}
+                  isLiked={userLikes.has(post.id)}
+                  onLikeUpdate={() => {
+                    fetchUserLikes();
+                    fetchAdvertisingPosts();
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Benefits Section */}
         <div className="space-y-6">
@@ -262,6 +330,27 @@ export default function Advertising() {
             </Button>
           </div>
         </Card>
+
+        {/* Floating Add Post Button */}
+        <div className="fixed bottom-6 right-6 z-50">
+          <Button
+            size="lg"
+            className="rounded-full w-14 h-14 shadow-lg hover:shadow-xl transition-shadow"
+            onClick={() => setShowCreateModal(true)}
+          >
+            <Plus className="w-6 h-6" />
+          </Button>
+        </div>
+
+        {/* Create Advertising Post Modal */}
+        <CreateAdvertisingPostModal
+          open={showCreateModal}
+          onOpenChange={setShowCreateModal}
+          onPostCreated={() => {
+            fetchAdvertisingPosts();
+            fetchUserLikes();
+          }}
+        />
       </div>
     </Layout>
   );

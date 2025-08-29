@@ -14,6 +14,96 @@ export type Database = {
   }
   public: {
     Tables: {
+      advertising_clicks: {
+        Row: {
+          advertising_post_id: string
+          clicked_at: string
+          id: string
+          ip_address: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          advertising_post_id: string
+          clicked_at?: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          advertising_post_id?: string
+          clicked_at?: string
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      advertising_likes: {
+        Row: {
+          advertising_post_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          advertising_post_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          advertising_post_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      advertising_posts: {
+        Row: {
+          click_count: number
+          company_id: string
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string
+          is_active: boolean
+          likes_count: number
+          redirect_url: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          click_count?: number
+          company_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url: string
+          is_active?: boolean
+          likes_count?: number
+          redirect_url: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          click_count?: number
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string
+          is_active?: boolean
+          likes_count?: number
+          redirect_url?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       auction_bids: {
         Row: {
           amount: number
