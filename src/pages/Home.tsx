@@ -85,18 +85,28 @@ export default function Home() {
         throw postsError;
       }
       
-      // Fetch advertising posts with company profiles
+      // Fetch advertising posts
       const { data: advertisingData, error: advertisingError } = await supabase
         .from('advertising_posts')
-        .select(`
-          *,
-          company_profiles (
-            company_name,
-            logo_url
-          )
-        `)
+        .select('*')
         .eq('is_active', true)
         .order('created_at', { ascending: false});
+      
+      // Fetch company profiles for advertising posts
+      let advertisingWithProfiles = [];
+      if (advertisingData && advertisingData.length > 0) {
+        const companyIds = [...new Set(advertisingData.map(ad => ad.company_id))];
+        const { data: companyProfilesData } = await supabase
+          .from('company_profiles')
+          .select('user_id, company_name, logo_url')
+          .in('user_id', companyIds);
+        
+        // Map company profiles to advertising posts
+        advertisingWithProfiles = advertisingData.map(ad => ({
+          ...ad,
+          company_profiles: companyProfilesData?.find(cp => cp.user_id === ad.company_id) || null
+        }));
+      }
       
       if (advertisingError) {
         console.error('Error fetching advertising posts:', advertisingError);
@@ -104,7 +114,7 @@ export default function Home() {
       }
 
       console.log('Fetched posts:', postsData);
-      console.log('Fetched advertising posts:', advertisingData);
+      console.log('Fetched advertising posts:', advertisingWithProfiles);
       
       if (!postsData || postsData.length === 0) {
         setMixedPosts([]);
@@ -161,7 +171,7 @@ export default function Home() {
       let advertisingIndex = 0;
       
       // Shuffle advertising posts for random order and type check
-      const shuffledAds = advertisingData ? [...advertisingData].filter(ad => 
+      const shuffledAds = advertisingWithProfiles ? [...advertisingWithProfiles].filter(ad => 
         ad && typeof ad === 'object' && 'id' in ad
       ).sort(() => Math.random() - 0.5) : [];
       
