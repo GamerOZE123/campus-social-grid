@@ -252,9 +252,14 @@ export default function Home() {
       
       <div className="max-w-2xl mx-auto pt-6 -mt-4">
         <div className="space-y-6">
+          {(() => {
+            console.log('mixedPosts:', mixedPosts);
+            return null;
+          })()}
           {mixedPosts.length > 0 ? (
-            mixedPosts.map((mixedPost, index) => (
-              mixedPost.type === 'regular' ? (
+            mixedPosts.map((mixedPost, index) => {
+              console.log('Processing mixedPost:', mixedPost, 'at index:', index);
+              return mixedPost.type === 'regular' ? (
                 <PostCard 
                   key={`regular-${mixedPost.data.id}`}
                   post={mixedPost.data as TransformedPost} 
@@ -265,8 +270,8 @@ export default function Home() {
                   key={`ad-${mixedPost.data.id}`}
                   post={mixedPost.data as AdvertisingPost}
                 />
-              )
-            ))
+              );
+            })
           ) : (
             <div className="post-card text-center py-12">
               <h3 className="text-lg font-semibold text-foreground mb-2">
