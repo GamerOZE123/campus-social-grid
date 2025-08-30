@@ -8,7 +8,10 @@ interface PostContentProps {
 }
 
 const isImageUrl = (url: string) => {
-  return url.includes("placeholder.com") || /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+  return (
+    url.includes("placeholder.com") ||
+    /\.(jpg|jpeg|png|gif|webp)$/i.test(url)
+  );
 };
 
 const getFileNameFromUrl = (url: string) => {
@@ -27,10 +30,10 @@ export default function PostContent({ content, imageUrl }: PostContentProps) {
   };
 
   return (
-    <div className="ml-12 space-y-3">
+    <div className="ml-14 mt-1 space-y-3">
       {/* Caption */}
       {content && (
-        <p className="text-foreground leading-relaxed whitespace-pre-line">
+        <p className="text-foreground leading-relaxed whitespace-pre-line break-words">
           {content}
         </p>
       )}
