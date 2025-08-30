@@ -13,7 +13,7 @@ interface PostHeaderProps {
   fullName: string;
   avatarUrl?: string;
   createdAt: string;
-  content: string; // 👈 added caption/content
+  content: string; // caption
   isVerified?: boolean;
   isOwnPost?: boolean;
   onEdit?: () => void;
@@ -58,6 +58,7 @@ export default function PostHeader({
       {/* Right section */}
       <div className="flex-1">
         <div className="flex items-start justify-between">
+          {/* User info */}
           <div className="flex items-center gap-2 flex-wrap">
             <p className="font-semibold text-foreground">{fullName || username}</p>
             {isVerified && <CheckCircle2 className="w-4 h-4 text-sky-500" />}
@@ -65,11 +66,16 @@ export default function PostHeader({
             <span className="text-sm text-muted-foreground">· {formatDate(createdAt)}</span>
           </div>
 
+          {/* Dropdown actions */}
           {isOwnPost && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                  <MoreHorizontal className="w-4 w-4" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <MoreHorizontal className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -77,7 +83,7 @@ export default function PostHeader({
                   <Edit className="w-4 h-4 mr-2" />
                   Edit Post
                 </DropdownMenuItem>
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onClick={onDelete}
                   className="text-destructive focus:text-destructive"
                 >
@@ -89,8 +95,12 @@ export default function PostHeader({
           )}
         </div>
 
-        {/* Caption just below username + date */}
-        <p className="text-foreground mt-1">{content}</p>
+        {/* Caption */}
+        {content && (
+          <p className="text-foreground mt-1 leading-relaxed whitespace-pre-line">
+            {content}
+          </p>
+        )}
       </div>
     </div>
   );
