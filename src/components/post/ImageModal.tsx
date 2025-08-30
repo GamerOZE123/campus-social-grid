@@ -57,7 +57,11 @@ export default function ImageModal({
             <img
               src={imageUrl}
               alt={alt}
-              className="max-h-[90vh] max-w-[95vw] object-contain rounded-lg"
+              className="
+                w-full h-full object-contain
+                sm:rounded-none sm:max-h-screen sm:max-w-screen
+                md:rounded-lg md:max-h-[90vh] md:max-w-[95vw]
+              "
             />
           </div>
 
