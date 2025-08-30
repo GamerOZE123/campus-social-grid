@@ -1,5 +1,5 @@
 import React from 'react';
-import { MoreHorizontal, Edit, Trash } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -13,7 +13,8 @@ interface PostHeaderProps {
   fullName: string;
   avatarUrl?: string;
   createdAt: string;
-  caption?: string; // 👈 added caption support
+  caption?: string;
+  isVerified?: boolean; // ✅ add verified badge option
   isOwnPost?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -25,6 +26,7 @@ export default function PostHeader({
   avatarUrl, 
   createdAt, 
   caption,
+  isVerified = false,
   isOwnPost = false, 
   onEdit, 
   onDelete 
@@ -43,18 +45,23 @@ export default function PostHeader({
   return (
     <div className="flex gap-3">
       {/* Avatar */}
-      <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
-        <span className="text-sm font-bold text-white">
-          {avatarUrl || fullName?.charAt(0) || username?.charAt(0) || 'U'}
-        </span>
+      <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+        {avatarUrl ? (
+          <img src={avatarUrl} alt={fullName} className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-sm font-bold text-white">
+            {fullName?.charAt(0) || username?.charAt(0) || 'U'}
+          </span>
+        )}
       </div>
 
       {/* Right section */}
       <div className="flex-1">
         {/* Top row: name, handle, time, menu */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-2 flex-wrap">
             <p className="font-semibold text-foreground">{fullName || username}</p>
+            {isVerified && <CheckCircle2 className="w-4 h-4 text-sky-500" />}
             <p className="text-sm text-muted-foreground">@{username}</p>
             <span className="text-sm text-muted-foreground">· {formatDate(createdAt)}</span>
           </div>
@@ -83,9 +90,9 @@ export default function PostHeader({
           )}
         </div>
 
-        {/* Caption (post text) */}
+        {/* Caption aligned with username */}
         {caption && (
-          <p className="mt-1 text-foreground text-sm">
+          <p className="mt-1 text-foreground text-sm leading-relaxed">
             {caption}
           </p>
         )}
