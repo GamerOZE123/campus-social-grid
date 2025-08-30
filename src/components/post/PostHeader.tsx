@@ -47,39 +47,38 @@ export default function PostHeader({
           {avatarUrl || fullName?.charAt(0) || username?.charAt(0) || 'U'}
         </span>
       </div>
-      <div>
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col -mt-1"> {/* 👈 nudges text upward */}
+        <div className="flex items-baseline gap-2">
           <p className="font-semibold text-foreground">{fullName || username}</p>
           <p className="text-sm text-muted-foreground">@{username}</p>
-          {/* 👇 moved time here with a left gap */}
-          <span className="text-sm text-muted-foreground ml-2">
-            {formatDate(createdAt)}
-          </span>
         </div>
       </div>
     </div>
-    {isOwnPost && (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-            <MoreHorizontal className="w-4 h-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={onEdit}>
-            <Edit className="w-4 h-4 mr-2" />
-            Edit Post
-          </DropdownMenuItem>
-          <DropdownMenuItem 
-            onClick={onDelete}
-            className="text-destructive focus:text-destructive"
-          >
-            <Trash className="w-4 h-4 mr-2" />
-            Delete Post
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    )}
+    <div className="flex items-center gap-2 -mt-1"> {/* 👈 keeps time aligned upward */}
+      <span className="text-sm text-muted-foreground">{formatDate(createdAt)}</span>
+      {isOwnPost && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+              <MoreHorizontal className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={onEdit}>
+              <Edit className="w-4 h-4 mr-2" />
+              Edit Post
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              onClick={onDelete}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash className="w-4 h-4 mr-2" />
+              Delete Post
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </div>
   </div>
 );
 }
