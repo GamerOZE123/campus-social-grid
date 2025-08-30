@@ -57,7 +57,7 @@ export default function PostHeader({
 
       {/* Right section */}
       <div className="flex-1">
-        <div className="flex items-start justify-between">
+        <div className="flex items-center justify-between">
           {/* User info */}
           <div className="flex items-center gap-2 flex-wrap">
             <p className="font-semibold text-foreground">{fullName || username}</p>
@@ -73,7 +73,7 @@ export default function PostHeader({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-muted-foreground hover:text-foreground"
+                  className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                 >
                   <MoreHorizontal className="w-4 h-4" />
                 </Button>
