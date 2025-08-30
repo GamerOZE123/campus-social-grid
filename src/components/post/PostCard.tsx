@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -89,80 +88,82 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
     }
   };
 
-  // Extract user info from either profiles object or direct properties
+  // Extract user info
   const username = post.profiles?.username || post.user_username || 'user';
   const fullName = post.profiles?.full_name || post.user_name || 'Anonymous User';
   const avatarUrl = post.profiles?.avatar_url;
   const isOwnPost = user?.id === post.user_id;
 
-  console.log('PostCard - post hashtags:', post.hashtags); // Debug log
-
   return (
     <>
       <ClickablePostCard postId={post.id}>
         <Card className="w-full bg-card border border-border hover:shadow-md transition-shadow">
-          <div className="p-4 space-y-4">
-          <div className="flex items-start justify-between">
-            <PostHeader 
-              username={username}
-              fullName={fullName}
-              avatarUrl={avatarUrl}
-              createdAt={post.created_at}
-            />
-            
-            {/* Three dots menu for post owner */}
-            {isOwnPost && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setShowEditModal(true)}>
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleDeletePost} className="text-destructive">
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+          <div className="p-4 space-y-3">
+            {/* Header and actions */}
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <PostHeader 
+                  username={username}
+                  fullName={fullName}
+                  avatarUrl={avatarUrl}
+                  createdAt={post.created_at}
+                />
+                {/* Caption comes right after header (like Twitter/X) */}
+                <PostContent 
+                  content={post.content}
+                  imageUrl={post.image_url}
+                />
+              </div>
+
+              {/* Three dots menu */}
+              {isOwnPost && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => setShowEditModal(true)}>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleDeletePost} className="text-destructive">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
+
+            {/* Hashtags */}
+            {post.hashtags && Array.isArray(post.hashtags) && post.hashtags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {post.hashtags.map((hashtag, index) => (
+                  <button
+                    key={index}
+                    onClick={(e) => handleHashtagClick(hashtag, e)}
+                    className="text-blue-500 hover:text-blue-700 hover:underline text-sm font-medium cursor-pointer transition-colors"
+                  >
+                    #{hashtag}
+                  </button>
+                ))}
+              </div>
             )}
-          </div>
-        
-        <PostContent 
-          content={post.content}
-          imageUrl={post.image_url}
-        />
-        
-        {/* Display hashtags below the content */}
-        {post.hashtags && Array.isArray(post.hashtags) && post.hashtags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-3">
-            {post.hashtags.map((hashtag, index) => (
-              <button
-                key={index}
-                onClick={(e) => handleHashtagClick(hashtag, e)}
-                className="text-blue-500 hover:text-blue-700 hover:underline text-sm font-medium cursor-pointer transition-colors"
-              >
-                #{hashtag}
-              </button>
-            ))}
-          </div>
-        )}
-        
-          <PostActions 
-            likesCount={likesCount}
-            commentsCount={post.comments_count}
-            isLiked={isLiked}
-            likesLoading={likesLoading}
-            onLike={handleLikeClick}
-            onComment={handleCommentClick}
-            onShare={onShare}
-            postId={post.id}
-            postContent={post.content}
-          />
+
+            {/* Actions */}
+            <PostActions 
+              likesCount={likesCount}
+              commentsCount={post.comments_count}
+              isLiked={isLiked}
+              likesLoading={likesLoading}
+              onLike={handleLikeClick}
+              onComment={handleCommentClick}
+              onShare={onShare}
+              postId={post.id}
+              postContent={post.content}
+            />
           </div>
         </Card>
       </ClickablePostCard>
