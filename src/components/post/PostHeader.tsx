@@ -48,8 +48,10 @@ export default function PostHeader({
           </span>
         </div>
         <div>
-          <p className="font-semibold text-foreground">{fullName || username}</p>
-          <p className="text-sm text-muted-foreground">@{username}</p>
+          <div className="flex items-center gap-2">
+            <p className="font-semibold text-foreground">{fullName || username}</p>
+            <p className="text-sm text-muted-foreground">@{username}</p>
+          </div>
         </div>
       </div>
       <div className="flex items-center gap-2">

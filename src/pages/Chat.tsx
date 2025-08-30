@@ -121,14 +121,17 @@ export default function Chat() {
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversationId) return;
     
+    const messageToSend = newMessage.trim();
+    setNewMessage(''); // Clear immediately to prevent display issues
+    
     try {
-      await sendMessage(selectedConversationId, newMessage);
-      setNewMessage('');
+      await sendMessage(selectedConversationId, messageToSend);
       // Refresh conversations and recent chats to update order
       refreshConversations();
       refreshRecentChats();
     } catch (error) {
       console.error('Error sending message:', error);
+      setNewMessage(messageToSend); // Restore message on error
     }
   };
 

@@ -36,7 +36,7 @@ export default function PostContent({ content, imageUrl }: PostContentProps) {
             <img 
               src={imageUrl} 
               alt="Post content" 
-              className="w-full h-auto object-cover"
+              className="w-full h-auto object-cover max-h-96"
             />
           ) : (
             <div className="bg-muted/20 border border-border rounded-lg p-4 flex items-center justify-between">
