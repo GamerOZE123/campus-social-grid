@@ -53,11 +53,11 @@ export default function ImageModal({
           </div>
 
           {/* Image Container */}
-          <div className="flex-1 flex items-center justify-center p-4">
+          <div className="flex-1 flex items-center justify-center">
             <img
               src={imageUrl}
               alt={alt}
-              className="max-w-full max-h-full object-contain"
+              className="max-h-[90vh] max-w-[95vw] object-contain rounded-lg"
             />
           </div>
 
