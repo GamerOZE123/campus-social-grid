@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { MoreVertical, Edit, Trash2 } from 'lucide-react';
 import PostHeader from './PostHeader';
 import PostContent from './PostContent';
 import PostActions from './PostActions';
@@ -62,10 +65,15 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
   };
 
   const handleDeletePost = async () => {
-    if (!window.confirm('Are you sure you want to delete this post?')) return;
+    if (!window.confirm('Are you sure you want to delete this post?')) {
+      return;
+    }
 
     try {
-      const { error } = await supabase.from('posts').delete().eq('id', post.id);
+      const { error } = await supabase
+        .from('posts')
+        .delete()
+        .eq('id', post.id);
 
       if (error) {
         console.error('Error deleting post:', error);
@@ -91,28 +99,28 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
       <ClickablePostCard postId={post.id}>
         <Card className="w-full bg-card border border-border hover:shadow-md transition-shadow">
           <div className="p-4 space-y-3">
-            {/* Header (with caption inside) */}
-            <PostHeader
+            {/* Header with caption inside */}
+            <PostHeader 
               username={username}
               fullName={fullName}
               avatarUrl={avatarUrl}
               createdAt={post.created_at}
-              content={post.content}
+              content={post.content} // 👈 now caption is inside header
               isOwnPost={isOwnPost}
               onEdit={() => setShowEditModal(true)}
               onDelete={handleDeletePost}
             />
 
-            {/* Image (if present) */}
+            {/* If image exists, show it below caption */}
             {post.image_url && (
-              <PostContent
-                content=""
+              <PostContent 
+                content="" // 👈 we don't pass text again
                 imageUrl={post.image_url}
               />
             )}
 
             {/* Hashtags */}
-            {post.hashtags && post.hashtags.length > 0 && (
+            {post.hashtags && Array.isArray(post.hashtags) && post.hashtags.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {post.hashtags.map((hashtag, index) => (
                   <button
@@ -127,7 +135,7 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
             )}
 
             {/* Actions */}
-            <PostActions
+            <PostActions 
               likesCount={likesCount}
               commentsCount={post.comments_count}
               isLiked={isLiked}
@@ -154,7 +162,7 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
           post={{
             id: post.id,
             content: post.content,
-            hashtags: post.hashtags,
+            hashtags: post.hashtags
           }}
         />
       )}
