@@ -29,9 +29,11 @@ export default function PostContent({ content, imageUrl }: PostContentProps) {
   return (
     <div className="ml-12 space-y-3">
       {/* Caption */}
-      <p className="text-foreground leading-relaxed whitespace-pre-line">
-        {content}
-      </p>
+      {content && (
+        <p className="text-foreground leading-relaxed whitespace-pre-line">
+          {content}
+        </p>
+      )}
 
       {/* Image or file preview */}
       {imageUrl && (
