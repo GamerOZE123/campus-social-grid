@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { File, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
+import ImageModal from "./ImageModal";
 
 interface PostContentProps {
   content: string;
@@ -14,6 +16,23 @@ const isImageUrl = (url: string) => {
   );
 };
 
+const getImageAspectRatio = (url: string): number => {
+  // This is a simplified version - in production you'd want to load the image to get actual dimensions
+  // For demo purposes, we'll use some heuristics based on URL or assume common ratios
+  return 16/9; // Default to 16:9, but this should be enhanced to detect actual image dimensions
+};
+
+const getDisplayAspectRatio = (actualRatio: number): number => {
+  // If image is portrait (9:16 or similar), display as 4:3
+  if (actualRatio < 1) {
+    return 4/3;
+  }
+  // Otherwise use actual ratio, but constrain to common ratios
+  if (actualRatio > 1.7) return 16/9; // Wide images
+  if (actualRatio > 1.2) return 4/3;  // Standard images
+  return 1; // Square images
+};
+
 const getFileNameFromUrl = (url: string) => {
   if (url.includes("placeholder.com")) {
     const match = url.match(/text=(.+)/);
@@ -23,10 +42,16 @@ const getFileNameFromUrl = (url: string) => {
 };
 
 export default function PostContent({ content, imageUrl }: PostContentProps) {
+  const [showFullImage, setShowFullImage] = useState(false);
+  
   const handleDownload = () => {
     if (imageUrl) {
       window.open(imageUrl, "_blank");
     }
+  };
+
+  const handleImageClick = () => {
+    setShowFullImage(true);
   };
 
   return (
@@ -42,11 +67,19 @@ export default function PostContent({ content, imageUrl }: PostContentProps) {
       {imageUrl && (
         <div className="rounded-xl overflow-hidden">
           {isImageUrl(imageUrl) ? (
-            <img
-              src={imageUrl}
-              alt="Post content"
-              className="w-full h-auto object-cover max-h-96 rounded-xl"
-            />
+            <div className="w-full max-w-lg">
+              <AspectRatio 
+                ratio={getDisplayAspectRatio(getImageAspectRatio(imageUrl))} 
+                className="rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
+                onClick={handleImageClick}
+              >
+                <img
+                  src={imageUrl}
+                  alt="Post content"
+                  className="w-full h-full object-cover"
+                />
+              </AspectRatio>
+            </div>
           ) : (
             <div className="bg-muted/20 border border-border rounded-lg p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -65,6 +98,16 @@ export default function PostContent({ content, imageUrl }: PostContentProps) {
             </div>
           )}
         </div>
+      )}
+
+      {/* Full size image modal */}
+      {imageUrl && isImageUrl(imageUrl) && (
+        <ImageModal
+          imageUrl={imageUrl}
+          isOpen={showFullImage}
+          onClose={() => setShowFullImage(false)}
+          alt="Post content"
+        />
       )}
     </div>
   );
