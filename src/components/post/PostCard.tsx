@@ -102,17 +102,21 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
             {/* Header and actions */}
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <PostHeader 
-                  username={username}
-                  fullName={fullName}
-                  avatarUrl={avatarUrl}
-                  createdAt={post.created_at}
-                />
-                {/* Caption comes right after header (like Twitter/X) */}
-                <PostContent 
-                  content={post.content}
-                  imageUrl={post.image_url}
-                />
+               <PostHeader 
+  username={username}
+  fullName={fullName}
+  avatarUrl={avatarUrl}
+  createdAt={post.created_at}
+  isOwnPost={isOwnPost}
+  onEdit={() => setShowEditModal(true)}
+  onDelete={handleDeletePost}
+/>
+
+<PostContent 
+  content={post.content}
+  imageUrl={post.image_url}
+/>
+
               </div>
 
               {/* Three dots menu */}
