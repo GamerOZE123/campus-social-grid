@@ -13,7 +13,7 @@ interface PostHeaderProps {
   fullName: string;
   avatarUrl?: string;
   createdAt: string;
-  caption?: string; // caption support
+  caption?: string; // 👈 added caption support
   isOwnPost?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -52,8 +52,8 @@ export default function PostHeader({
       {/* Right section */}
       <div className="flex-1">
         {/* Top row: name, handle, time, menu */}
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
             <p className="font-semibold text-foreground">{fullName || username}</p>
             <p className="text-sm text-muted-foreground">@{username}</p>
             <span className="text-sm text-muted-foreground">· {formatDate(createdAt)}</span>
@@ -83,9 +83,9 @@ export default function PostHeader({
           )}
         </div>
 
-        {/* Caption (post text) under name/username/time */}
+        {/* Caption (post text) */}
         {caption && (
-          <p className="mt-1 text-foreground text-sm leading-relaxed">
+          <p className="mt-1 text-foreground text-sm">
             {caption}
           </p>
         )}
