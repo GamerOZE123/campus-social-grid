@@ -13,6 +13,7 @@ interface PostHeaderProps {
   fullName: string;
   avatarUrl?: string;
   createdAt: string;
+  content: string; // 👈 added caption/content
   isVerified?: boolean;
   isOwnPost?: boolean;
   onEdit?: () => void;
@@ -24,6 +25,7 @@ export default function PostHeader({
   fullName, 
   avatarUrl, 
   createdAt, 
+  content,
   isVerified = false,
   isOwnPost = false, 
   onEdit, 
@@ -67,7 +69,7 @@ export default function PostHeader({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-                  <MoreHorizontal className="w-4 h-4" />
+                  <MoreHorizontal className="w-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -86,6 +88,9 @@ export default function PostHeader({
             </DropdownMenu>
           )}
         </div>
+
+        {/* Caption just below username + date */}
+        <p className="text-foreground mt-1">{content}</p>
       </div>
     </div>
   );
