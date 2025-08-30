@@ -22,15 +22,18 @@ const getImageAspectRatio = (url: string): number => {
   return 16/9; // Default to 16:9, but this should be enhanced to detect actual image dimensions
 };
 
+const shouldConstrainImage = (actualRatio: number): boolean => {
+  // Only constrain if image is taller than 9:16 (very portrait)
+  return actualRatio < (9/16);
+};
+
 const getDisplayAspectRatio = (actualRatio: number): number => {
-  // If image is portrait (9:16 or similar), display as 4:3
-  if (actualRatio < 1) {
+  // Only constrain very tall portrait images (taller than 9:16) to 4:3
+  if (shouldConstrainImage(actualRatio)) {
     return 4/3;
   }
-  // Otherwise use actual ratio, but constrain to common ratios
-  if (actualRatio > 1.7) return 16/9; // Wide images
-  if (actualRatio > 1.2) return 4/3;  // Standard images
-  return 1; // Square images
+  // Otherwise keep original aspect ratio
+  return actualRatio;
 };
 
 const getFileNameFromUrl = (url: string) => {
@@ -68,17 +71,26 @@ export default function PostContent({ content, imageUrl }: PostContentProps) {
         <div className="rounded-xl overflow-hidden">
           {isImageUrl(imageUrl) ? (
             <div className="w-full max-w-lg">
-              <AspectRatio 
-                ratio={getDisplayAspectRatio(getImageAspectRatio(imageUrl))} 
-                className="rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
-                onClick={handleImageClick}
-              >
+              {shouldConstrainImage(getImageAspectRatio(imageUrl)) ? (
+                <AspectRatio 
+                  ratio={getDisplayAspectRatio(getImageAspectRatio(imageUrl))} 
+                  className="rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
+                  onClick={handleImageClick}
+                >
+                  <img
+                    src={imageUrl}
+                    alt="Post content"
+                    className="w-full h-full object-cover"
+                  />
+                </AspectRatio>
+              ) : (
                 <img
                   src={imageUrl}
                   alt="Post content"
-                  className="w-full h-full object-cover"
+                  className="w-full h-auto object-cover rounded-xl cursor-pointer hover:opacity-95 transition-opacity"
+                  onClick={handleImageClick}
                 />
-              </AspectRatio>
+              )}
             </div>
           ) : (
             <div className="bg-muted/20 border border-border rounded-lg p-4 flex items-center justify-between">
