@@ -13,8 +13,7 @@ interface PostHeaderProps {
   fullName: string;
   avatarUrl?: string;
   createdAt: string;
-  caption?: string;
-  isVerified?: boolean; // ✅ add verified badge option
+  isVerified?: boolean;
   isOwnPost?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -25,7 +24,6 @@ export default function PostHeader({
   fullName, 
   avatarUrl, 
   createdAt, 
-  caption,
   isVerified = false,
   isOwnPost = false, 
   onEdit, 
@@ -57,7 +55,6 @@ export default function PostHeader({
 
       {/* Right section */}
       <div className="flex-1">
-        {/* Top row: name, handle, time, menu */}
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="font-semibold text-foreground">{fullName || username}</p>
@@ -89,13 +86,6 @@ export default function PostHeader({
             </DropdownMenu>
           )}
         </div>
-
-        {/* Caption aligned with username */}
-        {caption && (
-          <p className="mt-1 text-foreground text-sm leading-relaxed">
-            {caption}
-          </p>
-        )}
       </div>
     </div>
   );
