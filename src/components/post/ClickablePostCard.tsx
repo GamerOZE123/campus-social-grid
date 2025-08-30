@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -12,19 +11,28 @@ export default function ClickablePostCard({ postId, children, className = "" }: 
   const navigate = useNavigate();
 
   const handlePostClick = (e: React.MouseEvent) => {
-    // Don't navigate if clicking on interactive elements or images
+    // Don't navigate if clicking on interactive elements or links
     const target = e.target as HTMLElement;
-    if (target.closest('button, a, input, textarea, img')) {
+    if (target.closest('button, a, input, textarea')) {
       return;
     }
-    
     navigate(`/post/${postId}`);
   };
 
   return (
     <div 
       onClick={handlePostClick}
-      className={`cursor-pointer hover:bg-muted/5 transition-colors ${className}`}
+      className={`
+        cursor-pointer transition-colors 
+        hover:bg-muted/5 
+        ${className}
+
+        // ✅ Fullscreen post on mobile
+        sm:w-full sm:h-auto 
+
+        // ✅ Normal contained post on desktop
+        md:w-auto md:max-w-2xl md:mx-auto
+      `}
     >
       {children}
     </div>
