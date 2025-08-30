@@ -99,47 +99,25 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
       <ClickablePostCard postId={post.id}>
         <Card className="w-full bg-card border border-border hover:shadow-md transition-shadow">
           <div className="p-4 space-y-3">
-            {/* Header and actions */}
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-               <PostHeader 
-  username={username}
-  fullName={fullName}
-  avatarUrl={avatarUrl}
-  createdAt={post.created_at}
-  isOwnPost={isOwnPost}
-  onEdit={() => setShowEditModal(true)}
-  onDelete={handleDeletePost}
-/>
+            {/* Header with caption inside */}
+            <PostHeader 
+              username={username}
+              fullName={fullName}
+              avatarUrl={avatarUrl}
+              createdAt={post.created_at}
+              content={post.content} // 👈 now caption is inside header
+              isOwnPost={isOwnPost}
+              onEdit={() => setShowEditModal(true)}
+              onDelete={handleDeletePost}
+            />
 
-<PostContent 
-  content={post.content}
-  imageUrl={post.image_url}
-/>
-
-              </div>
-
-              {/* Three dots menu */}
-              {isOwnPost && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => setShowEditModal(true)}>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleDeletePost} className="text-destructive">
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-            </div>
+            {/* If image exists, show it below caption */}
+            {post.image_url && (
+              <PostContent 
+                content="" // 👈 we don't pass text again
+                imageUrl={post.image_url}
+              />
+            )}
 
             {/* Hashtags */}
             {post.hashtags && Array.isArray(post.hashtags) && post.hashtags.length > 0 && (
