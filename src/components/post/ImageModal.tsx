@@ -67,33 +67,32 @@ export default function ImageModal({
 
           {/* Bottom Action Bar */}
           <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/80 to-transparent p-4">
-            <div className="flex items-center justify-center gap-8 text-white">
+            <div className="flex items-center justify-center gap-8">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onLike}
-                className="hover:bg-white/10 flex items-center gap-2"
+                className="text-white hover:bg-white/10 flex items-center gap-2"
               >
                 <Heart className={`w-6 h-6 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
-                <span>{likesCount}</span>
+                {likesCount > 0 && <span>{likesCount}</span>}
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onComment}
-                className="hover:bg-white/10 flex items-center gap-2"
+                className="text-white hover:bg-white/10 flex items-center gap-2"
               >
                 <MessageCircle className="w-6 h-6" />
-                <span>{commentsCount}</span>
+                {commentsCount > 0 && <span>{commentsCount}</span>}
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onShare}
-                className="hover:bg-white/10 flex items-center gap-2"
+                className="text-white hover:bg-white/10"
               >
                 <Share className="w-6 h-6" />
-                <span>Share</span>
               </Button>
             </div>
           </div>
