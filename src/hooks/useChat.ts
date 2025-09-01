@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -136,7 +135,7 @@ export const useChat = () => {
       return { success: true, data };
     } catch (error) {
       console.error('Error sending message:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: (error as Error).message };
     }
   };
 
@@ -168,17 +167,18 @@ export const useChat = () => {
     if (!user) return { success: false, error: 'No user' };
 
     try {
-     const { error } = await supabase
-  .from('cleared_chats')
-  .upsert({
-    user_id: user.id,
-    conversation_id: conversationId,
-    cleared_at: new Date().toISOString()
-  }, {
-    onConflict: 'user_id,conversation_id' // ✅ correct for Supabase
-  });
-
-
+      const { error } = await supabase
+        .from('cleared_chats')
+        .upsert(
+          {
+            user_id: user.id,
+            conversation_id: conversationId,
+            cleared_at: new Date().toISOString()
+          },
+          {
+            onConflict: 'user_id,conversation_id' // ✅ must be a string, not array
+          }
+        );
 
       if (error) {
         console.error('Error clearing chat:', error);
@@ -191,7 +191,7 @@ export const useChat = () => {
       return { success: true };
     } catch (error) {
       console.error('Error clearing chat:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: (error as Error).message };
     }
   };
 
