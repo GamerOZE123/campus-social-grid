@@ -303,16 +303,7 @@ export default function Chat() {
                   onScroll={handleScroll}
                   className="flex-1 p-4 overflow-y-auto space-y-4"
                 >
-                  {isChatCleared ? (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="text-center">
-                        <h3 className="text-lg font-medium text-foreground mb-2">Chat cleared</h3>
-                        <p className="text-muted-foreground">
-                          You cleared this chat. Start a new conversation by sending a message.
-                        </p>
-                      </div>
-                    </div>
-                  ) : currentMessages && currentMessages.length > 0 ? (
+                  {currentMessages && currentMessages.length > 0 ? (
                     currentMessages.map((message) => (
                       <div
                         key={message.id}
@@ -350,7 +341,7 @@ export default function Chat() {
                 <div className="p-4 border-t border-border">
                   <div className="flex gap-2">
                     <Input
-                      placeholder={isChatCleared ? "Send a message to start a new conversation..." : "Type your message..."}
+                      placeholder="Type your message..."
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       onKeyPress={(e) => {
@@ -432,16 +423,7 @@ export default function Chat() {
             onScroll={handleScroll}
             className="flex-1 p-4 overflow-y-auto space-y-4 pt-20 pb-20"
           >
-            {isChatCleared ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <h3 className="text-lg font-medium text-foreground mb-2">Chat cleared</h3>
-                  <p className="text-muted-foreground">
-                    You cleared this chat. Start a new conversation by sending a message.
-                  </p>
-                </div>
-              </div>
-            ) : currentMessages && currentMessages.length > 0 ? (
+            {currentMessages && currentMessages.length > 0 ? (
               currentMessages.map((message) => (
                 <div
                   key={message.id}
@@ -479,7 +461,7 @@ export default function Chat() {
           <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4">
             <div className="flex gap-2">
               <Input
-                placeholder={isChatCleared ? "Send a message to start a new conversation..." : "Type your message..."}
+                placeholder="Type your message..."
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyPress={(e) => {

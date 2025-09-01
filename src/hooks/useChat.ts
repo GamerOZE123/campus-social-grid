@@ -54,29 +54,32 @@ export const useChat = () => {
 
   const fetchMessages = async (conversationId: string, offset = 0, limit = 15) => {
     try {
-      // First check if the chat is cleared for this user
       if (!user) return;
       
+      // Get the cleared_at timestamp for this user and conversation
       const { data: clearedData } = await supabase
         .from('cleared_chats')
-        .select('*')
+        .select('cleared_at')
         .eq('user_id', user.id)
         .eq('conversation_id', conversationId)
         .single();
       
-      if (clearedData) {
-        setIsChatCleared(true);
-        setCurrentMessages([]);
-        return;
-      }
-      
-      setIsChatCleared(false);
+      setIsChatCleared(!!clearedData);
       
       console.log('Fetching messages for conversation:', conversationId);
-      const { data, error } = await supabase
+      
+      // Build the query with optional timestamp filter
+      let query = supabase
         .from('messages')
         .select('*')
-        .eq('conversation_id', conversationId)
+        .eq('conversation_id', conversationId);
+      
+      // If chat was cleared, only fetch messages after the cleared timestamp
+      if (clearedData?.cleared_at) {
+        query = query.gt('created_at', clearedData.cleared_at);
+      }
+      
+      const { data, error } = await query
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
       
