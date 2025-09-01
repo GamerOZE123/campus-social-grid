@@ -62,7 +62,7 @@ export const useChat = () => {
         .select('cleared_at')
         .eq('user_id', user.id)
         .eq('conversation_id', conversationId)
-        .maybeSingle();
+        .single();
       
       setIsChatCleared(!!clearedData);
       
@@ -168,33 +168,19 @@ export const useChat = () => {
     if (!user) return { success: false, error: 'No user' };
 
     try {
-      // First try to update existing record
-      const { data: updateData, error: updateError, count } = await supabase
+      const { error } = await supabase
         .from('cleared_chats')
-        .update({ cleared_at: new Date().toISOString() })
-        .eq('user_id', user.id)
-        .eq('conversation_id', conversationId)
-        .select();
+        .upsert({
+          user_id: user.id,
+          conversation_id: conversationId,
+          cleared_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,conversation_id'
+        });
 
-      if (updateError) {
-        console.error('Error updating cleared chat:', updateError);
-        return { success: false, error: updateError.message };
-      }
-
-      // If no record was updated, insert a new one
-      if (!updateData || updateData.length === 0) {
-        const { error: insertError } = await supabase
-          .from('cleared_chats')
-          .insert({
-            user_id: user.id,
-            conversation_id: conversationId,
-            cleared_at: new Date().toISOString()
-          });
-
-        if (insertError) {
-          console.error('Error inserting cleared chat:', insertError);
-          return { success: false, error: insertError.message };
-        }
+      if (error) {
+        console.error('Error clearing chat:', error);
+        return { success: false, error: error.message };
       }
 
       setIsChatCleared(true);
