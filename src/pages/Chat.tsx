@@ -36,6 +36,7 @@ export default function Chat() {
     currentMessages, 
     loading: chatLoading,
     fetchMessages,
+    loadOlderMessages,
     sendMessage, 
     createConversation,
     refreshConversations
@@ -57,6 +58,12 @@ export default function Chat() {
     if (messagesContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
       const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
+      const isAtTop = scrollTop <= 10;
+      
+      // Load older messages when scrolled to top
+      if (isAtTop && selectedConversationId && currentMessages.length >= 50) {
+        loadOlderMessages(selectedConversationId);
+      }
       
       if (!isAtBottom) {
         setIsUserScrolling(true);

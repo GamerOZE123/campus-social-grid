@@ -14,6 +14,7 @@ interface ImageModalProps {
   isLiked?: boolean;
   likesCount?: number;
   commentsCount?: number;
+  sharesCount?: number;
 }
 
 export default function ImageModal({ 
@@ -26,7 +27,8 @@ export default function ImageModal({
   onShare,
   isLiked = false,
   likesCount = 0,
-  commentsCount = 0
+  commentsCount = 0,
+  sharesCount = 0
 }: ImageModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -75,7 +77,7 @@ export default function ImageModal({
                 className="text-white hover:bg-white/10 flex items-center gap-2"
               >
                 <Heart className={`w-6 h-6 ${isLiked ? 'fill-red-500 text-red-500' : ''}`} />
-                {likesCount > 0 && <span>{likesCount}</span>}
+                <span className="text-sm font-medium">{likesCount}</span>
               </Button>
               <Button
                 variant="ghost"
@@ -84,15 +86,16 @@ export default function ImageModal({
                 className="text-white hover:bg-white/10 flex items-center gap-2"
               >
                 <MessageCircle className="w-6 h-6" />
-                {commentsCount > 0 && <span>{commentsCount}</span>}
+                <span className="text-sm font-medium">{commentsCount}</span>
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onShare}
-                className="text-white hover:bg-white/10"
+                className="text-white hover:bg-white/10 flex items-center gap-2"
               >
                 <Share className="w-6 h-6" />
+                <span className="text-sm font-medium">{sharesCount}</span>
               </Button>
             </div>
           </div>

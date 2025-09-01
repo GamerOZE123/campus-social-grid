@@ -50,14 +50,15 @@ export const useChat = () => {
     }
   };
 
-  const fetchMessages = async (conversationId: string) => {
+  const fetchMessages = async (conversationId: string, offset = 0, limit = 50) => {
     try {
       console.log('Fetching messages for conversation:', conversationId);
       const { data, error } = await supabase
         .from('messages')
         .select('*')
         .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
       
       if (error) {
         console.error('Error fetching messages:', error);
@@ -65,11 +66,22 @@ export const useChat = () => {
       }
       
       console.log('Fetched messages:', data);
-      setCurrentMessages(data || []);
+      if (offset === 0) {
+        setCurrentMessages(data?.reverse() || []);
+      } else {
+        setCurrentMessages(prev => [...(data?.reverse() || []), ...prev]);
+      }
     } catch (error) {
       console.error('Error fetching messages:', error);
-      setCurrentMessages([]);
+      if (offset === 0) {
+        setCurrentMessages([]);
+      }
     }
+  };
+
+  const loadOlderMessages = async (conversationId: string) => {
+    const offset = currentMessages.length;
+    await fetchMessages(conversationId, offset);
   };
 
   const sendMessage = async (conversationId: string, content: string) => {
@@ -140,6 +152,7 @@ export const useChat = () => {
     currentMessages,
     loading,
     fetchMessages,
+    loadOlderMessages,
     sendMessage,
     createConversation,
     refreshConversations: fetchConversations
