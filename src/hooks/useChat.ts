@@ -163,37 +163,38 @@ export const useChat = () => {
     }
   };
 
-  const clearChat = async (conversationId: string) => {
-    if (!user) return { success: false, error: 'No user' };
+const clearChat = async (conversationId: string) => {
+  if (!user) return { success: false, error: 'No user' };
 
-    try {
-      const { error } = await supabase
-        .from('cleared_chats')
-        .upsert(
-          {
-            user_id: user.id,
-            conversation_id: conversationId,
-            cleared_at: new Date().toISOString()
-          },
-          {
-            onConflict: 'user_id,conversation_id' // ✅ must be a string, not array
-          }
-        );
+  try {
+    const { error } = await supabase
+      .from('cleared_chats')
+      .upsert(
+        {
+          user_id: user.id,
+          conversation_id: conversationId,
+          cleared_at: new Date().toISOString()
+        },
+        {
+          onConflict: 'cleared_chats_user_id_conversation_id_key' // ✅ correct constraint
+        }
+      );
 
-      if (error) {
-        console.error('Error clearing chat:', error);
-        return { success: false, error: error.message };
-      }
-
-      setIsChatCleared(true);
-      setCurrentMessages([]);
-      console.log('Chat cleared successfully');
-      return { success: true };
-    } catch (error) {
+    if (error) {
       console.error('Error clearing chat:', error);
-      return { success: false, error: (error as Error).message };
+      return { success: false, error: error.message };
     }
-  };
+
+    setIsChatCleared(true);
+    setCurrentMessages([]);
+    console.log('Chat cleared successfully');
+    return { success: true };
+  } catch (error) {
+    console.error('Error clearing chat:', error);
+    return { success: false, error: (error as Error).message };
+  }
+};
+
 
   useEffect(() => {
     if (user) {
