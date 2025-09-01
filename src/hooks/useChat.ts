@@ -27,6 +27,7 @@ export const useChat = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentMessages, setCurrentMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isChatCleared, setIsChatCleared] = useState<boolean>(false);
 
   const fetchConversations = async () => {
     if (!user) return;
@@ -53,6 +54,24 @@ export const useChat = () => {
 
   const fetchMessages = async (conversationId: string, offset = 0, limit = 15) => {
     try {
+      // First check if the chat is cleared for this user
+      if (!user) return;
+      
+      const { data: clearedData } = await supabase
+        .from('cleared_chats')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('conversation_id', conversationId)
+        .single();
+      
+      if (clearedData) {
+        setIsChatCleared(true);
+        setCurrentMessages([]);
+        return;
+      }
+      
+      setIsChatCleared(false);
+      
       console.log('Fetching messages for conversation:', conversationId);
       const { data, error } = await supabase
         .from('messages')
@@ -142,6 +161,32 @@ export const useChat = () => {
     }
   };
 
+  const clearChat = async (conversationId: string) => {
+    if (!user) return { success: false, error: 'No user' };
+
+    try {
+      const { error } = await supabase
+        .from('cleared_chats')
+        .insert({
+          user_id: user.id,
+          conversation_id: conversationId
+        });
+
+      if (error) {
+        console.error('Error clearing chat:', error);
+        return { success: false, error: error.message };
+      }
+
+      setIsChatCleared(true);
+      setCurrentMessages([]);
+      console.log('Chat cleared successfully');
+      return { success: true };
+    } catch (error) {
+      console.error('Error clearing chat:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchConversations();
@@ -179,10 +224,12 @@ export const useChat = () => {
     conversations,
     currentMessages,
     loading,
+    isChatCleared,
     fetchMessages,
     loadOlderMessages,
     sendMessage,
     createConversation,
+    clearChat,
     refreshConversations: fetchConversations
   };
 };

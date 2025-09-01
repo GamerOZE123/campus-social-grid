@@ -269,6 +269,30 @@ export type Database = {
           },
         ]
       }
+      cleared_chats: {
+        Row: {
+          cleared_at: string
+          conversation_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          cleared_at?: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          cleared_at?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       club_memberships: {
         Row: {
           club_id: string

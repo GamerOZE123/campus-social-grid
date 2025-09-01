@@ -35,10 +35,12 @@ export default function Chat() {
     conversations, 
     currentMessages, 
     loading: chatLoading,
+    isChatCleared,
     fetchMessages,
     loadOlderMessages,
     sendMessage, 
     createConversation,
+    clearChat,
     refreshConversations
   } = useChat();
   
@@ -160,25 +162,12 @@ export default function Chat() {
     if (!selectedConversationId || !user) return;
     
     try {
-      // Delete all messages in the conversation for this user
-      const { error: messagesError } = await supabase
-        .from('messages')
-        .delete()
-        .eq('conversation_id', selectedConversationId);
-      
-      if (messagesError) throw messagesError;
-      
-      // Record the clear action
-      await supabase.from('deleted_chats').insert({
-        user_id: user.id,
-        conversation_id: selectedConversationId,
-        reason: 'cleared'
-      });
-      
-      toast.success('Chat cleared successfully');
-      
-      // Refresh messages to show empty chat
-      await fetchMessages(selectedConversationId);
+      const result = await clearChat(selectedConversationId);
+      if (result.success) {
+        toast.success('Chat cleared successfully');
+      } else {
+        throw new Error(result.error || 'Failed to clear chat');
+      }
     } catch (error) {
       console.error('Error clearing chat:', error);
       toast.error('Failed to clear chat');
@@ -314,36 +303,54 @@ export default function Chat() {
                   onScroll={handleScroll}
                   className="flex-1 p-4 overflow-y-auto space-y-4"
                 >
-                  {currentMessages && currentMessages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
-                          message.sender_id === user?.id
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted text-foreground'
-                        }`}
-                      >
-                        <p className="text-sm">{message.content}</p>
-                        <p className={`text-xs mt-1 ${
-                          message.sender_id === user?.id 
-                            ? 'text-primary-foreground/70' 
-                            : 'text-muted-foreground'
-                        }`}>
-                          {new Date(message.created_at).toLocaleTimeString()}
+                  {isChatCleared ? (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <h3 className="text-lg font-medium text-foreground mb-2">Chat cleared</h3>
+                        <p className="text-muted-foreground">
+                          You cleared this chat. Start a new conversation by sending a message.
                         </p>
                       </div>
                     </div>
-                  ))}
+                  ) : currentMessages && currentMessages.length > 0 ? (
+                    currentMessages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div
+                          className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
+                            message.sender_id === user?.id
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted text-foreground'
+                          }`}
+                        >
+                          <p className="text-sm">{message.content}</p>
+                          <p className={`text-xs mt-1 ${
+                            message.sender_id === user?.id 
+                              ? 'text-primary-foreground/70' 
+                              : 'text-muted-foreground'
+                          }`}>
+                            {new Date(message.created_at).toLocaleTimeString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <h3 className="text-lg font-medium text-foreground mb-2">No messages yet</h3>
+                        <p className="text-muted-foreground">Start the conversation!</p>
+                      </div>
+                    </div>
+                  )}
                   <div ref={messagesEndRef} />
                 </div>
 
                 <div className="p-4 border-t border-border">
                   <div className="flex gap-2">
                     <Input
-                      placeholder="Type your message..."
+                      placeholder={isChatCleared ? "Send a message to start a new conversation..." : "Type your message..."}
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
                       onKeyPress={(e) => {
@@ -425,36 +432,54 @@ export default function Chat() {
             onScroll={handleScroll}
             className="flex-1 p-4 overflow-y-auto space-y-4 pt-20 pb-20"
           >
-            {currentMessages && currentMessages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-xs px-4 py-2 rounded-2xl ${
-                    message.sender_id === user?.id
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted text-foreground'
-                  }`}
-                >
-                  <p className="text-sm">{message.content}</p>
-                  <p className={`text-xs mt-1 ${
-                    message.sender_id === user?.id 
-                      ? 'text-primary-foreground/70' 
-                      : 'text-muted-foreground'
-                  }`}>
-                    {new Date(message.created_at).toLocaleTimeString()}
+            {isChatCleared ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <h3 className="text-lg font-medium text-foreground mb-2">Chat cleared</h3>
+                  <p className="text-muted-foreground">
+                    You cleared this chat. Start a new conversation by sending a message.
                   </p>
                 </div>
               </div>
-            ))}
+            ) : currentMessages && currentMessages.length > 0 ? (
+              currentMessages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-xs px-4 py-2 rounded-2xl ${
+                      message.sender_id === user?.id
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-foreground'
+                    }`}
+                  >
+                    <p className="text-sm">{message.content}</p>
+                    <p className={`text-xs mt-1 ${
+                      message.sender_id === user?.id 
+                        ? 'text-primary-foreground/70' 
+                        : 'text-muted-foreground'
+                    }`}>
+                      {new Date(message.created_at).toLocaleTimeString()}
+                    </p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <h3 className="text-lg font-medium text-foreground mb-2">No messages yet</h3>
+                  <p className="text-muted-foreground">Start the conversation!</p>
+                </div>
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
 
           <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4">
             <div className="flex gap-2">
               <Input
-                placeholder="Type your message..."
+                placeholder={isChatCleared ? "Send a message to start a new conversation..." : "Type your message..."}
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 onKeyPress={(e) => {
