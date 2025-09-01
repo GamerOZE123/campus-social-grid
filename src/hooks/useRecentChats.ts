@@ -63,6 +63,28 @@ export const useRecentChats = () => {
   useEffect(() => {
     if (user) {
       fetchRecentChats();
+      
+      // Set up real-time listener for new messages to update recent chats
+      const channel = supabase
+        .channel('recent-chats-updates')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages'
+          },
+          (payload) => {
+            console.log('New message for recent chats:', payload);
+            // Refresh recent chats to update order
+            fetchRecentChats();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [user]);
 

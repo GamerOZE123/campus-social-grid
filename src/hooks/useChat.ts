@@ -144,6 +144,28 @@ export const useChat = () => {
   useEffect(() => {
     if (user) {
       fetchConversations();
+      
+      // Set up real-time listener for new messages
+      const channel = supabase
+        .channel('messages-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages'
+          },
+          (payload) => {
+            console.log('New message received:', payload);
+            // Refresh conversations to update order
+            fetchConversations();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [user]);
 

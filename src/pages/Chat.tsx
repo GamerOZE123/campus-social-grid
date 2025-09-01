@@ -137,10 +137,6 @@ export default function Chat() {
       if (selectedUser?.user_id) {
         await addRecentChat(selectedUser.user_id);
       }
-      
-      // Refresh conversations and recent chats to update order
-      refreshConversations();
-      refreshRecentChats();
     } catch (error) {
       console.error('Error sending message:', error);
       setNewMessage(messageToSend); // Restore message on error
