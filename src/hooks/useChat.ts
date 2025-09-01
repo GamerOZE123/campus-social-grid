@@ -175,7 +175,7 @@ export const useChat = () => {
     conversation_id: conversationId,
     cleared_at: new Date().toISOString()
   }, {
-    onConflict: ['user_id', 'conversation_id']  // ✅ correct
+    onConflict: 'user_id,conversation_id'
   });
 
 
