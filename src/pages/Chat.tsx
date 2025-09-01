@@ -61,7 +61,7 @@ export default function Chat() {
       const isAtTop = scrollTop <= 10;
       
       // Load older messages when scrolled to top
-      if (isAtTop && selectedConversationId && currentMessages.length >= 50) {
+      if (isAtTop && selectedConversationId && currentMessages.length >= 15) {
         loadOlderMessages(selectedConversationId);
       }
       

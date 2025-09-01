@@ -16,6 +16,7 @@ interface Conversation {
 
 interface Message {
   id: string;
+  conversation_id: string;
   sender_id: string;
   content: string;
   created_at: string;
@@ -50,7 +51,7 @@ export const useChat = () => {
     }
   };
 
-  const fetchMessages = async (conversationId: string, offset = 0, limit = 50) => {
+  const fetchMessages = async (conversationId: string, offset = 0, limit = 15) => {
     try {
       console.log('Fetching messages for conversation:', conversationId);
       const { data, error } = await supabase
@@ -159,6 +160,11 @@ export const useChat = () => {
             console.log('New message received:', payload);
             // Refresh conversations to update order
             fetchConversations();
+            
+            // If it's for the current conversation, refresh messages
+            if (payload.new?.conversation_id === currentMessages?.[0]?.conversation_id) {
+              fetchMessages(payload.new.conversation_id);
+            }
           }
         )
         .subscribe();

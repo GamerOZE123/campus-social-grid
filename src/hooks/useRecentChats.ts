@@ -76,7 +76,7 @@ export const useRecentChats = () => {
           },
           (payload) => {
             console.log('New message for recent chats:', payload);
-            // Refresh recent chats to update order
+            // Refresh recent chats to update order - this will move chat to top when receiving
             fetchRecentChats();
           }
         )
