@@ -54,16 +54,6 @@ export const useRecentChats = () => {
         throw error;
       }
       
-      // Update local state immediately to move chat to top
-      setRecentChats(prev => {
-        const existingChat = prev.find(chat => chat.other_user_id === otherUserId);
-        if (existingChat) {
-          const updatedChat = { ...existingChat, last_interacted_at: new Date().toISOString() };
-          return [updatedChat, ...prev.filter(chat => chat.other_user_id !== otherUserId)];
-        }
-        return prev;
-      });
-      
       await fetchRecentChats();
     } catch (error) {
       console.error('Error adding recent chat:', error);

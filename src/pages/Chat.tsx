@@ -107,7 +107,6 @@ export default function Chat() {
         setSelectedUser(userProfile);
         const conversationId = await createConversation(userId);
         setSelectedConversationId(conversationId);
-        await addRecentChat(userId);
         
         // Mark messages as read
         setUnreadMessages(prev => {
@@ -133,6 +132,12 @@ export default function Chat() {
     
     try {
       await sendMessage(selectedConversationId, messageToSend);
+      
+      // Move chat to top after sending message
+      if (selectedUser?.user_id) {
+        await addRecentChat(selectedUser.user_id);
+      }
+      
       // Refresh conversations and recent chats to update order
       refreshConversations();
       refreshRecentChats();
