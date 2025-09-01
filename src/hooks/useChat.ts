@@ -169,14 +169,15 @@ export const useChat = () => {
 
     try {
       const { error } = await supabase
-        .from('cleared_chats')
-        .upsert({
-          user_id: user.id,
-          conversation_id: conversationId,
-          cleared_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,conversation_id'
-        });
+  .from('cleared_chats')
+  .upsert({
+    user_id: user.id,
+    conversation_id: conversationId,
+    cleared_at: new Date().toISOString()
+  }, {
+    onConflict: ['user_id', 'conversation_id']  // ✅ correct
+  });
+
 
       if (error) {
         console.error('Error clearing chat:', error);
