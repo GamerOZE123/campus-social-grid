@@ -168,15 +168,16 @@ export const useChat = () => {
     if (!user) return { success: false, error: 'No user' };
 
     try {
-      const { error } = await supabase
+     const { error } = await supabase
   .from('cleared_chats')
   .upsert({
     user_id: user.id,
     conversation_id: conversationId,
     cleared_at: new Date().toISOString()
   }, {
-    onConflict: 'user_id,conversation_id'
+    onConflict: 'user_id,conversation_id' // ✅ correct for Supabase
   });
+
 
 
       if (error) {
