@@ -53,6 +53,18 @@ export default function Chat() {
     previousMessagesLength.current = currentMessages?.length || 0;
   }, [currentMessages?.length, isUserScrolling]);
 
+  // Auto-scroll to bottom when selecting a new conversation or initial load
+  useEffect(() => {
+    if (selectedConversationId && currentMessages && currentMessages.length > 0) {
+      // Immediate scroll to bottom for new conversations
+      setTimeout(() => {
+        if (messagesContainerRef.current) {
+          messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+        }
+      }, 50);
+    }
+  }, [selectedConversationId, currentMessages]);
+
   // Handle scroll detection
   const handleScroll = () => {
     if (messagesContainerRef.current) {
@@ -90,15 +102,6 @@ export default function Chat() {
       fetchMessages(selectedConversationId);
     }
   }, [selectedConversationId, fetchMessages]);
-
-  // Auto-scroll to bottom when selecting a new conversation
-  useEffect(() => {
-    if (selectedConversationId && currentMessages) {
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-    }
-  }, [selectedConversationId]);
 
   const handleUserClick = async (userId: string) => {
     try {
