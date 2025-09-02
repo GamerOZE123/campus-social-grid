@@ -344,7 +344,7 @@ export default function Chat() {
           </div>
         </MobileLayout>
       ) : (
-        <div className="min-h-screen bg-background flex flex-col">
+        <div className="h-screen bg-background flex flex-col">
           <MobileChatHeader
             userName={selectedUser?.full_name || selectedUser?.username || 'Unknown User'}
             userUniversity={selectedUser?.university || 'University'}
@@ -354,11 +354,12 @@ export default function Chat() {
             onBlockUser={handleBlockUser}
           />
 
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col overflow-hidden">
             <div 
               ref={messagesContainerRef}
               onScroll={handleScroll}
-              className="flex-1 p-4 overflow-y-auto space-y-4"
+              className="flex-1 p-4 overflow-y-auto space-y-4 pb-safe"
+              style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
             >
               {currentMessages?.length ? (
                 currentMessages.map((message) => (
@@ -384,7 +385,7 @@ export default function Chat() {
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="border-t border-border p-4 bg-card">
+            <div className="border-t border-border p-4 bg-card/95 backdrop-blur-sm sticky bottom-0">
               <div className="flex gap-2">
                 <Textarea
                   placeholder="Type your message..."
@@ -396,7 +397,7 @@ export default function Chat() {
                       handleSendMessage();
                     }
                   }}
-                  className="flex-1 resize-none"
+                  className="flex-1 resize-none max-h-32"
                   rows={1}
                 />
                 <Button onClick={handleSendMessage} disabled={!newMessage.trim()}>
