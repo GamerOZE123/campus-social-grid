@@ -3,7 +3,6 @@ import { Card } from '@/components/ui/card';
 import PostHeader from './PostHeader';
 import PostContent from './PostContent';
 import PostActions from './PostActions';
-import CommentsSection from './CommentsSection';
 import EditPostModal from './EditPostModal';
 import ClickablePostCard from './ClickablePostCard';
 import { useNavigate } from 'react-router-dom';
@@ -92,25 +91,40 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
       <ClickablePostCard postId={post.id}>
         <Card className="w-full bg-card border border-border hover:shadow-md transition-shadow">
           <div className="p-4 space-y-3">
-            {/* Header (without caption) */}
+            {/* Header (with caption inside) */}
             <PostHeader
               username={username}
               fullName={fullName}
               avatarUrl={avatarUrl}
               createdAt={post.created_at}
-              content=""
+              content={post.content}
               isOwnPost={isOwnPost}
               onEdit={() => setShowEditModal(true)}
               onDelete={handleDeletePost}
             />
 
-            {/* Content with caption and hashtags */}
-            <PostContent
-              content={post.content}
-              imageUrl={post.image_url}
-              hashtags={post.hashtags}
-              onHashtagClick={handleHashtagClick}
-            />
+            {/* Image (if present) */}
+            {post.image_url && (
+              <PostContent
+                content=""
+                imageUrl={post.image_url}
+              />
+            )}
+
+            {/* Hashtags */}
+            {post.hashtags && post.hashtags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {post.hashtags.map((hashtag, index) => (
+                  <button
+                    key={index}
+                    onClick={(e) => handleHashtagClick(hashtag, e)}
+                    className="text-blue-500 hover:text-blue-700 hover:underline text-sm font-medium cursor-pointer transition-colors"
+                  >
+                    #{hashtag}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Actions */}
             <PostActions
@@ -124,8 +138,6 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
               postId={post.id}
               postContent={post.content}
             />
-            {/* Comments Section */}
-            <CommentsSection postId={post.id} commentsCount={post.comments_count} />
           </div>
         </Card>
       </ClickablePostCard>

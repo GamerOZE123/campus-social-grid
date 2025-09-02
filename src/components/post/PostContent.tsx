@@ -7,8 +7,6 @@ import ImageModal from "./ImageModal";
 interface PostContentProps {
   content: string;
   imageUrl?: string;
-  hashtags?: string[];
-  onHashtagClick?: (hashtag: string, e: React.MouseEvent) => void;
 }
 
 const isImageUrl = (url: string) => {
@@ -46,7 +44,7 @@ const getFileNameFromUrl = (url: string) => {
   return url.split("/").pop() || "File";
 };
 
-export default function PostContent({ content, imageUrl, hashtags, onHashtagClick }: PostContentProps) {
+export default function PostContent({ content, imageUrl }: PostContentProps) {
   const [showFullImage, setShowFullImage] = useState(false);
   
   const handleDownload = () => {
@@ -66,21 +64,6 @@ export default function PostContent({ content, imageUrl, hashtags, onHashtagClic
         <p className="text-foreground leading-relaxed whitespace-pre-line break-words">
           {content}
         </p>
-      )}
-
-      {/* Hashtags */}
-      {hashtags && hashtags.length > 0 && (
-        <div className="flex flex-wrap gap-2 mt-2">
-          {hashtags.map((hashtag, index) => (
-            <button
-              key={index}
-              onClick={(e) => onHashtagClick?.(hashtag, e)}
-              className="text-primary hover:text-primary/80 hover:underline text-sm font-medium cursor-pointer transition-colors"
-            >
-              #{hashtag}
-            </button>
-          ))}
-        </div>
       )}
 
       {/* Image or file preview */}
