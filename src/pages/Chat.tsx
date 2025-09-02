@@ -4,7 +4,7 @@ import MobileLayout from '@/components/layout/MobileLayout';
 import UserSearch from '@/components/chat/UserSearch';
 import MobileChatHeader from '@/components/chat/MobileChatHeader';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea'; // ✅ for auto-resize input
+import { Textarea } from '@/components/ui/textarea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Send, MoreVertical, Trash2, MessageSquareX, UserX } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -47,7 +47,6 @@ export default function Chat() {
   const { recentChats, addRecentChat, refreshRecentChats } = useRecentChats();
   const { getUserById } = useUsers();
 
-  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (currentMessages && currentMessages.length > previousMessagesLength.current && !isUserScrolling) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -55,7 +54,6 @@ export default function Chat() {
     previousMessagesLength.current = currentMessages?.length || 0;
   }, [currentMessages?.length, isUserScrolling]);
 
-  // Auto-scroll on new conversation
   useEffect(() => {
     if (selectedConversationId && currentMessages && currentMessages.length > 0) {
       setTimeout(() => {
@@ -66,7 +64,6 @@ export default function Chat() {
     }
   }, [selectedConversationId, currentMessages]);
 
-  // Handle scroll (load older msgs at top)
   const handleScroll = () => {
     if (messagesContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
@@ -88,7 +85,6 @@ export default function Chat() {
     }
   };
 
-  // Fetch messages when selecting conversation
   useEffect(() => {
     if (selectedConversationId) {
       fetchMessages(selectedConversationId);
@@ -179,12 +175,10 @@ export default function Chat() {
     }
   };
 
-  // Desktop Layout
   if (!isMobile) {
     return (
       <Layout>
         <div className="h-[calc(100vh-6rem)] flex gap-4 pt-2">
-          {/* User List */}
           <div className="w-1/3 bg-card border border-border rounded-2xl p-4 overflow-y-auto">
             <h2 className="text-xl font-bold text-foreground mb-4">Messages</h2>
             <UserSearch onStartChat={handleUserClick} />
@@ -213,11 +207,9 @@ export default function Chat() {
             </div>
           </div>
 
-          {/* Chat Area */}
-          <div className="flex-1 bg-card border border-border rounded-2xl flex flex-col">
+          <div className="flex-1 bg-card border border-border rounded-2xl flex flex-col h-full">
             {selectedUser ? (
               <>
-                {/* Header */}
                 <div className="p-4 border-b border-border flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
@@ -255,7 +247,6 @@ export default function Chat() {
                   </DropdownMenu>
                 </div>
 
-                {/* Messages */}
                 <div 
                   ref={messagesContainerRef}
                   onScroll={handleScroll}
@@ -285,7 +276,6 @@ export default function Chat() {
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Typing bar */}
                 <div className="border-t border-border p-4">
                   <div className="flex gap-2">
                     <Textarea
@@ -321,7 +311,6 @@ export default function Chat() {
     );
   }
 
-  // Mobile Layout
   return (
     <>
       {showUserList ? (
@@ -364,8 +353,7 @@ export default function Chat() {
             onDeleteChat={handleDeleteChat}
             onBlockUser={handleBlockUser}
           />
-          
-          {/* Messages + input as flex column */}
+
           <div className="flex-1 flex flex-col">
             <div 
               ref={messagesContainerRef}
@@ -396,7 +384,6 @@ export default function Chat() {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Typing bar */}
             <div className="border-t border-border p-4 bg-card">
               <div className="flex gap-2">
                 <Textarea
