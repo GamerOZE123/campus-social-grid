@@ -188,25 +188,100 @@ export default function Chat() {
           <div className="w-1/3 bg-card border border-border rounded-2xl p-4 overflow-y-auto">
             <h2 className="text-xl font-bold text-foreground mb-4">Messages</h2>
             <UserSearch onStartChat={handleUserClick} />
-            {/* ... user list stays same ... */}
+            <div className="mt-6 space-y-4">
+              <h3 className="text-sm font-medium text-muted-foreground">Recent Chats</h3>
+              {recentChats.map((chat) => (
+                <div
+                  key={chat.other_user_id}
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors relative"
+                  onClick={() => handleUserClick(chat.other_user_id)}
+                >
+                  <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center relative">
+                    <span className="text-sm font-bold text-white">
+                      {chat.other_user_name?.charAt(0) || 'U'}
+                    </span>
+                    {unreadMessages.has(chat.other_user_id) && (
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">{chat.other_user_name}</p>
+                    <p className="text-sm text-muted-foreground">{chat.other_user_university}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Chat Area */}
-          <div className="flex-1 bg-card border border-border rounded-2xl flex flex-col h-full">
+          <div className="flex-1 bg-card border border-border rounded-2xl flex flex-col">
             {selectedUser ? (
               <>
                 {/* Header */}
                 <div className="p-4 border-b border-border flex items-center justify-between">
-                  {/* ... header content ... */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
+                      <span className="text-sm font-bold text-white">
+                        {selectedUser.full_name?.charAt(0) || selectedUser.username?.charAt(0) || 'U'}
+                      </span>
+                    </div>
+                    <div>
+                      <h3 
+                        className="font-semibold text-foreground cursor-pointer hover:text-primary"
+                        onClick={() => handleUsernameClick(selectedUser.user_id)}
+                      >
+                        {selectedUser.full_name || selectedUser.username}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">{selectedUser.university}</p>
+                    </div>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={handleClearChat}>
+                        <MessageSquareX className="w-4 h-4 mr-2" /> Clear Chat
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleDeleteChat}>
+                        <Trash2 className="w-4 h-4 mr-2" /> Delete Chat
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleBlockUser} className="text-destructive">
+                        <UserX className="w-4 h-4 mr-2" /> Block User
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
 
-                {/* Messages (scrollable only here) */}
+                {/* Messages */}
                 <div 
                   ref={messagesContainerRef}
                   onScroll={handleScroll}
                   className="flex-1 p-4 overflow-y-auto space-y-4"
                 >
-                  {/* messages loop */}
+                  {currentMessages?.length ? (
+                    currentMessages.map((message) => (
+                      <div key={message.id} className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
+                          message.sender_id === user?.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
+                        }`}>
+                          <p className="text-sm">{message.content}</p>
+                          <p className={`text-xs mt-1 ${message.sender_id === user?.id ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                            {new Date(message.created_at).toLocaleTimeString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-center">
+                      <div>
+                        <h3 className="text-lg font-medium text-foreground mb-2">No messages yet</h3>
+                        <p className="text-muted-foreground">Start the conversation!</p>
+                      </div>
+                    </div>
+                  )}
                   <div ref={messagesEndRef} />
                 </div>
 
@@ -251,10 +326,36 @@ export default function Chat() {
     <>
       {showUserList ? (
         <MobileLayout showHeader={false} showNavigation={true}>
-          {/* user list unchanged */}
+          <div className="p-4">
+            <h2 className="text-xl font-bold text-foreground mb-4">Messages</h2>
+            <UserSearch onStartChat={handleUserClick} />
+            <div className="mt-6 space-y-4">
+              <h3 className="text-sm font-medium text-muted-foreground">Recent Chats</h3>
+              {recentChats.map((chat) => (
+                <div
+                  key={chat.other_user_id}
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                  onClick={() => handleUserClick(chat.other_user_id)}
+                >
+                  <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center relative">
+                    <span className="text-sm font-bold text-white">
+                      {chat.other_user_name?.charAt(0) || 'U'}
+                    </span>
+                    {unreadMessages.has(chat.other_user_id) && (
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-foreground">{chat.other_user_name}</p>
+                    <p className="text-sm text-muted-foreground">{chat.other_user_university}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </MobileLayout>
       ) : (
-        <div className="h-screen bg-background flex flex-col">
+        <div className="min-h-screen bg-background flex flex-col">
           <MobileChatHeader
             userName={selectedUser?.full_name || selectedUser?.username || 'Unknown User'}
             userUniversity={selectedUser?.university || 'University'}
@@ -271,7 +372,27 @@ export default function Chat() {
               onScroll={handleScroll}
               className="flex-1 p-4 overflow-y-auto space-y-4"
             >
-              {/* messages loop */}
+              {currentMessages?.length ? (
+                currentMessages.map((message) => (
+                  <div key={message.id} className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-xs px-4 py-2 rounded-2xl ${
+                      message.sender_id === user?.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
+                    }`}>
+                      <p className="text-sm">{message.content}</p>
+                      <p className={`text-xs mt-1 ${message.sender_id === user?.id ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                        {new Date(message.created_at).toLocaleTimeString()}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="flex items-center justify-center h-full text-center">
+                  <div>
+                    <h3 className="text-lg font-medium text-foreground mb-2">No messages yet</h3>
+                    <p className="text-muted-foreground">Start the conversation!</p>
+                  </div>
+                </div>
+              )}
               <div ref={messagesEndRef} />
             </div>
 
