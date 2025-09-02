@@ -4,9 +4,9 @@ import MobileLayout from '@/components/layout/MobileLayout';
 import UserSearch from '@/components/chat/UserSearch';
 import MobileChatHeader from '@/components/chat/MobileChatHeader';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea'; // ✅ for auto-resize input
+import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Send, MoreVertical, Trash2, MessageSquareX, UserX } from 'lucide-react';
+import { Send, ArrowLeft, MoreVertical, Trash2, MessageSquareX, UserX } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useChat } from '@/hooks/useChat';
 import { useRecentChats } from '@/hooks/useRecentChats';
@@ -30,7 +30,7 @@ export default function Chat() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const scrollTimeoutRef = useRef<NodeJS.Timeout>();
   const previousMessagesLength = useRef(0);
-
+  
   const { 
     conversations, 
     currentMessages, 
@@ -47,7 +47,7 @@ export default function Chat() {
   const { recentChats, addRecentChat, refreshRecentChats } = useRecentChats();
   const { getUserById } = useUsers();
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom when new messages arrive (only if user isn't scrolling)
   useEffect(() => {
     if (currentMessages && currentMessages.length > previousMessagesLength.current && !isUserScrolling) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -55,9 +55,10 @@ export default function Chat() {
     previousMessagesLength.current = currentMessages?.length || 0;
   }, [currentMessages?.length, isUserScrolling]);
 
-  // Auto-scroll on new conversation
+  // Auto-scroll to bottom when selecting a new conversation or initial load
   useEffect(() => {
     if (selectedConversationId && currentMessages && currentMessages.length > 0) {
+      // Immediate scroll to bottom for new conversations
       setTimeout(() => {
         if (messagesContainerRef.current) {
           messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
@@ -66,29 +67,38 @@ export default function Chat() {
     }
   }, [selectedConversationId, currentMessages]);
 
-  // Handle scroll (load older msgs at top)
+  // Handle scroll detection
   const handleScroll = () => {
     if (messagesContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
       const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
       const isAtTop = scrollTop <= 10;
       
+      // Load older messages when scrolled to top
       if (isAtTop && selectedConversationId && currentMessages.length >= 15) {
         loadOlderMessages(selectedConversationId);
       }
       
       if (!isAtBottom) {
         setIsUserScrolling(true);
-        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-        scrollTimeoutRef.current = setTimeout(() => setIsUserScrolling(false), 3000);
+        // Clear existing timeout
+        if (scrollTimeoutRef.current) {
+          clearTimeout(scrollTimeoutRef.current);
+        }
+        // Reset scrolling state after 3 seconds of no scrolling
+        scrollTimeoutRef.current = setTimeout(() => {
+          setIsUserScrolling(false);
+        }, 3000);
       } else {
         setIsUserScrolling(false);
-        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+        if (scrollTimeoutRef.current) {
+          clearTimeout(scrollTimeoutRef.current);
+        }
       }
     }
   };
 
-  // Fetch messages when selecting conversation
+  // Fetch messages when conversation is selected
   useEffect(() => {
     if (selectedConversationId) {
       fetchMessages(selectedConversationId);
@@ -102,12 +112,17 @@ export default function Chat() {
         setSelectedUser(userProfile);
         const conversationId = await createConversation(userId);
         setSelectedConversationId(conversationId);
+        
+        // Mark messages as read
         setUnreadMessages(prev => {
           const newSet = new Set(prev);
           newSet.delete(userId);
           return newSet;
         });
-        if (isMobile) setShowUserList(false);
+        
+        if (isMobile) {
+          setShowUserList(false);
+        }
       }
     } catch (error) {
       console.error('Error starting chat:', error);
@@ -116,14 +131,20 @@ export default function Chat() {
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversationId) return;
+    
     const messageToSend = newMessage.trim();
-    setNewMessage('');
+    setNewMessage(''); // Clear immediately to prevent display issues
+    
     try {
       await sendMessage(selectedConversationId, messageToSend);
-      if (selectedUser?.user_id) await addRecentChat(selectedUser.user_id);
+      
+      // Move chat to top after sending message
+      if (selectedUser?.user_id) {
+        await addRecentChat(selectedUser.user_id);
+      }
     } catch (error) {
       console.error('Error sending message:', error);
-      setNewMessage(messageToSend);
+      setNewMessage(messageToSend); // Restore message on error
     }
   };
 
@@ -139,42 +160,56 @@ export default function Chat() {
 
   const handleClearChat = async () => {
     if (!selectedConversationId || !user) return;
+    
     try {
       const result = await clearChat(selectedConversationId);
-      if (result.success) toast.success('Chat cleared successfully');
-      else throw new Error(result.error || 'Failed to clear chat');
-    } catch {
+      if (result.success) {
+        toast.success('Chat cleared successfully');
+      } else {
+        throw new Error(result.error || 'Failed to clear chat');
+      }
+    } catch (error) {
+      console.error('Error clearing chat:', error);
       toast.error('Failed to clear chat');
     }
   };
 
   const handleDeleteChat = async () => {
     if (!selectedConversationId || !user) return;
+    
     try {
+      // Record the delete action
       await supabase.from('deleted_chats').insert({
         user_id: user.id,
         conversation_id: selectedConversationId,
         reason: 'deleted'
       });
+      
       toast.success('Chat deleted successfully');
       handleBackToUserList();
+      
+      // Refresh conversations to remove from list
       refreshConversations();
       refreshRecentChats();
-    } catch {
+    } catch (error) {
+      console.error('Error deleting chat:', error);
       toast.error('Failed to delete chat');
     }
   };
 
   const handleBlockUser = async () => {
     if (!selectedUser?.user_id || !user) return;
+    
     try {
       await supabase.from('blocked_users').insert({
         blocker_id: user.id,
         blocked_id: selectedUser.user_id
       });
+      
       toast.success('User blocked successfully');
       handleBackToUserList();
-    } catch {
+    } catch (error) {
+      console.error('Error blocking user:', error);
       toast.error('Failed to block user');
     }
   };
@@ -185,9 +220,11 @@ export default function Chat() {
       <Layout>
         <div className="h-[calc(100vh-6rem)] flex gap-4 pt-2">
           {/* User List */}
-          <div className="w-1/3 bg-card border border-border rounded-2xl p-4 overflow-y-auto">
+          <div className="w-1/3 bg-card border border-border rounded-2xl p-4">
             <h2 className="text-xl font-bold text-foreground mb-4">Messages</h2>
+            
             <UserSearch onStartChat={handleUserClick} />
+            
             <div className="mt-6 space-y-4">
               <h3 className="text-sm font-medium text-muted-foreground">Recent Chats</h3>
               {recentChats.map((chat) => (
@@ -217,66 +254,82 @@ export default function Chat() {
           <div className="flex-1 bg-card border border-border rounded-2xl flex flex-col">
             {selectedUser ? (
               <>
-                {/* Header */}
-                <div className="p-4 border-b border-border flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
-                      <span className="text-sm font-bold text-white">
-                        {selectedUser.full_name?.charAt(0) || selectedUser.username?.charAt(0) || 'U'}
-                      </span>
+                <div className="p-4 border-b border-border">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
+                        <span className="text-sm font-bold text-white">
+                          {selectedUser.full_name?.charAt(0) || selectedUser.username?.charAt(0) || 'U'}
+                        </span>
+                      </div>
+                      <div>
+                        <h3 
+                          className="font-semibold text-foreground cursor-pointer hover:text-primary"
+                          onClick={() => handleUsernameClick(selectedUser.user_id)}
+                        >
+                          {selectedUser.full_name || selectedUser.username}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">{selectedUser.university}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 
-                        className="font-semibold text-foreground cursor-pointer hover:text-primary"
-                        onClick={() => handleUsernameClick(selectedUser.user_id)}
-                      >
-                        {selectedUser.full_name || selectedUser.username}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">{selectedUser.university}</p>
-                    </div>
+                    
+                    {/* Chat Options */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={handleClearChat}>
+                          <MessageSquareX className="w-4 h-4 mr-2" />
+                          Clear Chat
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleDeleteChat}>
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete Chat
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleBlockUser} className="text-destructive">
+                          <UserX className="w-4 h-4 mr-2" />
+                          Block User
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={handleClearChat}>
-                        <MessageSquareX className="w-4 h-4 mr-2" /> Clear Chat
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleDeleteChat}>
-                        <Trash2 className="w-4 h-4 mr-2" /> Delete Chat
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleBlockUser} className="text-destructive">
-                        <UserX className="w-4 h-4 mr-2" /> Block User
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
                 </div>
 
-                {/* Messages */}
                 <div 
                   ref={messagesContainerRef}
                   onScroll={handleScroll}
                   className="flex-1 p-4 overflow-y-auto space-y-4"
                 >
-                  {currentMessages?.length ? (
+                  {currentMessages && currentMessages.length > 0 ? (
                     currentMessages.map((message) => (
-                      <div key={message.id} className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
-                          message.sender_id === user?.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
-                        }`}>
+                      <div
+                        key={message.id}
+                        className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div
+                          className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
+                            message.sender_id === user?.id
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted text-foreground'
+                          }`}
+                        >
                           <p className="text-sm">{message.content}</p>
-                          <p className={`text-xs mt-1 ${message.sender_id === user?.id ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                          <p className={`text-xs mt-1 ${
+                            message.sender_id === user?.id 
+                              ? 'text-primary-foreground/70' 
+                              : 'text-muted-foreground'
+                          }`}>
                             {new Date(message.created_at).toLocaleTimeString()}
                           </p>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <div className="flex items-center justify-center h-full text-center">
-                      <div>
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
                         <h3 className="text-lg font-medium text-foreground mb-2">No messages yet</h3>
                         <p className="text-muted-foreground">Start the conversation!</p>
                       </div>
@@ -285,21 +338,19 @@ export default function Chat() {
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Typing bar */}
-                <div className="border-t border-border p-4">
+                <div className="p-4 border-t border-border">
                   <div className="flex gap-2">
-                    <Textarea
+                    <Input
                       placeholder="Type your message..."
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyDown={(e) => {
+                      onKeyPress={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
                           handleSendMessage();
                         }
                       }}
-                      className="flex-1 resize-none"
-                      rows={1}
+                      className="flex-1"
                     />
                     <Button onClick={handleSendMessage} disabled={!newMessage.trim()}>
                       <Send className="w-4 h-4" />
@@ -308,8 +359,8 @@ export default function Chat() {
                 </div>
               </>
             ) : (
-              <div className="flex-1 flex items-center justify-center text-center">
-                <div>
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-center">
                   <h3 className="text-lg font-medium text-foreground mb-2">Select a conversation</h3>
                   <p className="text-muted-foreground">Choose a user to start chatting</p>
                 </div>
@@ -328,7 +379,9 @@ export default function Chat() {
         <MobileLayout showHeader={false} showNavigation={true}>
           <div className="p-4">
             <h2 className="text-xl font-bold text-foreground mb-4">Messages</h2>
+            
             <UserSearch onStartChat={handleUserClick} />
+            
             <div className="mt-6 space-y-4">
               <h3 className="text-sm font-medium text-muted-foreground">Recent Chats</h3>
               {recentChats.map((chat) => (
@@ -365,57 +418,63 @@ export default function Chat() {
             onBlockUser={handleBlockUser}
           />
           
-          {/* Messages + input as flex column */}
-          <div className="flex-1 flex flex-col">
-            <div 
-              ref={messagesContainerRef}
-              onScroll={handleScroll}
-              className="flex-1 p-4 overflow-y-auto space-y-4"
-            >
-              {currentMessages?.length ? (
-                currentMessages.map((message) => (
-                  <div key={message.id} className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-xs px-4 py-2 rounded-2xl ${
-                      message.sender_id === user?.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
+          <div 
+            ref={messagesContainerRef}
+            onScroll={handleScroll}
+            className="flex-1 p-4 overflow-y-auto space-y-4 pt-20 pb-20"
+          >
+            {currentMessages && currentMessages.length > 0 ? (
+              currentMessages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-xs px-4 py-2 rounded-2xl ${
+                      message.sender_id === user?.id
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted text-foreground'
+                    }`}
+                  >
+                    <p className="text-sm">{message.content}</p>
+                    <p className={`text-xs mt-1 ${
+                      message.sender_id === user?.id 
+                        ? 'text-primary-foreground/70' 
+                        : 'text-muted-foreground'
                     }`}>
-                      <p className="text-sm">{message.content}</p>
-                      <p className={`text-xs mt-1 ${message.sender_id === user?.id ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
-                        {new Date(message.created_at).toLocaleTimeString()}
-                      </p>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="flex items-center justify-center h-full text-center">
-                  <div>
-                    <h3 className="text-lg font-medium text-foreground mb-2">No messages yet</h3>
-                    <p className="text-muted-foreground">Start the conversation!</p>
+                      {new Date(message.created_at).toLocaleTimeString()}
+                    </p>
                   </div>
                 </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Typing bar */}
-            <div className="border-t border-border p-4 bg-card">
-              <div className="flex gap-2">
-                <Textarea
-                  placeholder="Type your message..."
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage();
-                    }
-                  }}
-                  className="flex-1 resize-none"
-                  rows={1}
-                />
-                <Button onClick={handleSendMessage} disabled={!newMessage.trim()}>
-                  <Send className="w-4 h-4" />
-                </Button>
+              ))
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <h3 className="text-lg font-medium text-foreground mb-2">No messages yet</h3>
+                  <p className="text-muted-foreground">Start the conversation!</p>
+                </div>
               </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border p-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Type your message..."
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }
+                }}
+                className="flex-1"
+              />
+              <Button onClick={handleSendMessage} disabled={!newMessage.trim()}>
+                <Send className="w-4 h-4" />
+              </Button>
             </div>
           </div>
         </div>
