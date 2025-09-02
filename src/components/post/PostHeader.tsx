@@ -96,7 +96,7 @@ export default function PostHeader({
         </div>
 
         {/* Caption */}
-        {content && (
+        {content && content.trim() && (
           <p className="text-foreground mt-1 leading-relaxed whitespace-pre-line">
             {content}
           </p>
