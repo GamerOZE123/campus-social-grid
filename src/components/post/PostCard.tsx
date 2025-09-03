@@ -90,58 +90,56 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
   return (
     <>
       <ClickablePostCard postId={post.id}>
-        <Card className="w-full bg-card border border-border hover:shadow-md transition-shadow">
-          <div className="p-4 space-y-3">
-            {/* Header (with caption inside) */}
-            <PostHeader
-              username={username}
-              fullName={fullName}
-              avatarUrl={avatarUrl}
-              createdAt={post.created_at}
-              content={post.content}
-              isOwnPost={isOwnPost}
-              onEdit={() => setShowEditModal(true)}
-              onDelete={handleDeletePost}
-              userId={post.user_id}
+        <div className="w-full p-4 space-y-3 hover:bg-muted/20 transition-colors border-b border-border">
+          {/* Header (with caption inside) */}
+          <PostHeader
+            username={username}
+            fullName={fullName}
+            avatarUrl={avatarUrl}
+            createdAt={post.created_at}
+            content={post.content}
+            isOwnPost={isOwnPost}
+            onEdit={() => setShowEditModal(true)}
+            onDelete={handleDeletePost}
+            userId={post.user_id}
+          />
+
+          {/* Image (if present) */}
+          {post.image_url && (
+            <PostContent
+              content=""
+              imageUrl={post.image_url}
             />
+          )}
 
-            {/* Image (if present) */}
-            {post.image_url && (
-              <PostContent
-                content=""
-                imageUrl={post.image_url}
-              />
-            )}
+          {/* Hashtags */}
+          {post.hashtags && post.hashtags.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {post.hashtags.map((hashtag, index) => (
+                <button
+                  key={index}
+                  onClick={(e) => handleHashtagClick(hashtag, e)}
+                  className="text-blue-500 hover:text-blue-700 hover:underline text-sm font-medium cursor-pointer transition-colors"
+                >
+                  #{hashtag}
+                </button>
+              ))}
+            </div>
+          )}
 
-            {/* Hashtags */}
-            {post.hashtags && post.hashtags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {post.hashtags.map((hashtag, index) => (
-                  <button
-                    key={index}
-                    onClick={(e) => handleHashtagClick(hashtag, e)}
-                    className="text-blue-500 hover:text-blue-700 hover:underline text-sm font-medium cursor-pointer transition-colors"
-                  >
-                    #{hashtag}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Actions */}
-            <PostActions
-              likesCount={likesCount}
-              commentsCount={post.comments_count}
-              isLiked={isLiked}
-              likesLoading={likesLoading}
-              onLike={handleLikeClick}
-              onComment={handleCommentClick}
-              onShare={onShare}
-              postId={post.id}
-              postContent={post.content}
-            />
-          </div>
-        </Card>
+          {/* Actions */}
+          <PostActions
+            likesCount={likesCount}
+            commentsCount={post.comments_count}
+            isLiked={isLiked}
+            likesLoading={likesLoading}
+            onLike={handleLikeClick}
+            onComment={handleCommentClick}
+            onShare={onShare}
+            postId={post.id}
+            postContent={post.content}
+          />
+        </div>
       </ClickablePostCard>
 
       {/* Edit Post Modal */}

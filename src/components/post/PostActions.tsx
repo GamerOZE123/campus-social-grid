@@ -40,8 +40,8 @@ export default function PostActions({
 
   return (
     <>
-      <div className="flex items-center justify-between pt-2 border-t border-border">
-        <div className="flex items-center gap-6">
+      <div className="flex items-center justify-center pt-2">
+        <div className="flex items-center gap-8">
           <Button
             variant="ghost"
             size="sm"

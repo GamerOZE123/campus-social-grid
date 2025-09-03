@@ -108,95 +108,101 @@ export default function AdvertisingPostCard({
   };
 
   return (
-    <Card 
-      className="cursor-pointer hover:shadow-lg transition-shadow overflow-hidden group"
+    <div 
+      className="cursor-pointer hover:bg-muted/20 transition-colors overflow-hidden group w-full p-4 space-y-3 border-b border-border"
       onClick={handleClick}
     >
-      {/* Sponsored Badge */}
-      <div className="relative">
-        <Badge 
-          variant="secondary" 
-          className="absolute top-3 left-3 z-10 bg-primary/90 text-primary-foreground"
-        >
-          Sponsored
-        </Badge>
-        
-        {/* Image */}
-        <div className="relative h-64 overflow-hidden">
-          <img 
-            src={post.image_url} 
-            alt={post.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-          <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="p-4 space-y-3">
-        {/* Company Info */}
-        {post.company_profiles && (
+      {/* Company Info Header */}
+      {post.company_profiles && (
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {post.company_profiles.logo_url && (
               <img 
                 src={post.company_profiles.logo_url} 
                 alt={post.company_profiles.company_name}
-                className="w-6 h-6 rounded-full object-cover"
+                className="w-8 h-8 rounded-full object-cover"
               />
             )}
-            <span className="text-sm text-muted-foreground">
-              {post.company_profiles.company_name}
-            </span>
-          </div>
-        )}
-
-        {/* Title */}
-        <h3 className="font-semibold text-lg text-foreground line-clamp-2">
-          {post.title}
-        </h3>
-
-        {/* Description */}
-        {post.description && (
-          <p className="text-muted-foreground text-sm line-clamp-2">
-            {post.description}
-          </p>
-        )}
-
-        {/* Actions */}
-        <div className="flex items-center justify-between pt-2">
-          <div className="flex items-center gap-4">
-            {/* Like Button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleLike}
-              className="flex items-center gap-1 p-1"
-            >
-              <Heart 
-                className={`w-4 h-4 ${liked ? 'fill-red-500 text-red-500' : 'text-muted-foreground'}`} 
-              />
-              <span className="text-sm">{likesCount}</span>
-            </Button>
-
-            {/* Click Count */}
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <TrendingUp className="w-4 h-4" />
-              <span className="text-sm">{post.click_count} clicks</span>
+            <div>
+              <span className="font-medium text-foreground">
+                {post.company_profiles.company_name}
+              </span>
+              <div className="text-sm text-muted-foreground">
+                {new Date(post.created_at).toLocaleDateString()}
+              </div>
             </div>
           </div>
+          <Badge 
+            variant="secondary" 
+            className="bg-primary/90 text-primary-foreground text-xs"
+          >
+            Ad
+          </Badge>
+        </div>
+      )}
+
+      {/* Title */}
+      <h3 className="font-medium text-foreground">
+        {post.title}
+      </h3>
+
+      {/* Description */}
+      {post.description && (
+        <p className="text-muted-foreground text-sm">
+          {post.description}
+        </p>
+      )}
+
+      {/* Ad Label positioned above image */}
+      <div className="relative">
+        {/* Image */}
+        <div className="relative overflow-hidden rounded-lg">
+          <img 
+            src={post.image_url} 
+            alt={post.title}
+            className="w-full h-auto object-cover group-hover:opacity-95 transition-opacity duration-300"
+          />
+        </div>
+      </div>
+
+      {/* Actions - Similar to regular posts */}
+      <div className="flex items-center justify-center pt-2">
+        <div className="flex items-center gap-8">
+          {/* Like Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLike}
+            className="flex items-center gap-2 hover:bg-muted/50"
+          >
+            <Heart 
+              className={`w-5 h-5 ${liked ? 'fill-red-500 text-red-500' : 'text-muted-foreground'}`} 
+            />
+            <span className="font-medium">{likesCount}</span>
+          </Button>
+
+          {/* Click Count */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex items-center gap-2 hover:bg-muted/50"
+          >
+            <TrendingUp className="w-5 h-5" />
+            <span className="font-medium">{post.click_count}</span>
+          </Button>
 
           {/* Visit Button */}
           <Button 
-            variant="outline" 
+            variant="ghost" 
             size="sm"
             onClick={handleClick}
-            className="flex items-center gap-1"
+            className="flex items-center gap-2 hover:bg-muted/50"
           >
-            <ExternalLink className="w-3 h-3" />
-            Visit
+            <ExternalLink className="w-5 h-5" />
+            <span className="font-medium">Visit</span>
           </Button>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
