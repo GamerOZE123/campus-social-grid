@@ -12,7 +12,7 @@ export default function MobileHeader() {
   return (
     <div className="flex items-center justify-between p-4 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex items-center gap-4">
-        <h1 className="text-xl font-bold text-foreground">UniConnect</h1>
+        <h1 className="text-xl font-bold text-foreground">Unigramm</h1>
       </div>
       
       <div className="flex items-center gap-2">
