@@ -1306,10 +1306,6 @@ export type Database = {
       }
     }
     Functions: {
-      company_can_access_student_contact: {
-        Args: { company_user_id: string; student_user_id: string }
-        Returns: boolean
-      }
       create_notification: {
         Args: {
           comment_id?: string
