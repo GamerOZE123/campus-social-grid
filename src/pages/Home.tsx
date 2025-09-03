@@ -261,7 +261,7 @@ export default function Home() {
       {isMobile && <MobileHeader />}
       
       <div className="max-w-2xl mx-auto pt-6 -mt-4">
-        <div className="space-y-0">
+        <div className="space-y-6">
           {(() => {
             console.log('mixedPosts:', mixedPosts);
             return null;
