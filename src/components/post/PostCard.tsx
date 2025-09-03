@@ -90,8 +90,8 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
   return (
     <>
       <ClickablePostCard postId={post.id}>
-        <Card className="w-full bg-card border border-border hover:shadow-md transition-shadow">
-          <div className="p-4 space-y-3">
+        <div className="w-full hover:bg-muted/5 transition-colors px-4 py-3 border-b border-border/50">
+          <div className="space-y-3">
             {/* Header (with caption inside) */}
             <PostHeader
               username={username}
@@ -141,7 +141,7 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
               postContent={post.content}
             />
           </div>
-        </Card>
+        </div>
       </ClickablePostCard>
 
       {/* Edit Post Modal */}
