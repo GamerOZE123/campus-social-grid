@@ -142,7 +142,7 @@ export default function Home() {
         profilesMap.set(profile.user_id, profile);
       });
       
-      // Transform regular posts data with profile information
+      // Transform regular posts data with profile information and shuffle randomly
       const transformedPosts: TransformedPost[] = postsData.map((post) => {
         const profile = profilesMap.get(post.user_id);
         
@@ -164,7 +164,7 @@ export default function Home() {
           user_university: userUniversity,
           hashtags: post.hashtags || []
         };
-      });
+      }).sort(() => Math.random() - 0.5); // Randomly shuffle posts
 
       // Create algorithm to intersperse advertising posts
       const mixedArray: MixedPost[] = [];

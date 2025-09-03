@@ -1,6 +1,7 @@
 import React from 'react';
 import { MoreHorizontal, Edit, Trash, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,6 +19,7 @@ interface PostHeaderProps {
   isOwnPost?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
+  userId?: string; // Add userId for profile navigation
 }
 
 export default function PostHeader({ 
@@ -29,8 +31,10 @@ export default function PostHeader({
   isVerified = false,
   isOwnPost = false, 
   onEdit, 
-  onDelete 
+  onDelete,
+  userId 
 }: PostHeaderProps) {
+  const navigate = useNavigate();
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -42,10 +46,21 @@ export default function PostHeader({
     return `${Math.floor(diffInSeconds / 86400)}d`;
   };
 
+  const handleProfileClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (userId) {
+      navigate(`/profile/${userId}`);
+    }
+  };
+
   return (
     <div className="flex gap-3">
       {/* Avatar */}
-      <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+      <div 
+        className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-primary to-accent flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
+        onClick={handleProfileClick}
+      >
         {avatarUrl ? (
           <img src={avatarUrl} alt={fullName} className="w-full h-full object-cover" />
         ) : (
@@ -60,9 +75,19 @@ export default function PostHeader({
         <div className="flex items-center justify-between">
           {/* User info */}
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="font-semibold text-foreground">{fullName || username}</p>
+            <p 
+              className="font-semibold text-foreground cursor-pointer hover:underline"
+              onClick={handleProfileClick}
+            >
+              {fullName || username}
+            </p>
             {isVerified && <CheckCircle2 className="w-4 h-4 text-sky-500" />}
-            <p className="text-sm text-muted-foreground">@{username}</p>
+            <p 
+              className="text-sm text-muted-foreground cursor-pointer hover:underline"
+              onClick={handleProfileClick}
+            >
+              @{username}
+            </p>
             <span className="text-sm text-muted-foreground">· {formatDate(createdAt)}</span>
           </div>
 

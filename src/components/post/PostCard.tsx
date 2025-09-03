@@ -53,6 +53,7 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
     e.preventDefault();
     e.stopPropagation();
     toggleLike();
+    // Don't call onPostUpdated here to prevent page refresh
   };
 
   const handleCommentClick = (e: React.MouseEvent) => {
@@ -101,6 +102,7 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
               isOwnPost={isOwnPost}
               onEdit={() => setShowEditModal(true)}
               onDelete={handleDeletePost}
+              userId={post.user_id}
             />
 
             {/* Image (if present) */}
