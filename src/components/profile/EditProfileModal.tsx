@@ -38,6 +38,7 @@ export default function EditProfileModal({
   // Banner local state
   const [localBannerUrl, setLocalBannerUrl] = useState<string | null>(bannerUrl);
   const [localBannerHeight, setLocalBannerHeight] = useState<number>(bannerHeight);
+  const [verticalPosition, setVerticalPosition] = useState<number>(50); // 0-100 percentage
 
   useEffect(() => {
     if (isOpen && user) {
@@ -125,11 +126,10 @@ export default function EditProfileModal({
     }
   };
 
-  // Banner height change
-  const handleBannerHeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newHeight = Number(e.target.value);
-    setLocalBannerHeight(newHeight);
-    onBannerChange(localBannerUrl || '', newHeight);
+  // Banner vertical position change
+  const handleVerticalPositionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newPosition = Number(e.target.value);
+    setVerticalPosition(newPosition);
   };
 
   const handleSave = async () => {
@@ -146,6 +146,7 @@ export default function EditProfileModal({
           major: profile.major,
           banner_url: localBannerUrl,
           banner_height: localBannerHeight,
+          banner_position: verticalPosition,
           updated_at: new Date().toISOString()
         })
         .eq('user_id', user.id);
@@ -185,12 +186,14 @@ export default function EditProfileModal({
               )}
             </div>
             {localBannerUrl ? (
-              <div className="relative mb-2">
+              <div className="relative mb-2 overflow-hidden rounded-lg border" style={{ aspectRatio: '3/1' }}>
                 <img
                   src={localBannerUrl}
                   alt="Banner preview"
-                  className="w-full rounded-lg object-cover border"
-                  style={{ height: localBannerHeight }}
+                  className="w-full h-full object-cover"
+                  style={{ 
+                    objectPosition: `center ${verticalPosition}%`
+                  }}
                 />
                 <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm rounded px-2 py-1 text-xs">
                   Preview
@@ -199,7 +202,7 @@ export default function EditProfileModal({
             ) : (
               <div 
                 className="w-full rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center text-muted-foreground mb-2"
-                style={{ height: localBannerHeight }}
+                style={{ aspectRatio: '3/1' }}
               >
                 No banner uploaded
               </div>
@@ -211,20 +214,22 @@ export default function EditProfileModal({
               disabled={loading}
               className="mb-2"
             />
-            <div className="flex items-center gap-2">
-              <Label htmlFor="bannerHeight" className="text-sm">Height:</Label>
-              <input
-                id="bannerHeight"
-                type="range"
-                min={120}
-                max={320}
-                value={localBannerHeight}
-                onChange={handleBannerHeightChange}
-                className="flex-1"
-                disabled={loading}
-              />
-              <span className="text-xs text-muted-foreground min-w-[50px]">{localBannerHeight}px</span>
-            </div>
+            {localBannerUrl && (
+              <div className="flex items-center gap-2">
+                <Label htmlFor="verticalPosition" className="text-sm">Position:</Label>
+                <input
+                  id="verticalPosition"
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={verticalPosition}
+                  onChange={handleVerticalPositionChange}
+                  className="flex-1"
+                  disabled={loading}
+                />
+                <span className="text-xs text-muted-foreground min-w-[50px]">{verticalPosition}%</span>
+              </div>
+            )}
           </div>
           {/* Profile fields */}
           <div>

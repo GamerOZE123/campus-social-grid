@@ -152,7 +152,7 @@ export default function Profile() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('user_id, username, full_name, avatar_url, university, major, bio, followers_count, following_count, country, state, area')
+        .select('user_id, username, full_name, avatar_url, university, major, bio, followers_count, following_count, country, state, area, banner_url, banner_height')
         .eq('user_id', userId)
         .single();
 
@@ -243,10 +243,10 @@ export default function Profile() {
           <div
             className="w-full bg-muted/30 rounded-b-xl overflow-hidden"
             style={{
-              height: `${bannerHeight}px`,
+              aspectRatio: '3/1',
               backgroundImage: bannerUrl ? `url(${bannerUrl})` : undefined,
               backgroundSize: 'cover',
-              backgroundPosition: 'center',
+              backgroundPosition: `center ${profileData.banner_position || 50}%`,
               position: 'relative',
             }}
           >
