@@ -260,7 +260,7 @@ export default function Profile() {
                 onClick={() => setIsEditModalOpen(true)}
                 aria-label="Edit banner"
               >
-                <Camera className="w-5 h-5" />
+                <Edit className="w-5 h-5" /> {/* replaced Camera with Edit icon */}
               </button>
             )}
           </div>
@@ -283,7 +283,7 @@ export default function Profile() {
         </div>
 
         {/* Profile Info */}
-        <div className="pt-10 pb-4 px-4 text-center"> {/* changed pt-16 to pt-10 */}
+        <div className="pt-0 pb-4 px-4 text-center"> {/* changed pt-10 to pt-0 */}
           <h1 className="text-2xl font-bold text-foreground">
             {profileData.full_name || profileData.username}
           </h1>
