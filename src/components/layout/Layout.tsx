@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
@@ -26,7 +25,15 @@ export default function Layout({ children }: LayoutProps) {
       {/* Main Content */}
       <main className={`${!isFitnessPage ? 'md:ml-64 md:pt-16' : ''} ${!isFitnessPage ? 'pb-20 md:pb-6' : ''} ${showRightSidebar && !isFitnessPage ? 'xl:mr-80' : ''}`}>
         {!isFitnessPage && (
-          <div className="container mx-auto px-4 py-2">
+          <div
+            className="container mx-auto px-4 py-2"
+            style={{
+              paddingLeft: 0,
+              paddingRight: 0,
+              paddingBottom: 0,
+              paddingTop: 0,
+            }}
+          >
             {children}
           </div>
         )}
