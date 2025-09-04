@@ -1033,6 +1033,7 @@ export type Database = {
           area: string | null
           avatar_url: string | null
           banner_height: number | null
+          banner_position: number | null
           banner_url: string | null
           bio: string | null
           country: string | null
@@ -1054,6 +1055,7 @@ export type Database = {
           area?: string | null
           avatar_url?: string | null
           banner_height?: number | null
+          banner_position?: number | null
           banner_url?: string | null
           bio?: string | null
           country?: string | null
@@ -1075,6 +1077,7 @@ export type Database = {
           area?: string | null
           avatar_url?: string | null
           banner_height?: number | null
+          banner_position?: number | null
           banner_url?: string | null
           bio?: string | null
           country?: string | null

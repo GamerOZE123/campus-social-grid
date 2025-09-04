@@ -66,6 +66,7 @@ export default function EditProfileModal({
           university: data.university || '',
           major: data.major || ''
         });
+        setVerticalPosition(data.banner_position || 50);
       }
     } catch (error) {
       console.error('Error fetching profile:', error?.message || error);

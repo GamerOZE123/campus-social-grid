@@ -28,8 +28,9 @@ interface ProfileData {
   country?: string;
   state?: string;
   area?: string;
-  banner_url?: string; // <-- add this
-  banner_height?: number; // <-- add this
+  banner_url?: string;
+  banner_height?: number;
+  banner_position?: number;
 }
 
 interface PostWithProfile {
@@ -152,7 +153,7 @@ export default function Profile() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('user_id, username, full_name, avatar_url, university, major, bio, followers_count, following_count, country, state, area, banner_url, banner_height')
+        .select('user_id, username, full_name, avatar_url, university, major, bio, followers_count, following_count, country, state, area, banner_url, banner_height, banner_position')
         .eq('user_id', userId)
         .single();
 
