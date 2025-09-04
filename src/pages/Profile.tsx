@@ -249,6 +249,8 @@ export default function Profile() {
               backgroundSize: 'cover',
               backgroundPosition: `center ${profileData.banner_position || 50}%`,
               position: 'relative',
+              borderBottomRightRadius: 0, // <-- added
+              borderBottomLeftRadius: 0,  // <-- added
             }}
           >
             {/* Edit Banner Button (only own profile) */}
