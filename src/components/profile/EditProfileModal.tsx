@@ -78,7 +78,7 @@ export default function EditProfileModal({
     setLoading(true);
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `banner_${user.id}_${Date.now()}.${fileExt}`;
+      const fileName = `${user.id}/banner_${Date.now()}.${fileExt}`;
       const { data, error } = await supabase.storage
         .from('profile-banner')
         .upload(fileName, file, { upsert: true });
@@ -91,7 +91,35 @@ export default function EditProfileModal({
       onBannerChange(publicUrl, localBannerHeight);
       toast.success('Banner uploaded!');
     } catch (error) {
+      console.error('Banner upload error:', error);
       toast.error('Failed to upload banner');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Banner delete handler
+  const handleBannerDelete = async () => {
+    if (!localBannerUrl || !user) return;
+    setLoading(true);
+    try {
+      // Extract filename from URL
+      const urlParts = localBannerUrl.split('/');
+      const fileName = urlParts[urlParts.length - 1];
+      const filePath = `${user.id}/${fileName}`;
+      
+      const { error } = await supabase.storage
+        .from('profile-banner')
+        .remove([filePath]);
+      
+      if (error) throw error;
+      
+      setLocalBannerUrl(null);
+      onBannerChange('', localBannerHeight);
+      toast.success('Banner deleted!');
+    } catch (error) {
+      console.error('Banner delete error:', error);
+      toast.error('Failed to delete banner');
     } finally {
       setLoading(false);
     }
@@ -142,23 +170,49 @@ export default function EditProfileModal({
         <div className="space-y-4">
           {/* Banner upload */}
           <div>
-            <Label>Banner</Label>
-            {localBannerUrl && (
-              <img
-                src={localBannerUrl}
-                alt="Banner preview"
-                className="w-full rounded-lg mb-2 object-cover"
+            <div className="flex items-center justify-between mb-2">
+              <Label>Banner</Label>
+              {localBannerUrl && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleBannerDelete}
+                  disabled={loading}
+                  className="text-destructive hover:text-destructive"
+                >
+                  Delete Banner
+                </Button>
+              )}
+            </div>
+            {localBannerUrl ? (
+              <div className="relative mb-2">
+                <img
+                  src={localBannerUrl}
+                  alt="Banner preview"
+                  className="w-full rounded-lg object-cover border"
+                  style={{ height: localBannerHeight }}
+                />
+                <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm rounded px-2 py-1 text-xs">
+                  Preview
+                </div>
+              </div>
+            ) : (
+              <div 
+                className="w-full rounded-lg border-2 border-dashed border-muted-foreground/25 flex items-center justify-center text-muted-foreground mb-2"
                 style={{ height: localBannerHeight }}
-              />
+              >
+                No banner uploaded
+              </div>
             )}
             <Input
               type="file"
               accept="image/*"
               onChange={handleBannerUpload}
               disabled={loading}
+              className="mb-2"
             />
-            <div className="flex items-center gap-2 mt-2">
-              <Label htmlFor="bannerHeight">Banner Height</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="bannerHeight" className="text-sm">Height:</Label>
               <input
                 id="bannerHeight"
                 type="range"
@@ -166,10 +220,10 @@ export default function EditProfileModal({
                 max={320}
                 value={localBannerHeight}
                 onChange={handleBannerHeightChange}
-                className="w-32"
+                className="flex-1"
                 disabled={loading}
               />
-              <span className="text-xs text-muted-foreground">{localBannerHeight}px</span>
+              <span className="text-xs text-muted-foreground min-w-[50px]">{localBannerHeight}px</span>
             </div>
           </div>
           {/* Profile fields */}
