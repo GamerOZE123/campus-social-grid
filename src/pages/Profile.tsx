@@ -283,7 +283,7 @@ export default function Profile() {
         </div>
 
         {/* Profile Info */}
-        <div className="pt-0 pb-4 px-4 text-center"> {/* changed pt-10 to pt-0 */}
+        <div className="pt-10 pb-4 px-4 text-center"> {/* changed pt-10 to pt-0 */}
           <h1 className="text-2xl font-bold text-foreground">
             {profileData.full_name || profileData.username}
           </h1>
