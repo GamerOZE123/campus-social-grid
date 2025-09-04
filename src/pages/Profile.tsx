@@ -6,7 +6,7 @@ import MessageButton from '@/components/profile/MessageButton';
 
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserPlus, UserMinus, Edit } from 'lucide-react';
+import { UserPlus, UserMinus, Edit, Camera } from 'lucide-react';
 import MobileHeader from '@/components/layout/MobileHeader';
 // Re-importing to force refresh
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -28,6 +28,8 @@ interface ProfileData {
   country?: string;
   state?: string;
   area?: string;
+  banner_url?: string; // <-- add this
+  banner_height?: number; // <-- add this
 }
 
 interface PostWithProfile {
@@ -75,6 +77,15 @@ export default function Profile() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // Use profileData.banner_url and banner_height if available
+  const [bannerUrl, setBannerUrl] = useState<string | null>(null);
+  const [bannerHeight, setBannerHeight] = useState<number>(180);
+
+  useEffect(() => {
+    if (profileData?.banner_url) setBannerUrl(profileData.banner_url);
+    if (profileData?.banner_height) setBannerHeight(profileData.banner_height);
+  }, [profileData?.banner_url, profileData?.banner_height]);
 
   useEffect(() => {
     if (profileId) {
@@ -195,6 +206,12 @@ export default function Profile() {
     fetchUserData(profileId);
   };
 
+  // Banner upload handler (for EditProfileModal)
+  const handleBannerChange = (url: string, height: number) => {
+    setBannerUrl(url);
+    setBannerHeight(height);
+  };
+
   const transformPostsForPostCard = (posts: PostWithProfile[]): TransformedPost[] => {
     return posts.map(post => ({
       id: post.id,
@@ -218,116 +235,105 @@ export default function Profile() {
 
   return (
     <Layout>
-      {/* Mobile Header */}
       {isMobile && <MobileHeader />}
-      
-      <div className="space-y-6">
-        {/* Profile Header */}
-        <div className="post-card">
-          <div className="flex flex-col md:flex-row gap-6">
-            <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center mx-auto md:mx-0">
-              <span className="text-2xl md:text-3xl font-bold text-white">
-                {profileData.full_name?.charAt(0) || profileData.username?.charAt(0) || 'U'}
-              </span>
-            </div>
-            
-            <div className="flex-1 text-center md:text-left">
-              <h1 className="text-2xl font-bold text-foreground mb-2">
-                {profileData.full_name || profileData.username}
-              </h1>
-              <div className="space-y-1 text-muted-foreground mb-4">
-                {profileData.username && (
-                  <p className="text-sm">@{profileData.username}</p>
-                )}
-                {profileData.university && (
-                  <p className="text-sm">{profileData.university}</p>
-                )}
-                {profileData.major && (
-                  <p className="text-sm">{profileData.major}</p>
-                )}
-                {(profileData.area || profileData.state || profileData.country) && (
-                  <p className="text-sm text-muted-foreground">
-                    📍 {[profileData.area, profileData.state, profileData.country].filter(Boolean).join(', ')}
-                  </p>
-                )}
-                {profileData.bio && (
-                  <p className="text-sm mt-2">{profileData.bio}</p>
-                )}
-              </div>
-              
-              <div className="flex justify-center md:justify-start gap-4 mb-4">
-                <div className="text-center">
-                  <p className="font-bold text-foreground">{posts.length}</p>
-                  <p className="text-sm text-muted-foreground">Posts</p>
-                </div>
-                <div className="text-center">
-                  <p className="font-bold text-foreground">{profileData.followers_count || 0}</p>
-                  <p className="text-sm text-muted-foreground">Followers</p>
-                </div>
-                <div className="text-center">
-                  <p className="font-bold text-foreground">{profileData.following_count || 0}</p>
-                  <p className="text-sm text-muted-foreground">Following</p>
-                </div>
-              </div>
-              
-              <div className="flex justify-center md:justify-start gap-2">
-                {isOwnProfile ? (
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => setIsEditModalOpen(true)}
-                      variant="outline"
-                      className="flex items-center gap-2"
-                    >
-                      <Edit className="w-4 h-4" />
-                      Edit Profile
-                    </Button>
-                  </div>
-                ) : (
-                  <>
-                    <Button
-                      onClick={handleFollow}
-                      variant={isFollowing ? "outline" : "default"}
-                      className="flex items-center gap-2"
-                      disabled={followLoading}
-                    >
-                      {isFollowing ? (
-                        <>
-                          <UserMinus className="w-4 h-4" />
-                          Unfollow
-                        </>
-                      ) : (
-                        <>
-                          <UserPlus className="w-4 h-4" />
-                          Follow
-                        </>
-                      )}
-                    </Button>
-                    <MessageButton userId={profileData.user_id} />
-                  </>
-                )}
-              </div>
+
+      <div className="max-w-2xl mx-auto">
+        {/* Banner Section */}
+        <div className="relative">
+          <div
+            className="w-full bg-muted/30 rounded-b-xl overflow-hidden"
+            style={{
+              height: `${bannerHeight}px`,
+              backgroundImage: bannerUrl ? `url(${bannerUrl})` : undefined,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              position: 'relative',
+            }}
+          >
+            {/* Edit Banner Button (only own profile) */}
+            {isOwnProfile && (
+              <button
+                className="absolute top-3 right-3 bg-black/60 text-white rounded-full p-2 hover:bg-black/80 transition"
+                onClick={() => setIsEditModalOpen(true)}
+                aria-label="Edit banner"
+              >
+                <Camera className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+          {/* Avatar - bottom center, overlapping banner */}
+          <div className="absolute left-1/2 -bottom-10 transform -translate-x-1/2">
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-accent border-4 border-background flex items-center justify-center shadow-lg">
+              {profileData.avatar_url ? (
+                <img
+                  src={profileData.avatar_url}
+                  alt={profileData.full_name || profileData.username}
+                  className="w-full h-full object-cover rounded-full"
+                />
+              ) : (
+                <span className="text-3xl font-bold text-white">
+                  {profileData.full_name?.charAt(0) || profileData.username?.charAt(0) || 'U'}
+                </span>
+              )}
             </div>
           </div>
         </div>
 
+        {/* Profile Info */}
+        <div className="pt-16 pb-4 px-4 text-center">
+          <h1 className="text-2xl font-bold text-foreground">
+            {profileData.full_name || profileData.username}
+          </h1>
+          <p className="text-muted-foreground">@{profileData.username}</p>
+          {profileData.bio && <p className="mt-2">{profileData.bio}</p>}
+          {/* ...other info... */}
+          <div className="flex justify-center gap-6 mt-4">
+            <div>
+              <span className="font-bold">{posts.length}</span>
+              <span className="text-muted-foreground text-sm ml-1">Posts</span>
+            </div>
+            <div>
+              <span className="font-bold">{profileData.followers_count || 0}</span>
+              <span className="text-muted-foreground text-sm ml-1">Followers</span>
+            </div>
+            <div>
+              <span className="font-bold">{profileData.following_count || 0}</span>
+              <span className="text-muted-foreground text-sm ml-1">Following</span>
+            </div>
+          </div>
+          {/* Edit Profile Button */}
+          {isOwnProfile && (
+            <Button
+              onClick={() => setIsEditModalOpen(true)}
+              variant="outline"
+              className="mt-4"
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Edit Profile
+            </Button>
+          )}
+        </div>
+
         {/* Posts */}
-        <div className="space-y-4">
+        <div className="space-y-4 px-4">
           {transformedPosts.length > 0 ? (
             transformedPosts.map((post) => (
               <PostCard key={post.id} post={post} />
             ))
           ) : (
-            <div className="post-card text-center py-8">
-              <p className="text-muted-foreground">No posts yet</p>
-            </div>
+            <div className="text-center py-8 text-muted-foreground">No posts yet</div>
           )}
         </div>
       </div>
 
+      {/* Edit Profile Modal */}
       <EditProfileModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         onProfileUpdate={handleProfileUpdate}
+        onBannerChange={handleBannerChange}
+        bannerUrl={bannerUrl}
+        bannerHeight={bannerHeight}
       />
     </Layout>
   );
