@@ -283,7 +283,7 @@ export default function Profile() {
         </div>
 
         {/* Profile Info */}
-        <div className="pt-16 pb-4 px-4 text-center">
+        <div className="pt-10 pb-4 px-4 text-center"> {/* changed pt-16 to pt-10 */}
           <h1 className="text-2xl font-bold text-foreground">
             {profileData.full_name || profileData.username}
           </h1>
@@ -300,7 +300,7 @@ export default function Profile() {
               <span className="text-muted-foreground text-sm ml-1">Followers</span>
             </div>
             <div>
-              <span className="font-bold">{profileData.following_count || 0}</span>
+              <span className="font-bold"></span>
               <span className="text-muted-foreground text-sm ml-1">Following</span>
             </div>
           </div>
