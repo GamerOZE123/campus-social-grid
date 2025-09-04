@@ -1032,6 +1032,8 @@ export type Database = {
         Row: {
           area: string | null
           avatar_url: string | null
+          banner_height: number | null
+          banner_url: string | null
           bio: string | null
           country: string | null
           created_at: string
@@ -1051,6 +1053,8 @@ export type Database = {
         Insert: {
           area?: string | null
           avatar_url?: string | null
+          banner_height?: number | null
+          banner_url?: string | null
           bio?: string | null
           country?: string | null
           created_at?: string
@@ -1070,6 +1074,8 @@ export type Database = {
         Update: {
           area?: string | null
           avatar_url?: string | null
+          banner_height?: number | null
+          banner_url?: string | null
           bio?: string | null
           country?: string | null
           created_at?: string

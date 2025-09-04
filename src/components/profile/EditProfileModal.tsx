@@ -80,11 +80,11 @@ export default function EditProfileModal({
       const fileExt = file.name.split('.').pop();
       const fileName = `banner_${user.id}_${Date.now()}.${fileExt}`;
       const { data, error } = await supabase.storage
-        .from('profile-banners')
+        .from('profile-banner')
         .upload(fileName, file, { upsert: true });
       if (error) throw error;
       const { data: publicUrlData } = supabase.storage
-        .from('profile-banners')
+        .from('profile-banner')
         .getPublicUrl(fileName);
       const publicUrl = publicUrlData?.publicUrl || '';
       setLocalBannerUrl(publicUrl);
