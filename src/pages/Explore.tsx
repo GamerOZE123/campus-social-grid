@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Search, User } from 'lucide-react';
@@ -33,6 +32,13 @@ export default function Explore() {
     navigate(`/profile/${userId}`);
   };
 
+  const shuffleArray = (array: any[]) => {
+    return array
+      .map(value => ({ value, sort: Math.random() }))
+      .sort((a, b) => a.sort - b.sort)
+      .map(({ value }) => value);
+  };
+
   const fetchPostImages = async () => {
     try {
       const { data: posts, error } = await supabase
@@ -43,7 +49,7 @@ export default function Explore() {
         .limit(50);
 
       if (error) throw error;
-      setPostImages(posts || []);
+      setPostImages(shuffleArray(posts || [])); // <-- shuffle before setting
     } catch (error) {
       console.error('Error fetching post images:', error);
     } finally {
