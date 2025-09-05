@@ -69,19 +69,18 @@ export default function Explore() {
     <Layout>
       {/* Mobile Header */}
       {isMobile && <MobileHeader />}
-      
-      <div className="space-y-6">
+
+      <div className="space-y-6 px-2">
         {/* Search Header */}
-        <div className="post-card">
-          <h2 className="text-2xl font-bold text-foreground mb-4">Explore</h2>
-          <div className="relative">
+        <div className="flex justify-center mt-6">
+          <div className="relative w-full max-w-lg"> {/* increased max-w-xs to max-w-lg */}
             <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               placeholder="Search users..."
               value={searchQuery}
               onChange={handleSearch}
-              className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground"
+              className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-background text-foreground text-center"
             />
           </div>
         </div>
