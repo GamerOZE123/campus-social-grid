@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -7,6 +6,8 @@ import NewCommentSection from '@/components/post/NewCommentSection';
 import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import MobileHeader from '@/components/layout/MobileHeader';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PostData {
   id: string;
@@ -44,6 +45,7 @@ export default function Post() {
   const [post, setPost] = useState<TransformedPost | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (postId) {
@@ -143,20 +145,13 @@ export default function Post() {
 
   return (
     <Layout>
-      <div className="max-w-2xl mx-auto">
-        <div className="mb-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back
-          </Button>
-        </div>
-        
+      {isMobile && <MobileHeader />}
+      <div
+        className="max-w-2xl mx-auto"
+        style={{ paddingRight: '10px', paddingLeft: '10px' }} // <-- added inline style
+      >
         <PostCard post={post} />
+        <NewCommentSection postId={post.id} />
       </div>
     </Layout>
   );
