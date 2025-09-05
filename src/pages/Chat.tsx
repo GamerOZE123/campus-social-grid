@@ -6,7 +6,7 @@ import MobileChatHeader from '@/components/chat/MobileChatHeader';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Send, MoreVertical, Trash2, MessageSquareX, UserX } from 'lucide-react';
+import { Send, MoreVertical, Trash2, MessageSquareX, UserX, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useChat } from '@/hooks/useChat';
 import { useRecentChats } from '@/hooks/useRecentChats';
@@ -314,9 +314,8 @@ export default function Chat() {
   return (
     <>
       {showUserList ? (
-        <MobileLayout showHeader={false} showNavigation={true}>
+        <MobileLayout showHeader={true} showNavigation={true}>
           <div className="p-4">
-            <h2 className="text-xl font-bold text-foreground mb-4">Messages</h2>
             <UserSearch onStartChat={handleUserClick} />
             <div className="mt-6 space-y-4">
               <h3 className="text-sm font-medium text-muted-foreground">Recent Chats</h3>
