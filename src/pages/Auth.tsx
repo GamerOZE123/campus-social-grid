@@ -96,7 +96,7 @@ export default function Auth() {
         email: formData.email,
         password: formData.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/home`,
+          emailRedirectTo: `${window.location.origin}/auth`,
           data: {
             full_name: formData.name,
             university: userType === 'student' ? formData.university : undefined,
