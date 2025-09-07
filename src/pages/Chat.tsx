@@ -26,6 +26,7 @@ export default function Chat() {
   const [showUserList, setShowUserList] = useState(true);
   const [isUserScrolling, setIsUserScrolling] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState<Set<string>>(new Set());
+  const [isAtBottom, setIsAtBottom] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const scrollTimeoutRef = useRef<NodeJS.Timeout>();
@@ -47,34 +48,39 @@ export default function Chat() {
   const { recentChats, addRecentChat, refreshRecentChats } = useRecentChats();
   const { getUserById } = useUsers();
 
+  // Auto-scroll only when at bottom and new messages arrive
   useEffect(() => {
-    if (currentMessages && currentMessages.length > previousMessagesLength.current && !isUserScrolling) {
+    if (currentMessages && currentMessages.length > previousMessagesLength.current && isAtBottom) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
     previousMessagesLength.current = currentMessages?.length || 0;
-  }, [currentMessages?.length, isUserScrolling]);
+  }, [currentMessages?.length, isAtBottom]);
 
+  // Initial scroll to bottom when conversation is selected
   useEffect(() => {
     if (selectedConversationId && currentMessages && currentMessages.length > 0) {
       setTimeout(() => {
-        if (messagesContainerRef.current) {
-          messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-        }
+        messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
+        setIsAtBottom(true);
       }, 50);
     }
-  }, [selectedConversationId, currentMessages]);
+  }, [selectedConversationId]);
 
   const handleScroll = () => {
     if (messagesContainerRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
-      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
+      const newIsAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
       const isAtTop = scrollTop <= 10;
       
-      if (isAtTop && selectedConversationId && currentMessages.length >= 15) {
+      setIsAtBottom(newIsAtBottom);
+      
+      // Load older messages when scrolling to top
+      if (isAtTop && selectedConversationId && currentMessages.length >= 20) {
         loadOlderMessages(selectedConversationId);
       }
       
-      if (!isAtBottom) {
+      // Manage user scrolling state
+      if (!newIsAtBottom) {
         setIsUserScrolling(true);
         if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
         scrollTimeoutRef.current = setTimeout(() => setIsUserScrolling(false), 3000);
@@ -251,7 +257,6 @@ export default function Chat() {
                   ref={messagesContainerRef}
                   onScroll={handleScroll}
                   className="flex-1 p-4 overflow-y-auto space-y-4"
-                  style={{ display: 'flex', flexDirection: 'column-reverse' }}
                 >
                   {currentMessages?.length ? (
                     currentMessages.map((message) => (
@@ -359,7 +364,7 @@ export default function Chat() {
               ref={messagesContainerRef}
               onScroll={handleScroll}
               className="flex-1 p-4 overflow-y-auto space-y-4 pb-safe"
-              style={{ paddingBottom: 'env(safe-area-inset-bottom)', display: 'flex', flexDirection: 'column-reverse' }}
+              style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
             >
               {currentMessages?.length ? (
                 currentMessages.map((message) => (

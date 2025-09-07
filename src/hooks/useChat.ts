@@ -51,7 +51,7 @@ export const useChat = () => {
     }
   };
 
-  const fetchMessages = async (conversationId: string, offset = 0, limit = 15) => {
+  const fetchMessages = async (conversationId: string, offset = 0, limit = 20) => {
     try {
       if (!user) return;
       
@@ -79,7 +79,7 @@ export const useChat = () => {
       }
       
       const { data, error } = await query
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: true })
         .range(offset, offset + limit - 1);
       
       if (error) {
@@ -89,9 +89,10 @@ export const useChat = () => {
       
       console.log('Fetched messages:', data);
       if (offset === 0) {
-        setCurrentMessages(data?.reverse() || []);
+        setCurrentMessages(data || []);
       } else {
-        setCurrentMessages(prev => [...(data?.reverse() || []), ...prev]);
+        // For older messages, prepend to beginning
+        setCurrentMessages(prev => [...(data || []), ...prev]);
       }
     } catch (error) {
       console.error('Error fetching messages:', error);
@@ -215,9 +216,9 @@ const clearChat = async (conversationId: string) => {
             // Refresh conversations to update order
             fetchConversations();
             
-            // If it's for the current conversation, refresh messages
+            // If it's for the current conversation, add the new message
             if (payload.new?.conversation_id === currentMessages?.[0]?.conversation_id) {
-              fetchMessages(payload.new.conversation_id);
+              setCurrentMessages(prev => [...prev, payload.new as Message]);
             }
           }
         )
@@ -227,7 +228,7 @@ const clearChat = async (conversationId: string) => {
         supabase.removeChannel(channel);
       };
     }
-  }, [user]);
+  }, [user, currentMessages]);
 
   return {
     conversations,
