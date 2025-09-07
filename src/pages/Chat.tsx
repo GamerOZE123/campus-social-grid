@@ -58,15 +58,27 @@ export default function Chat() {
     previousMessagesLength.current = currentMessages.length;
   }, [currentMessages, isAtBottom]);
 
-  // ✅ Scroll to bottom when opening a conversation
-  useEffect(() => {
-    if (selectedConversationId && currentMessages.length > 0) {
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
-        setIsAtBottom(true);
-      }, 50);
+  // ✅ Scroll to bottom when opening a conversation OR when new messages arrive (if at bottom)
+useEffect(() => {
+  if (!selectedConversationId) return;
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    setIsAtBottom(true);
+  };
+
+  if (currentMessages.length > 0) {
+    // when switching chats → always scroll
+    if (selectedConversationId && currentMessages.length === 1) {
+      setTimeout(scrollToBottom, 50);
     }
-  }, [selectedConversationId]);
+    // when receiving new messages → scroll only if already at bottom
+    else if (isAtBottom) {
+      setTimeout(scrollToBottom, 50);
+    }
+  }
+}, [selectedConversationId, currentMessages]);
+
 
   // ✅ Handle scrolling (detect top/bottom + load more)
   const handleScroll = () => {
