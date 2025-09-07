@@ -205,7 +205,8 @@ export const useChat = () => {
           table: 'messages'
         },
         (payload) => {
-          console.log('Realtime message received:', payload);
+          console.log('🔥 Realtime message received:', payload);
+          console.log('🔥 Current conversation ID:', currentConversationIdRef.current);
 
           const newMessage = payload.new as Message;
 
@@ -215,10 +216,13 @@ export const useChat = () => {
           // Only add to current messages if it's the open conversation
           // Use ref to get current value without recreating subscription
           if (newMessage.conversation_id === currentConversationIdRef.current) {
+            console.log('🔥 Message is for current conversation, processing...');
             setCurrentMessages((prev) => {
+              console.log('🔥 Current messages before update:', prev.length);
+              
               // Check if this exact message already exists (by ID)
               if (prev.some(msg => msg.id === newMessage.id)) {
-                console.log('Message with same ID already exists, skipping');
+                console.log('🔥 Message with same ID already exists, skipping');
                 return prev;
               }
 
@@ -235,7 +239,7 @@ export const useChat = () => {
               );
 
               if (optimisticIndex !== -1) {
-                console.log('Replacing optimistic message with real message');
+                console.log('🔥 Replacing optimistic message with real message');
                 const updated = [...prev];
                 updated[optimisticIndex] = newMessage;
                 return updated.sort(
@@ -257,20 +261,22 @@ export const useChat = () => {
               );
 
               if (isDuplicate) {
-                console.log('Duplicate message detected, skipping');
+                console.log('🔥 Duplicate message detected, skipping');
                 return prev;
               }
 
-              console.log('Adding new message to current conversation');
+              console.log('🔥 Adding new message to current conversation');
               const updated = [...prev, newMessage];
-              return updated.sort(
+              const sorted = updated.sort(
                 (a, b) =>
                   new Date(a.created_at).getTime() -
                   new Date(b.created_at).getTime()
               );
+              console.log('🔥 Updated messages count:', sorted.length);
+              return sorted;
             });
           } else {
-            console.log('Message for different conversation, not adding to current messages');
+            console.log('🔥 Message for different conversation, not adding to current messages');
           }
         }
       )
