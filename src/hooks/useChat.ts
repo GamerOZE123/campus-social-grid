@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -27,25 +27,22 @@ export const useChat = () => {
   const [currentMessages, setCurrentMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [isChatCleared, setIsChatCleared] = useState<boolean>(false);
-  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
-  
-  // Use ref to track current conversation ID for realtime updates
-  const currentConversationIdRef = useRef<string | null>(null);
-  
-  // Update ref whenever currentConversationId changes
-  useEffect(() => {
-    currentConversationIdRef.current = currentConversationId;
-  }, [currentConversationId]);
 
   const fetchConversations = async () => {
     if (!user) return;
     
     try {
+      console.log('Fetching conversations for user:', user.id);
       const { data, error } = await supabase.rpc('get_user_conversations', {
         target_user_id: user.id
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching conversations:', error);
+        throw error;
+      }
+      
+      console.log('Fetched conversations:', data);
       setConversations(data || []);
     } catch (error) {
       console.error('Error fetching conversations:', error);
@@ -54,43 +51,53 @@ export const useChat = () => {
     }
   };
 
-  const fetchMessages = async (conversationId: string, offset = 0, limit = 20) => {
-    if (!user) return;
-    setCurrentConversationId(conversationId);
-
+  const fetchMessages = async (conversationId: string, offset = 0, limit = 15) => {
     try {
+      if (!user) return;
+      
+      // Get the cleared_at timestamp for this user and conversation
       const { data: clearedData } = await supabase
         .from('cleared_chats')
         .select('cleared_at')
         .eq('user_id', user.id)
         .eq('conversation_id', conversationId)
         .single();
-
+      
       setIsChatCleared(!!clearedData);
-
+      
+      console.log('Fetching messages for conversation:', conversationId);
+      
+      // Build the query with optional timestamp filter
       let query = supabase
         .from('messages')
         .select('*')
         .eq('conversation_id', conversationId);
-
+      
+      // If chat was cleared, only fetch messages after the cleared timestamp
       if (clearedData?.cleared_at) {
         query = query.gt('created_at', clearedData.cleared_at);
       }
-
+      
       const { data, error } = await query
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
-
-      if (error) throw error;
-
+      
+      if (error) {
+        console.error('Error fetching messages:', error);
+        throw error;
+      }
+      
+      console.log('Fetched messages:', data);
       if (offset === 0) {
-        setCurrentMessages(data || []);
+        setCurrentMessages(data?.reverse() || []);
       } else {
-        setCurrentMessages(prev => [...(data || []), ...prev]);
+        setCurrentMessages(prev => [...(data?.reverse() || []), ...prev]);
       }
     } catch (error) {
       console.error('Error fetching messages:', error);
-      if (offset === 0) setCurrentMessages([]);
+      if (offset === 0) {
+        setCurrentMessages([]);
+      }
     }
   };
 
@@ -100,20 +107,14 @@ export const useChat = () => {
   };
 
   const sendMessage = async (conversationId: string, content: string) => {
-    if (!user || !content.trim()) return { success: false, error: 'No user or empty content' };
+    if (!user || !content.trim()) {
+      console.log('Cannot send message: no user or empty content');
+      return { success: false, error: 'No user or empty content' };
+    }
 
     try {
-      const optimisticMessage: Message = {
-        id: `temp-${Date.now()}`,
-        conversation_id: conversationId,
-        sender_id: user.id,
-        content: content.trim(),
-        created_at: new Date().toISOString()
-      };
-
-      // Optimistic update
-      setCurrentMessages(prev => [...prev, optimisticMessage]);
-
+      console.log('Sending message:', { conversationId, content, userId: user.id });
+      
       const { data, error } = await supabase
         .from('messages')
         .insert({
@@ -123,20 +124,14 @@ export const useChat = () => {
         })
         .select()
         .single();
-
+      
       if (error) {
-        // rollback optimistic update
-        setCurrentMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
+        console.error('Error sending message:', error);
         return { success: false, error: error.message };
       }
-
-      // Replace optimistic with real
-      setCurrentMessages(prev =>
-        prev.map(msg =>
-          msg.id === optimisticMessage.id ? (data as Message) : msg
-        )
-      );
-
+      
+      console.log('Message sent successfully:', data);
+      await fetchMessages(conversationId);
       return { success: true, data };
     } catch (error) {
       console.error('Error sending message:', error);
@@ -148,13 +143,18 @@ export const useChat = () => {
     if (!user) return null;
 
     try {
+      console.log('Creating conversation between:', user.id, 'and', otherUserId);
       const { data, error } = await supabase.rpc('get_or_create_conversation', {
         user1_id: user.id,
         user2_id: otherUserId
       });
-
-      if (error) throw error;
-
+      
+      if (error) {
+        console.error('Error creating conversation:', error);
+        throw error;
+      }
+      
+      console.log('Conversation created/found:', data);
       await fetchConversations();
       return data;
     } catch (error) {
@@ -163,130 +163,71 @@ export const useChat = () => {
     }
   };
 
-  const clearChat = async (conversationId: string) => {
-    if (!user) return { success: false, error: 'No user' };
+const clearChat = async (conversationId: string) => {
+  if (!user) return { success: false, error: 'No user' };
 
-    try {
-      const { error } = await supabase
-        .from('cleared_chats')
-        .upsert(
-          {
-            user_id: user.id,
-            conversation_id: conversationId,
-            cleared_at: new Date().toISOString()
-          },
-          { onConflict: 'cleared_chats_user_id_conversation_id_key' }
-        );
-
-      if (error) throw error;
-
-      setIsChatCleared(true);
-      setCurrentMessages([]);
-      return { success: true };
-    } catch (error) {
-      console.error('Error clearing chat:', error);
-      return { success: false, error: (error as Error).message };
-    }
-  };
-
-  // Stable realtime subscription - only depends on user
-  useEffect(() => {
-    if (!user) return;
-
-    fetchConversations();
-
-    const channel = supabase
-      .channel('messages-changes')
-      .on(
-        'postgres_changes',
+  try {
+    const { error } = await supabase
+      .from('cleared_chats')
+      .upsert(
         {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages'
+          user_id: user.id,
+          conversation_id: conversationId,
+          cleared_at: new Date().toISOString()
         },
-        (payload) => {
-          console.log('🔥 Realtime message received:', payload);
-          console.log('🔥 Current conversation ID:', currentConversationIdRef.current);
-
-          const newMessage = payload.new as Message;
-
-          // Always update conversations for sidebar ordering
-          fetchConversations();
-
-          // Only add to current messages if it's the open conversation
-          // Use ref to get current value without recreating subscription
-          if (newMessage.conversation_id === currentConversationIdRef.current) {
-            console.log('🔥 Message is for current conversation, processing...');
-            setCurrentMessages((prev) => {
-              console.log('🔥 Current messages before update:', prev.length);
-              
-              // Check if this exact message already exists (by ID)
-              if (prev.some(msg => msg.id === newMessage.id)) {
-                console.log('🔥 Message with same ID already exists, skipping');
-                return prev;
-              }
-
-              // Check for optimistic message to replace
-              const optimisticIndex = prev.findIndex(
-                (msg) =>
-                  msg.id.startsWith('temp-') &&
-                  msg.sender_id === newMessage.sender_id &&
-                  msg.content === newMessage.content &&
-                  Math.abs(
-                    new Date(msg.created_at).getTime() -
-                    new Date(newMessage.created_at).getTime()
-                  ) < 5000 // 5 second window
-              );
-
-              if (optimisticIndex !== -1) {
-                console.log('🔥 Replacing optimistic message with real message');
-                const updated = [...prev];
-                updated[optimisticIndex] = newMessage;
-                return updated.sort(
-                  (a, b) =>
-                    new Date(a.created_at).getTime() -
-                    new Date(b.created_at).getTime()
-                );
-              }
-
-              // Check for duplicate content within recent timeframe (for other users' messages)
-              const isDuplicate = prev.some(
-                (msg) =>
-                  msg.sender_id === newMessage.sender_id &&
-                  msg.content === newMessage.content &&
-                  Math.abs(
-                    new Date(msg.created_at).getTime() -
-                    new Date(newMessage.created_at).getTime()
-                  ) < 2000
-              );
-
-              if (isDuplicate) {
-                console.log('🔥 Duplicate message detected, skipping');
-                return prev;
-              }
-
-              console.log('🔥 Adding new message to current conversation');
-              const updated = [...prev, newMessage];
-              const sorted = updated.sort(
-                (a, b) =>
-                  new Date(a.created_at).getTime() -
-                  new Date(b.created_at).getTime()
-              );
-              console.log('🔥 Updated messages count:', sorted.length);
-              return sorted;
-            });
-          } else {
-            console.log('🔥 Message for different conversation, not adding to current messages');
-          }
+        {
+          onConflict: 'cleared_chats_user_id_conversation_id_key' // ✅ correct constraint
         }
-      )
-      .subscribe();
+      );
 
-    return () => {
-      console.log('Cleaning up realtime subscription');
-      supabase.removeChannel(channel);
-    };
-  }, [user]); // Only user as dependency - stable subscription
+    if (error) {
+      console.error('Error clearing chat:', error);
+      return { success: false, error: error.message };
+    }
+
+    setIsChatCleared(true);
+    setCurrentMessages([]);
+    console.log('Chat cleared successfully');
+    return { success: true };
+  } catch (error) {
+    console.error('Error clearing chat:', error);
+    return { success: false, error: (error as Error).message };
+  }
+};
+
+
+  useEffect(() => {
+    if (user) {
+      fetchConversations();
+      
+      // Set up real-time listener for new messages
+      const channel = supabase
+        .channel('messages-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages'
+          },
+          (payload) => {
+            console.log('New message received:', payload);
+            // Refresh conversations to update order
+            fetchConversations();
+            
+            // If it's for the current conversation, refresh messages
+            if (payload.new?.conversation_id === currentMessages?.[0]?.conversation_id) {
+              fetchMessages(payload.new.conversation_id);
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [user]);
 
   return {
     conversations,
