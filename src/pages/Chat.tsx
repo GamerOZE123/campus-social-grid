@@ -34,11 +34,11 @@ export default function Chat() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const previousMessagesLength = useRef(0);
 
-  // Use the updated useChat hook with currentConversationId parameter
+  // Use the updated useChat hook
   const { 
     currentMessages, 
     sendMessage
-  } = useChat(selectedConversationId);
+  } = useChat();
   
   const { recentChats, addRecentChat, refreshRecentChats } = useRecentChats();
   const { getUserById } = useUsers();
