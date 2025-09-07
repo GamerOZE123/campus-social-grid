@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -28,6 +28,14 @@ export const useChat = () => {
   const [loading, setLoading] = useState(true);
   const [isChatCleared, setIsChatCleared] = useState<boolean>(false);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  
+  // Use ref to track current conversation ID for realtime updates
+  const currentConversationIdRef = useRef<string | null>(null);
+  
+  // Update ref whenever currentConversationId changes
+  useEffect(() => {
+    currentConversationIdRef.current = currentConversationId;
+  }, [currentConversationId]);
 
   const fetchConversations = async () => {
     if (!user) return;
@@ -181,61 +189,70 @@ export const useChat = () => {
     }
   };
 
+  // Stable realtime subscription - only depends on user
   useEffect(() => {
-  if (!user) return;
+    if (!user) return;
 
-  fetchConversations();
+    fetchConversations();
 
-  const channel = supabase
-    .channel('messages-changes')
-    .on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages'
-      },
-      (payload) => {
-        console.log('Realtime message:', payload);
+    const channel = supabase
+      .channel('messages-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages'
+        },
+        (payload) => {
+          console.log('Realtime message received:', payload);
 
-        const newMessage = payload.new as Message;
+          const newMessage = payload.new as Message;
 
-        // Update conversations for sidebar ordering
-        fetchConversations();
+          // Always update conversations for sidebar ordering
+          fetchConversations();
 
-        // Only add if message belongs to open conversation
-        if (newMessage.conversation_id === currentConversationId) {
-          setCurrentMessages((prev) => {
-            const alreadyExists = prev.some(
-              (msg) =>
-                msg.id === newMessage.id ||
-                (msg.sender_id === newMessage.sender_id &&
-                 msg.content === newMessage.content &&
-                 Math.abs(
-                   new Date(msg.created_at).getTime() -
-                   new Date(newMessage.created_at).getTime()
-                 ) < 2000) // within 2s window
-            );
+          // Only add to current messages if it's the open conversation
+          // Use ref to get current value without recreating subscription
+          if (newMessage.conversation_id === currentConversationIdRef.current) {
+            setCurrentMessages((prev) => {
+              // Check for duplicates
+              const alreadyExists = prev.some(
+                (msg) =>
+                  msg.id === newMessage.id ||
+                  (msg.sender_id === newMessage.sender_id &&
+                   msg.content === newMessage.content &&
+                   Math.abs(
+                     new Date(msg.created_at).getTime() -
+                     new Date(newMessage.created_at).getTime()
+                   ) < 2000)
+              );
 
-            if (alreadyExists) return prev;
+              if (alreadyExists) {
+                console.log('Message already exists, skipping');
+                return prev;
+              }
 
-            const updated = [...prev, newMessage];
-            return updated.sort(
-              (a, b) =>
-                new Date(a.created_at).getTime() -
-                new Date(b.created_at).getTime()
-            );
-          });
+              console.log('Adding new message to current conversation');
+              const updated = [...prev, newMessage];
+              return updated.sort(
+                (a, b) =>
+                  new Date(a.created_at).getTime() -
+                  new Date(b.created_at).getTime()
+              );
+            });
+          } else {
+            console.log('Message for different conversation, not adding to current messages');
+          }
         }
-      }
-    )
-    .subscribe();
+      )
+      .subscribe();
 
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}, [user, currentConversationId]); // ✅ not currentMessages
-
+    return () => {
+      console.log('Cleaning up realtime subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [user]); // Only user as dependency - stable subscription
 
   return {
     conversations,
