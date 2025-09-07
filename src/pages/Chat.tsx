@@ -6,7 +6,7 @@ import MobileChatHeader from '@/components/chat/MobileChatHeader';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Send, MoreVertical, Trash2, MessageSquareX, UserX, ArrowLeft } from 'lucide-react';
+import { Send, MoreVertical, Trash2, MessageSquareX, UserX } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useChat } from '@/hooks/useChat';
 import { useRecentChats } from '@/hooks/useRecentChats';
@@ -20,22 +20,22 @@ export default function Chat() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [newMessage, setNewMessage] = useState('');
   const [showUserList, setShowUserList] = useState(true);
-  const [isUserScrolling, setIsUserScrolling] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState<Set<string>>(new Set());
+  const [isAtBottom, setIsAtBottom] = useState(true);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout>();
   const previousMessagesLength = useRef(0);
 
   const { 
     conversations, 
     currentMessages, 
     loading: chatLoading,
-    isChatCleared,
     fetchMessages,
     loadOlderMessages,
     sendMessage, 
@@ -47,64 +47,74 @@ export default function Chat() {
   const { recentChats, addRecentChat, refreshRecentChats } = useRecentChats();
   const { getUserById } = useUsers();
 
+  // ✅ Auto-scroll when new messages arrive and user is at bottom
   useEffect(() => {
-    if (currentMessages && currentMessages.length > previousMessagesLength.current && !isUserScrolling) {
+    if (
+      currentMessages.length > previousMessagesLength.current &&
+      isAtBottom
+    ) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
-    previousMessagesLength.current = currentMessages?.length || 0;
-  }, [currentMessages?.length, isUserScrolling]);
+    previousMessagesLength.current = currentMessages.length;
+  }, [currentMessages, isAtBottom]);
 
+  // ✅ Scroll to bottom when opening a conversation
   useEffect(() => {
-    if (selectedConversationId && currentMessages && currentMessages.length > 0) {
+    if (selectedConversationId && currentMessages.length > 0) {
       setTimeout(() => {
-        if (messagesContainerRef.current) {
-          messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-        }
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+        setIsAtBottom(true);
       }, 50);
     }
-  }, [selectedConversationId, currentMessages]);
+  }, [selectedConversationId]);
 
+  // ✅ Handle scrolling (detect top/bottom + load more)
   const handleScroll = () => {
-    if (messagesContainerRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
-      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10;
-      const isAtTop = scrollTop <= 10;
-      
-      if (isAtTop && selectedConversationId && currentMessages.length >= 15) {
-        loadOlderMessages(selectedConversationId);
-      }
-      
-      if (!isAtBottom) {
-        setIsUserScrolling(true);
-        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-        scrollTimeoutRef.current = setTimeout(() => setIsUserScrolling(false), 3000);
-      } else {
-        setIsUserScrolling(false);
-        if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-      }
+    if (!messagesContainerRef.current) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+    const atBottom = scrollTop + clientHeight >= scrollHeight - 10;
+    const atTop = scrollTop <= 10;
+
+    setIsAtBottom(atBottom);
+
+    if (atTop && selectedConversationId && currentMessages.length >= 20) {
+      const prevHeight = scrollHeight;
+      loadOlderMessages(selectedConversationId).then(() => {
+        // ✅ keep scroll position stable when prepending messages
+        setTimeout(() => {
+          if (messagesContainerRef.current) {
+            const newHeight = messagesContainerRef.current.scrollHeight;
+            messagesContainerRef.current.scrollTop = newHeight - prevHeight;
+          }
+        }, 50);
+      });
     }
   };
 
+  // ✅ Fetch messages when selecting a conversation
   useEffect(() => {
     if (selectedConversationId) {
       fetchMessages(selectedConversationId);
     }
-  }, [selectedConversationId, fetchMessages]);
+  }, [selectedConversationId]);
 
   const handleUserClick = async (userId: string) => {
     try {
       const userProfile = await getUserById(userId);
-      if (userProfile) {
-        setSelectedUser(userProfile);
-        const conversationId = await createConversation(userId);
-        setSelectedConversationId(conversationId);
-        setUnreadMessages(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(userId);
-          return newSet;
-        });
-        if (isMobile) setShowUserList(false);
-      }
+      if (!userProfile) return;
+
+      setSelectedUser(userProfile);
+      const conversationId = await createConversation(userId);
+      setSelectedConversationId(conversationId);
+
+      setUnreadMessages(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(userId);
+        return newSet;
+      });
+
+      if (isMobile) setShowUserList(false);
     } catch (error) {
       console.error('Error starting chat:', error);
     }
@@ -130,7 +140,7 @@ export default function Chat() {
   };
 
   const handleUsernameClick = (userId: string) => {
-    navigate(`/profile/${userId}`);
+    navigate(/profile/${userId});
   };
 
   const handleClearChat = async () => {
@@ -175,10 +185,12 @@ export default function Chat() {
     }
   };
 
+  // --- UI ---
   if (!isMobile) {
     return (
       <Layout>
         <div className="h-[calc(100vh-6rem)] flex gap-4 pt-2">
+          {/* Left column - user list */}
           <div className="w-1/3 bg-card border border-border rounded-2xl p-4 overflow-y-auto">
             <h2 className="text-xl font-bold text-foreground mb-4">Messages</h2>
             <UserSearch onStartChat={handleUserClick} />
@@ -207,9 +219,11 @@ export default function Chat() {
             </div>
           </div>
 
+          {/* Right column - chat */}
           <div className="flex-1 bg-card border border-border rounded-2xl flex flex-col h-full">
             {selectedUser ? (
               <>
+                {/* Chat header */}
                 <div className="p-4 border-b border-border flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
@@ -247,20 +261,20 @@ export default function Chat() {
                   </DropdownMenu>
                 </div>
 
+                {/* Chat messages */}
                 <div 
                   ref={messagesContainerRef}
                   onScroll={handleScroll}
                   className="flex-1 p-4 overflow-y-auto space-y-4"
-                  style={{ display: 'flex', flexDirection: 'column-reverse' }}
                 >
-                  {currentMessages?.length ? (
+                  {currentMessages.length ? (
                     currentMessages.map((message) => (
-                      <div key={message.id} className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}>
+                      <div key={message.id} className={flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}}>
                         <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
                           message.sender_id === user?.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
                         }`}>
                           <p className="text-sm">{message.content}</p>
-                          <p className={`text-xs mt-1 ${message.sender_id === user?.id ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                          <p className={text-xs mt-1 ${message.sender_id === user?.id ? 'text-primary-foreground/70' : 'text-muted-foreground'}}>
                             {new Date(message.created_at).toLocaleTimeString()}
                           </p>
                         </div>
@@ -277,6 +291,7 @@ export default function Chat() {
                   <div ref={messagesEndRef} />
                 </div>
 
+                {/* Input */}
                 <div className="border-t border-border p-4">
                   <div className="flex gap-2">
                     <Textarea
@@ -312,6 +327,7 @@ export default function Chat() {
     );
   }
 
+  // ✅ Mobile UI stays same, just uses the same scroll handling
   return (
     <>
       {showUserList ? (
@@ -359,16 +375,16 @@ export default function Chat() {
               ref={messagesContainerRef}
               onScroll={handleScroll}
               className="flex-1 p-4 overflow-y-auto space-y-4 pb-safe"
-              style={{ paddingBottom: 'env(safe-area-inset-bottom)', display: 'flex', flexDirection: 'column-reverse' }}
+              style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
             >
-              {currentMessages?.length ? (
+              {currentMessages.length ? (
                 currentMessages.map((message) => (
-                  <div key={message.id} className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}>
+                  <div key={message.id} className={flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}}>
                     <div className={`max-w-xs px-4 py-2 rounded-2xl ${
                       message.sender_id === user?.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
                     }`}>
                       <p className="text-sm">{message.content}</p>
-                      <p className={`text-xs mt-1 ${message.sender_id === user?.id ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                      <p className={text-xs mt-1 ${message.sender_id === user?.id ? 'text-primary-foreground/70' : 'text-muted-foreground'}}>
                         {new Date(message.created_at).toLocaleTimeString()}
                       </p>
                     </div>
