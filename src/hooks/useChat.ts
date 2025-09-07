@@ -182,50 +182,60 @@ export const useChat = () => {
   };
 
   useEffect(() => {
-    if (!user) return;
+  if (!user) return;
 
-    fetchConversations();
+  fetchConversations();
 
-    // Setup realtime only once per user
-    const channel = supabase
-      .channel('messages-changes')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages' },
-        (payload) => {
-          const newMessage = payload.new as Message;
+  const channel = supabase
+    .channel('messages-changes')
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages'
+      },
+      (payload) => {
+        console.log('Realtime message:', payload);
 
-          // Always update conversation list
-          fetchConversations();
+        const newMessage = payload.new as Message;
 
-          // If current conversation, update messages
-          if (newMessage.conversation_id === currentConversationId) {
-            setCurrentMessages(prev => {
-              const exists = prev.some(
-                msg =>
-                  msg.id === newMessage.id ||
-                  (msg.id.startsWith('temp-') &&
-                    msg.content === newMessage.content &&
-                    msg.sender_id === newMessage.sender_id)
-              );
+        // Update conversations for sidebar ordering
+        fetchConversations();
 
-              if (exists) return prev;
+        // Only add if message belongs to open conversation
+        if (newMessage.conversation_id === currentConversationId) {
+          setCurrentMessages((prev) => {
+            const alreadyExists = prev.some(
+              (msg) =>
+                msg.id === newMessage.id ||
+                (msg.sender_id === newMessage.sender_id &&
+                 msg.content === newMessage.content &&
+                 Math.abs(
+                   new Date(msg.created_at).getTime() -
+                   new Date(newMessage.created_at).getTime()
+                 ) < 2000) // within 2s window
+            );
 
-              return [...prev, newMessage].sort(
-                (a, b) =>
-                  new Date(a.created_at).getTime() -
-                  new Date(b.created_at).getTime()
-              );
-            });
-          }
+            if (alreadyExists) return prev;
+
+            const updated = [...prev, newMessage];
+            return updated.sort(
+              (a, b) =>
+                new Date(a.created_at).getTime() -
+                new Date(b.created_at).getTime()
+            );
+          });
         }
-      )
-      .subscribe();
+      }
+    )
+    .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, currentConversationId]); // ✅ removed currentMessages from deps
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [user, currentConversationId]); // ✅ not currentMessages
+
 
   return {
     conversations,
