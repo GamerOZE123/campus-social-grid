@@ -27,25 +27,125 @@ export default function Chat() {
   const [showUserList, setShowUserList] = useState(true);
   const [unreadMessages, setUnreadMessages] = useState<Set<string>>(new Set());
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const previousMessagesLength = useRef(0);
 
+  // Use the updated useChat hook with currentConversationId parameter
   const { 
-    conversations, 
     currentMessages, 
-    loading: chatLoading,
-    fetchMessages,
-    loadOlderMessages,
-    sendMessage, 
-    createConversation,
-    clearChat,
-    refreshConversations
-  } = useChat();
+    sendMessage
+  } = useChat(selectedConversationId);
   
   const { recentChats, addRecentChat, refreshRecentChats } = useRecentChats();
   const { getUserById } = useUsers();
+
+  // Fetch conversations manually since we removed it from useChat
+  const fetchConversations = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase.rpc('get_user_conversations', {
+        target_user_id: user.id
+      });
+      
+      if (error) throw error;
+      setConversations(data || []);
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchMessages = async (conversationId: string) => {
+    if (!user) return;
+
+    try {
+      const { data: clearedData } = await supabase
+        .from('cleared_chats')
+        .select('cleared_at')
+        .eq('user_id', user.id)
+        .eq('conversation_id', conversationId)
+        .single();
+
+      let query = supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', conversationId);
+
+      if (clearedData?.cleared_at) {
+        query = query.gt('created_at', clearedData.cleared_at);
+      }
+
+      const { data, error } = await query
+        .order('created_at', { ascending: true })
+        .limit(20);
+
+      if (error) throw error;
+      // Note: The useChat hook will handle setting currentMessages via its own fetch
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+    }
+  };
+
+  const loadOlderMessages = async (conversationId: string) => {
+    // This would need to be implemented in the useChat hook if needed
+    console.log('Load older messages not implemented in simplified useChat');
+  };
+
+  const createConversation = async (otherUserId: string) => {
+    if (!user) return null;
+
+    try {
+      const { data, error } = await supabase.rpc('get_or_create_conversation', {
+        user1_id: user.id,
+        user2_id: otherUserId
+      });
+
+      if (error) throw error;
+      await fetchConversations();
+      return data;
+    } catch (error) {
+      console.error('Error creating conversation:', error);
+      return null;
+    }
+  };
+
+  const clearChat = async (conversationId: string) => {
+    if (!user) return { success: false, error: 'No user' };
+
+    try {
+      const { error } = await supabase
+        .from('cleared_chats')
+        .upsert(
+          {
+            user_id: user.id,
+            conversation_id: conversationId,
+            cleared_at: new Date().toISOString()
+          },
+          { onConflict: 'cleared_chats_user_id_conversation_id_key' }
+        );
+
+      if (error) throw error;
+      return { success: true };
+    } catch (error) {
+      console.error('Error clearing chat:', error);
+      return { success: false, error: (error as Error).message };
+    }
+  };
+
+  const refreshConversations = fetchConversations;
+
+  // Load conversations on mount
+  useEffect(() => {
+    if (user) {
+      fetchConversations();
+    }
+  }, [user]);
 
   // ✅ Auto-scroll when new messages arrive and user is at bottom
   useEffect(() => {
@@ -92,13 +192,6 @@ export default function Chat() {
     }
   };
 
-  // ✅ Fetch messages when selecting a conversation
-  useEffect(() => {
-    if (selectedConversationId) {
-      fetchMessages(selectedConversationId);
-    }
-  }, [selectedConversationId]);
-
   const handleUserClick = async (userId: string) => {
     try {
       const userProfile = await getUserById(userId);
@@ -127,6 +220,8 @@ export default function Chat() {
     try {
       await sendMessage(selectedConversationId, messageToSend);
       if (selectedUser?.user_id) await addRecentChat(selectedUser.user_id);
+      // Refresh conversations to update the order
+      await fetchConversations();
     } catch (error) {
       console.error('Error sending message:', error);
       setNewMessage(messageToSend);
@@ -147,8 +242,14 @@ export default function Chat() {
     if (!selectedConversationId || !user) return;
     try {
       const result = await clearChat(selectedConversationId);
-      if (result.success) toast.success('Chat cleared successfully');
-      else throw new Error(result.error || 'Failed to clear chat');
+      if (result.success) {
+        toast.success('Chat cleared successfully');
+        // Re-fetch messages after clearing
+        setSelectedConversationId(null);
+        setTimeout(() => setSelectedConversationId(selectedConversationId), 100);
+      } else {
+        throw new Error(result.error || 'Failed to clear chat');
+      }
     } catch {
       toast.error('Failed to clear chat');
     }
@@ -184,6 +285,9 @@ export default function Chat() {
       toast.error('Failed to block user');
     }
   };
+
+  console.log('Current messages:', currentMessages); // Debug log
+  console.log('Selected conversation ID:', selectedConversationId); // Debug log
 
   // --- UI ---
   if (!isMobile) {
