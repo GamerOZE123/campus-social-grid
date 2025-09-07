@@ -251,7 +251,6 @@ export default function Chat() {
                   ref={messagesContainerRef}
                   onScroll={handleScroll}
                   className="flex-1 p-4 overflow-y-auto space-y-4"
-                  style={{ display: 'flex', flexDirection: 'column-reverse' }}
                 >
                   {currentMessages?.length ? (
                     currentMessages.map((message) => (
@@ -359,7 +358,7 @@ export default function Chat() {
               ref={messagesContainerRef}
               onScroll={handleScroll}
               className="flex-1 p-4 overflow-y-auto space-y-4 pb-safe"
-              style={{ paddingBottom: 'env(safe-area-inset-bottom)', display: 'flex', flexDirection: 'column-reverse' }}
+              style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
             >
               {currentMessages?.length ? (
                 currentMessages.map((message) => (

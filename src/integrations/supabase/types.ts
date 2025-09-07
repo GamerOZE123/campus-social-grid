@@ -1304,45 +1304,6 @@ export type Database = {
       }
     }
     Views: {
-      ranked_posts: {
-        Row: {
-          comments_count: number | null
-          content: string | null
-          created_at: string | null
-          hashtags: string[] | null
-          id: string | null
-          image_url: string | null
-          likes_count: number | null
-          score: number | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          comments_count?: number | null
-          content?: string | null
-          created_at?: string | null
-          hashtags?: string[] | null
-          id?: string | null
-          image_url?: string | null
-          likes_count?: number | null
-          score?: never
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          comments_count?: number | null
-          content?: string | null
-          created_at?: string | null
-          hashtags?: string[] | null
-          id?: string | null
-          image_url?: string | null
-          likes_count?: number | null
-          score?: never
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       trending_hashtags: {
         Row: {
           hashtag: string | null
