@@ -216,20 +216,48 @@ export const useChat = () => {
           // Use ref to get current value without recreating subscription
           if (newMessage.conversation_id === currentConversationIdRef.current) {
             setCurrentMessages((prev) => {
-              // Check for duplicates
-              const alreadyExists = prev.some(
+              // Check if this exact message already exists (by ID)
+              if (prev.some(msg => msg.id === newMessage.id)) {
+                console.log('Message with same ID already exists, skipping');
+                return prev;
+              }
+
+              // Check for optimistic message to replace
+              const optimisticIndex = prev.findIndex(
                 (msg) =>
-                  msg.id === newMessage.id ||
-                  (msg.sender_id === newMessage.sender_id &&
-                   msg.content === newMessage.content &&
-                   Math.abs(
-                     new Date(msg.created_at).getTime() -
-                     new Date(newMessage.created_at).getTime()
-                   ) < 2000)
+                  msg.id.startsWith('temp-') &&
+                  msg.sender_id === newMessage.sender_id &&
+                  msg.content === newMessage.content &&
+                  Math.abs(
+                    new Date(msg.created_at).getTime() -
+                    new Date(newMessage.created_at).getTime()
+                  ) < 5000 // 5 second window
               );
 
-              if (alreadyExists) {
-                console.log('Message already exists, skipping');
+              if (optimisticIndex !== -1) {
+                console.log('Replacing optimistic message with real message');
+                const updated = [...prev];
+                updated[optimisticIndex] = newMessage;
+                return updated.sort(
+                  (a, b) =>
+                    new Date(a.created_at).getTime() -
+                    new Date(b.created_at).getTime()
+                );
+              }
+
+              // Check for duplicate content within recent timeframe (for other users' messages)
+              const isDuplicate = prev.some(
+                (msg) =>
+                  msg.sender_id === newMessage.sender_id &&
+                  msg.content === newMessage.content &&
+                  Math.abs(
+                    new Date(msg.created_at).getTime() -
+                    new Date(newMessage.created_at).getTime()
+                  ) < 2000
+              );
+
+              if (isDuplicate) {
+                console.log('Duplicate message detected, skipping');
                 return prev;
               }
 
