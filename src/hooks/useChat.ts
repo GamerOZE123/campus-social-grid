@@ -27,6 +27,7 @@ export const useChat = () => {
   const [currentMessages, setCurrentMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [isChatCleared, setIsChatCleared] = useState<boolean>(false);
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
 
   const fetchConversations = async () => {
     if (!user) return;
@@ -54,6 +55,9 @@ export const useChat = () => {
   const fetchMessages = async (conversationId: string, offset = 0, limit = 20) => {
     try {
       if (!user) return;
+      
+      // Set current conversation ID for realtime filtering
+      setCurrentConversationId(conversationId);
       
       // Get the cleared_at timestamp for this user and conversation
       const { data: clearedData } = await supabase
@@ -116,6 +120,18 @@ export const useChat = () => {
     try {
       console.log('Sending message:', { conversationId, content, userId: user.id });
       
+      // Create optimistic message with temporary ID
+      const optimisticMessage: Message = {
+        id: `temp-${Date.now()}`, // Temporary ID
+        conversation_id: conversationId,
+        sender_id: user.id,
+        content: content.trim(),
+        created_at: new Date().toISOString()
+      };
+      
+      // Add optimistic message immediately to UI
+      setCurrentMessages(prev => [...prev, optimisticMessage]);
+      
       const { data, error } = await supabase
         .from('messages')
         .insert({
@@ -128,11 +144,20 @@ export const useChat = () => {
       
       if (error) {
         console.error('Error sending message:', error);
+        // Remove optimistic message on error
+        setCurrentMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
         return { success: false, error: error.message };
       }
       
       console.log('Message sent successfully:', data);
-      await fetchMessages(conversationId);
+      
+      // Replace optimistic message with real message
+      setCurrentMessages(prev => 
+        prev.map(msg => 
+          msg.id === optimisticMessage.id ? data as Message : msg
+        )
+      );
+      
       return { success: true, data };
     } catch (error) {
       console.error('Error sending message:', error);
@@ -216,9 +241,26 @@ const clearChat = async (conversationId: string) => {
             // Refresh conversations to update order
             fetchConversations();
             
-            // If it's for the current conversation, add the new message
-            if (payload.new?.conversation_id === currentMessages?.[0]?.conversation_id) {
-              setCurrentMessages(prev => [...prev, payload.new as Message]);
+            // If it's for the current conversation, check for duplicates and add
+            if (payload.new?.conversation_id === currentConversationId) {
+              const newMessage = payload.new as Message;
+              setCurrentMessages(prev => {
+                // Check if message already exists (prevent duplicates)
+                const messageExists = prev.some(msg => 
+                  msg.id === newMessage.id || 
+                  (msg.id.startsWith('temp-') && msg.content === newMessage.content && msg.sender_id === newMessage.sender_id)
+                );
+                
+                if (messageExists) {
+                  return prev; // Skip if duplicate
+                }
+                
+                // Add new message and sort by created_at to maintain order
+                const updatedMessages = [...prev, newMessage];
+                return updatedMessages.sort((a, b) => 
+                  new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                );
+              });
             }
           }
         )
