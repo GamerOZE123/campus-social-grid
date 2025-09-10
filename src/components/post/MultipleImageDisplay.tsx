@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious, CarouselApi } from '@/components/ui/carousel';
 import ImageModal from './ImageModal';
+import { ImagePlaceholder } from '@/components/ui/image-placeholder';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface MultipleImageDisplayProps {
@@ -14,6 +15,10 @@ const isImageUrl = (url: string) => {
     url.includes('placeholder.com') ||
     /\.(jpg|jpeg|png|gif|webp)$/i.test(url)
   );
+};
+
+const isPlaceholder = (url: string) => {
+  return url.startsWith('uploading-');
 };
 
 const getImageAspectRatio = (url: string): number => {
@@ -76,7 +81,9 @@ export default function MultipleImageDisplay({ imageUrls, className = '' }: Mult
     return (
       <>
         <div className={`w-full max-w-lg ${className}`}>
-          {shouldConstrainImage(aspectRatio) ? (
+          {isPlaceholder(imageUrl) ? (
+            <ImagePlaceholder status="loading" className="max-w-lg" />
+          ) : shouldConstrainImage(aspectRatio) ? (
             <AspectRatio 
               ratio={getDisplayAspectRatio(aspectRatio)} 
               className="rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
@@ -98,12 +105,14 @@ export default function MultipleImageDisplay({ imageUrls, className = '' }: Mult
           )}
         </div>
         
-        <ImageModal
-          imageUrl={imageUrl}
-          isOpen={showFullImage}
-          onClose={() => setShowFullImage(false)}
-          alt="Post content"
-        />
+        {!isPlaceholder(imageUrl) && (
+          <ImageModal
+            imageUrl={imageUrl}
+            isOpen={showFullImage}
+            onClose={() => setShowFullImage(false)}
+            alt="Post content"
+          />
+        )}
       </>
     );
   }
@@ -124,17 +133,21 @@ export default function MultipleImageDisplay({ imageUrls, className = '' }: Mult
             {imageUrls.map((imageUrl, index) => (
               <CarouselItem key={index}>
                 <div className="relative">
-                  <AspectRatio 
-                    ratio={16/9} 
-                    className="rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
-                    onClick={() => handleImageClick(index)}
-                  >
-                    <img
-                      src={imageUrl}
-                      alt={`Post content ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </AspectRatio>
+                  {isPlaceholder(imageUrl) ? (
+                    <ImagePlaceholder status="loading" />
+                  ) : (
+                    <AspectRatio 
+                      ratio={16/9} 
+                      className="rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
+                      onClick={() => handleImageClick(index)}
+                    >
+                      <img
+                        src={imageUrl}
+                        alt={`Post content ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </AspectRatio>
+                  )}
                   
                   {/* Image counter */}
                   <div className="absolute top-3 right-3 bg-black/60 text-white px-2 py-1 rounded-full text-xs">
@@ -171,16 +184,18 @@ export default function MultipleImageDisplay({ imageUrls, className = '' }: Mult
       </div>
 
       {/* Full screen image modal with navigation */}
-      <ImageModal
-        imageUrl={imageUrls[selectedImageIndex]}
-        isOpen={showFullImage}
-        onClose={() => setShowFullImage(false)}
-        alt={`Post content ${selectedImageIndex + 1}`}
-        showNavigation={imageUrls.length > 1}
-        onNavigate={navigateImage}
-        currentIndex={selectedImageIndex + 1}
-        totalImages={imageUrls.length}
-      />
+      {!isPlaceholder(imageUrls[selectedImageIndex]) && (
+        <ImageModal
+          imageUrl={imageUrls[selectedImageIndex]}
+          isOpen={showFullImage}
+          onClose={() => setShowFullImage(false)}
+          alt={`Post content ${selectedImageIndex + 1}`}
+          showNavigation={imageUrls.length > 1}
+          onNavigate={navigateImage}
+          currentIndex={selectedImageIndex + 1}
+          totalImages={imageUrls.length}
+        />
+      )}
     </>
   );
 }

@@ -1,14 +1,15 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { X, Upload } from 'lucide-react';
+import { X, Upload, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import HashtagSelector from './HashtagSelector';
-import { MultipleImageUpload } from '@/components/ui/multiple-image-upload';
+import { useProgressiveImageUpload } from '@/hooks/useProgressiveImageUpload';
+import { ImagePlaceholder } from '@/components/ui/image-placeholder';
 
 interface FileUploadModalProps {
   isOpen: boolean;
@@ -18,80 +19,145 @@ interface FileUploadModalProps {
 
 export default function FileUploadModal({ isOpen, onClose, onPostCreated }: FileUploadModalProps) {
   const { user } = useAuth();
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [caption, setCaption] = useState('');
   const [hashtags, setHashtags] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [postId, setPostId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const {
+    uploadStates,
+    startUploads,
+    retryUpload,
+    getAllUrls,
+    getCompletedUrls,
+    reset: resetUploads
+  } = useProgressiveImageUpload();
 
-  const handleUpload = async () => {
-    if (!user || (imageUrls.length === 0 && !caption.trim())) {
-      toast.error('Please add at least one image or caption');
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    // Start uploads and get placeholder IDs
+    const placeholderIds = startUploads(Array.from(files));
+    
+    if (placeholderIds.length === 0) return;
+
+    // Create post immediately with placeholders
+    await createPostWithImages(placeholderIds);
+  };
+
+  const createPostWithImages = async (imageIds: string[]) => {
+    if (!user) {
+      toast.error('Please log in to create a post');
       return;
     }
 
     setUploading(true);
     try {
-
-      // Prepare hashtags - ensure they're properly formatted and not empty
+      // Prepare hashtags
       const formattedHashtags = hashtags
         .filter(tag => tag.trim())
         .map(tag => tag.toLowerCase().replace(/^#+/, '').trim())
         .filter(tag => tag.length > 0);
 
-      console.log('Creating post with hashtags:', formattedHashtags);
-
-      // Create the post with hashtags and multiple images
-      const postData: any = {
+      // Create post with placeholder image IDs
+      const postData = {
         user_id: user.id,
         content: caption.trim() || 'New post',
-        hashtags: formattedHashtags.length > 0 ? formattedHashtags : null
+        hashtags: formattedHashtags.length > 0 ? formattedHashtags : null,
+        image_urls: imageIds
       };
-
-      // Add image data based on what we have
-      if (imageUrls.length > 0) {
-        if (imageUrls.length === 1) {
-          // Single image - use image_url for backward compatibility
-          postData.image_url = imageUrls[0];
-        } else {
-          // Multiple images - use image_urls array
-          postData.image_urls = imageUrls;
-        }
-      }
 
       const { data, error } = await supabase
         .from('posts')
         .insert(postData)
-        .select();
+        .select()
+        .single();
 
-      if (error) {
-        console.error('Error creating post:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log('Post created successfully with hashtags:', data);
-      toast.success('Post uploaded successfully!');
+      setPostId(data.id);
+      toast.success('Post created! Images are uploading...');
       
-      // Reset form
-      setImageUrls([]);
-      setCaption('');
-      setHashtags([]);
+      // Start updating the post as images complete
+      updatePostImages(data.id);
       
       // Notify parent and close modal
       onPostCreated();
       onClose();
     } catch (error) {
-      console.error('Error uploading post:', error);
-      toast.error('Failed to upload post');
+      console.error('Error creating post:', error);
+      toast.error('Failed to create post');
     } finally {
       setUploading(false);
     }
   };
 
+  const updatePostImages = async (postId: string) => {
+    // Set up interval to update post with completed images
+    const updateInterval = setInterval(async () => {
+      const completedUrls = getCompletedUrls();
+      const allUrls = getAllUrls();
+      
+      // If we have some completed URLs, update the post
+      if (completedUrls.length > 0) {
+        try {
+          const { error } = await supabase
+            .from('posts')
+            .update({ 
+              image_urls: allUrls.map(url => 
+                uploadStates.find(state => state.id === url && state.status === 'completed')?.url || url
+              )
+            })
+            .eq('id', postId);
+
+          if (error) {
+            console.error('Error updating post images:', error);
+          }
+        } catch (error) {
+          console.error('Error updating post:', error);
+        }
+      }
+
+      // Check if all uploads are complete
+      const allComplete = uploadStates.every(state => 
+        state.status === 'completed' || state.status === 'error'
+      );
+      
+      if (allComplete && uploadStates.length > 0) {
+        clearInterval(updateInterval);
+        const finalCompletedUrls = getCompletedUrls();
+        if (finalCompletedUrls.length > 0) {
+          toast.success('All images uploaded successfully!');
+        }
+      }
+    }, 1000);
+
+    // Clear interval after 5 minutes to prevent memory leaks
+    setTimeout(() => clearInterval(updateInterval), 300000);
+  };
+
+  const handleUpload = () => {
+    if (!user || (uploadStates.length === 0 && !caption.trim())) {
+      toast.error('Please add at least one image or caption');
+      return;
+    }
+    
+    fileInputRef.current?.click();
+  };
+
   const handleClose = () => {
-    setImageUrls([]);
+    resetUploads();
     setCaption('');
     setHashtags([]);
+    setPostId(null);
     onClose();
+  };
+
+  const removeImage = (indexToRemove: number) => {
+    // Note: For simplicity, we'll disable image removal once uploads start
+    // In a full implementation, you'd want to cancel the upload and remove from state
   };
 
   return (
@@ -108,11 +174,61 @@ export default function FileUploadModal({ isOpen, onClose, onPostCreated }: File
         
         <div className="space-y-4">
           {/* Image Upload Section */}
-          <MultipleImageUpload
-            onImagesUploaded={setImageUrls}
-            maxImages={10}
-            bucketName="post-images"
-          />
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="flex items-center gap-2"
+              >
+                <Upload className="w-4 h-4" />
+                Add Images ({uploadStates.length}/10)
+              </Button>
+              
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={handleFileSelect}
+              />
+            </div>
+
+            {uploadStates.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {uploadStates.map((uploadState, index) => (
+                  <div key={uploadState.id} className="relative">
+                    {uploadState.status === 'completed' && uploadState.url ? (
+                      <div className="aspect-square rounded-lg overflow-hidden border border-border">
+                        <img
+                          src={uploadState.url}
+                          alt={`Upload ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <ImagePlaceholder
+                        status={uploadState.status === 'error' ? 'error' : 'uploading'}
+                        progress={uploadState.progress}
+                        onRetry={() => retryUpload(uploadState.id)}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {uploadStates.length === 0 && (
+              <div className="border-2 border-dashed border-border rounded-lg p-8 text-center text-muted-foreground">
+                <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No images selected yet</p>
+                <p className="text-sm">Click "Add Images" to upload up to 10 photos</p>
+              </div>
+            )}
+          </div>
 
           {/* Caption Section */}
           <div>
@@ -140,7 +256,7 @@ export default function FileUploadModal({ isOpen, onClose, onPostCreated }: File
             </Button>
             <Button 
               onClick={handleUpload} 
-              disabled={uploading || (imageUrls.length === 0 && !caption.trim())}
+              disabled={uploading || (uploadStates.length === 0 && !caption.trim())}
               className="flex-1"
             >
               {uploading ? (
