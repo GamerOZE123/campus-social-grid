@@ -8,6 +8,7 @@ export interface Post {
   content: string;
   hashtags: string[] | null;
   image_url: string | null;
+  image_urls: string[] | null;
   likes_count: number;
   comments_count: number;
   created_at: string;
