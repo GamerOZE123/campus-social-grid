@@ -13,6 +13,7 @@ interface PostData {
   id: string;
   user_id: string;
   content: string;
+  image_url?: string;
   image_urls?: string[];
   likes_count: number;
   comments_count: number;
@@ -29,6 +30,7 @@ interface PostData {
 interface TransformedPost {
   id: string;
   content: string;
+  image_url?: string;
   image_urls?: string[];
   created_at: string;
   likes_count: number;
@@ -94,13 +96,14 @@ export default function Post() {
       const userUsername = profileData?.username || 'user';
       const userUniversity = profileData?.university || 'University';
       
-        const transformedPost: TransformedPost = {
-          id: postData.id,
-          content: postData.content || '',
-          image_urls: postData.image_urls,
-          created_at: postData.created_at,
-          likes_count: postData.likes_count || 0,
-          comments_count: postData.comments_count || 0,
+      const transformedPost: TransformedPost = {
+        id: postData.id,
+        content: postData.content || '',
+        image_url: postData.image_url,
+        image_urls: postData.image_urls,
+        created_at: postData.created_at,
+        likes_count: postData.likes_count || 0,
+        comments_count: postData.comments_count || 0,
         user_id: postData.user_id,
         user_name: userName,
         user_username: userUsername,
