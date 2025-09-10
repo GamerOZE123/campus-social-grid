@@ -1,6 +1,6 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogOverlay } from '@/components/ui/dialog';
-import { X, MoreHorizontal, Heart, MessageCircle, Share } from 'lucide-react';
+import { X, MoreHorizontal, Heart, MessageCircle, Share, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ImageModalProps {
@@ -15,6 +15,10 @@ interface ImageModalProps {
   likesCount?: number;
   commentsCount?: number;
   sharesCount?: number;
+  showNavigation?: boolean;
+  onNavigate?: (direction: 'prev' | 'next') => void;
+  currentIndex?: number;
+  totalImages?: number;
 }
 
 export default function ImageModal({ 
@@ -28,7 +32,11 @@ export default function ImageModal({
   isLiked = false,
   likesCount = 0,
   commentsCount = 0,
-  sharesCount = 0
+  sharesCount = 0,
+  showNavigation = false,
+  onNavigate,
+  currentIndex,
+  totalImages
 }: ImageModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -37,14 +45,22 @@ export default function ImageModal({
         <div className="relative w-full h-full flex flex-col">
           {/* Top Bar */}
           <div className="absolute top-0 left-0 right-0 z-10 flex justify-between items-center p-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="bg-black/50 text-white hover:bg-black/70"
-            >
-              <X className="w-6 h-6" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onClose}
+                className="bg-black/50 text-white hover:bg-black/70"
+              >
+                <X className="w-6 h-6" />
+              </Button>
+              {/* Image counter */}
+              {showNavigation && currentIndex && totalImages && (
+                <div className="bg-black/60 text-white px-3 py-1 rounded-full text-sm">
+                  {currentIndex} / {totalImages}
+                </div>
+              )}
+            </div>
             <Button
               variant="ghost"
               size="icon"
@@ -53,6 +69,28 @@ export default function ImageModal({
               <MoreHorizontal className="w-6 h-6" />
             </Button>
           </div>
+          
+          {/* Navigation buttons */}
+          {showNavigation && onNavigate && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute left-4 top-1/2 -translate-y-1/2 z-50 bg-black/50 text-white hover:bg-black/70"
+                onClick={() => onNavigate('prev')}
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-50 bg-black/50 text-white hover:bg-black/70"
+                onClick={() => onNavigate('next')}
+              >
+                <ChevronRight className="w-6 h-6" />
+              </Button>
+            </>
+          )}
 
           {/* Image Container */}
           <div className="flex-1 flex items-center justify-center">

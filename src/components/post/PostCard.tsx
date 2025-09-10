@@ -5,6 +5,7 @@ import PostContent from './PostContent';
 import PostActions from './PostActions';
 import EditPostModal from './EditPostModal';
 import ClickablePostCard from './ClickablePostCard';
+import MultipleImageDisplay from './MultipleImageDisplay';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLikes } from '@/hooks/useLikes';
@@ -15,6 +16,7 @@ interface Post {
   id: string;
   content: string;
   image_url?: string;
+  image_urls?: string[];
   hashtags?: string[];
   created_at: string;
   likes_count: number;
@@ -104,12 +106,18 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
             userId={post.user_id}
           />
 
-          {/* Image (if present) */}
-          {post.image_url && (
-            <PostContent
-              content=""
-              imageUrl={post.image_url}
-            />
+          {/* Images (single or multiple) */}
+          {(post.image_urls?.length > 0 || post.image_url) && (
+            <div className="ml-14">
+              {post.image_urls?.length > 0 ? (
+                <MultipleImageDisplay imageUrls={post.image_urls} />
+              ) : post.image_url ? (
+                <PostContent
+                  content=""
+                  imageUrl={post.image_url}
+                />
+              ) : null}
+            </div>
           )}
 
           {/* Hashtags */}

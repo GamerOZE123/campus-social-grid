@@ -1000,6 +1000,7 @@ export type Database = {
           hashtags: string[] | null
           id: string
           image_url: string | null
+          image_urls: string[] | null
           likes_count: number | null
           updated_at: string | null
           user_id: string
@@ -1011,6 +1012,7 @@ export type Database = {
           hashtags?: string[] | null
           id?: string
           image_url?: string | null
+          image_urls?: string[] | null
           likes_count?: number | null
           updated_at?: string | null
           user_id: string
@@ -1022,6 +1024,7 @@ export type Database = {
           hashtags?: string[] | null
           id?: string
           image_url?: string | null
+          image_urls?: string[] | null
           likes_count?: number | null
           updated_at?: string | null
           user_id?: string
