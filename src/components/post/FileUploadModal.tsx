@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -8,8 +7,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import HashtagSelector from './HashtagSelector';
-import { useProgressiveImageUpload } from '@/hooks/useProgressiveImageUpload';
-import { ImagePlaceholder } from '@/components/ui/image-placeholder';
 
 interface FileUploadModalProps {
   isOpen: boolean;
@@ -17,14 +14,22 @@ interface FileUploadModalProps {
   onPostCreated: () => void;
 }
 
+interface UploadingImage {
+  file: File;
+  url?: string;
+  uploaded: boolean;
+}
+
 export default function FileUploadModal({ isOpen, onClose, onPostCreated }: FileUploadModalProps) {
   const { user } = useAuth();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadingImages, setUploadingImages] = useState<UploadingImage[]>([]);
   const [caption, setCaption] = useState('');
   const [hashtags, setHashtags] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Handle file selection
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
@@ -43,33 +48,48 @@ export default function FileUploadModal({ isOpen, onClose, onPostCreated }: File
     });
 
     setSelectedFiles(prev => [...prev, ...newFiles]);
+    setUploadingImages(prev => [
+      ...prev,
+      ...newFiles.map(file => ({ file, uploaded: false }))
+    ]);
   };
 
+  // Remove image
   const removeImage = (indexToRemove: number) => {
     setSelectedFiles(prev => prev.filter((_, index) => index !== indexToRemove));
+    setUploadingImages(prev => prev.filter((_, index) => index !== indexToRemove));
   };
 
-  const uploadImages = async (files: File[]): Promise<string[]> => {
-    const uploadPromises = files.map(async (file) => {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+  // Progressive uploads
+  const uploadImages = async (files: File[], postId: string): Promise<string[]> => {
+    return Promise.all(
+      files.map(async (file, index) => {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${postId}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
 
-      const { data, error } = await supabase.storage
-        .from('post-images')
-        .upload(fileName, file);
+        const { data, error } = await supabase.storage
+          .from('post-images')
+          .upload(fileName, file);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      const { data: urlData } = supabase.storage
-        .from('post-images')
-        .getPublicUrl(fileName);
+        const { data: urlData } = supabase.storage
+          .from('post-images')
+          .getPublicUrl(fileName);
 
-      return urlData.publicUrl;
-    });
+        // Update progressive state
+        setUploadingImages(prev =>
+          prev.map((img, i) =>
+            i === index ? { ...img, url: urlData.publicUrl, uploaded: true } : img
+          )
+        );
 
-    return Promise.all(uploadPromises);
+        return urlData.publicUrl;
+      })
+    );
   };
 
+  // Handle final upload (post + images)
   const handleUpload = async () => {
     if (!user || (selectedFiles.length === 0 && !caption.trim())) {
       toast.error('Please add at least one image or caption');
@@ -78,44 +98,51 @@ export default function FileUploadModal({ isOpen, onClose, onPostCreated }: File
 
     setUploading(true);
     try {
-      let imageUrls: string[] = [];
-
-      // Upload images if any are selected
-      if (selectedFiles.length > 0) {
-        toast.info('Uploading images...');
-        imageUrls = await uploadImages(selectedFiles);
-        toast.success('Images uploaded successfully!');
-      }
-
-      // Prepare hashtags
+      // Format hashtags
       const formattedHashtags = hashtags
         .filter(tag => tag.trim())
         .map(tag => tag.toLowerCase().replace(/^#+/, '').trim())
         .filter(tag => tag.length > 0);
 
-      // Create post with uploaded image URLs
+      // Create post immediately
       const postData = {
         user_id: user.id,
         content: caption.trim() || 'New post',
         hashtags: formattedHashtags.length > 0 ? formattedHashtags : null,
-        image_urls: imageUrls.length > 0 ? imageUrls : null
+        image_urls: null
       };
 
-      const { data, error } = await supabase
+      const { data: post, error } = await supabase
         .from('posts')
         .insert(postData)
-        .select();
+        .select()
+        .single();
 
       if (error) throw error;
 
+      toast.info('Uploading images...');
+
+      // Upload images in parallel
+      let imageUrls: string[] = [];
+      if (selectedFiles.length > 0) {
+        imageUrls = await uploadImages(selectedFiles, post.id);
+
+        // Update post with final image URLs
+        await supabase
+          .from('posts')
+          .update({ image_urls: imageUrls })
+          .eq('id', post.id);
+      }
+
       toast.success('Post uploaded successfully!');
-      
+
       // Reset form
       setSelectedFiles([]);
+      setUploadingImages([]);
       setCaption('');
       setHashtags([]);
-      
-      // Notify parent and close modal
+
+      // Notify parent and close
       onPostCreated();
       onClose();
     } catch (error) {
@@ -128,6 +155,7 @@ export default function FileUploadModal({ isOpen, onClose, onPostCreated }: File
 
   const handleClose = () => {
     setSelectedFiles([]);
+    setUploadingImages([]);
     setCaption('');
     setHashtags([]);
     onClose();
@@ -170,16 +198,29 @@ export default function FileUploadModal({ isOpen, onClose, onPostCreated }: File
               />
             </div>
 
-            {selectedFiles.length > 0 && (
+            {uploadingImages.length > 0 && (
               <div className="flex gap-3 overflow-x-auto pb-2">
-                {selectedFiles.map((file, index) => (
+                {uploadingImages.map((img, index) => (
                   <div key={index} className="relative flex-shrink-0 group">
-                    <div className="w-20 h-20 rounded-lg overflow-hidden border border-border">
-                      <img
-                        src={URL.createObjectURL(file)}
-                        alt={`Selected ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
+                    <div className="w-20 h-20 rounded-lg overflow-hidden border border-border flex items-center justify-center bg-muted">
+                      {img.uploaded && img.url ? (
+                        <img
+                          src={img.url}
+                          alt={`Uploaded ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <>
+                          <img
+                            src={URL.createObjectURL(img.file)}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-full object-cover opacity-50"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          </div>
+                        </>
+                      )}
                     </div>
                     <button
                       type="button"
@@ -193,7 +234,7 @@ export default function FileUploadModal({ isOpen, onClose, onPostCreated }: File
               </div>
             )}
 
-            {selectedFiles.length === 0 && (
+            {uploadingImages.length === 0 && (
               <div className="border-2 border-dashed border-border rounded-lg p-8 text-center text-muted-foreground">
                 <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>No images selected yet</p>
