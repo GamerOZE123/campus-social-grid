@@ -7,7 +7,6 @@ export interface Post {
   user_id: string;
   content: string;
   hashtags: string[] | null;
-  image_url: string | null;
   image_urls: string[] | null;
   likes_count: number;
   comments_count: number;

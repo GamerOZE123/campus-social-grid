@@ -15,7 +15,6 @@ import { toast } from 'sonner';
 interface Post {
   id: string;
   content: string;
-  image_url?: string;
   image_urls?: string[];
   hashtags?: string[];
   created_at: string;
@@ -106,17 +105,10 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
             userId={post.user_id}
           />
 
-          {/* Images (single or multiple) */}
-          {(post.image_urls?.length > 0 || post.image_url) && (
+          {/* Images */}
+          {post.image_urls?.length > 0 && (
             <div className="ml-14">
-              {post.image_urls?.length > 0 ? (
-                <MultipleImageDisplay imageUrls={post.image_urls} />
-              ) : post.image_url ? (
-                <PostContent
-                  content=""
-                  imageUrl={post.image_url}
-                />
-              ) : null}
+              <MultipleImageDisplay imageUrls={post.image_urls} />
             </div>
           )}
 

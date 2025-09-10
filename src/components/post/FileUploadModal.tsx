@@ -47,15 +47,9 @@ export default function FileUploadModal({ isOpen, onClose, onPostCreated }: File
         hashtags: formattedHashtags.length > 0 ? formattedHashtags : null
       };
 
-      // Add image data based on what we have
+      // Always use image_urls array for all images
       if (imageUrls.length > 0) {
-        if (imageUrls.length === 1) {
-          // Single image - use image_url for backward compatibility
-          postData.image_url = imageUrls[0];
-        } else {
-          // Multiple images - use image_urls array
-          postData.image_urls = imageUrls;
-        }
+        postData.image_urls = imageUrls;
       }
 
       const { data, error } = await supabase
