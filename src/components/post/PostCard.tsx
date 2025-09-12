@@ -108,7 +108,7 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
 
           {/* Images (single or multiple) */}
           {(post.image_urls?.length > 0 || post.image_url) && (
-            <div className="ml-14">
+            <div className="flex justify-center">
               {post.image_urls?.length > 0 ? (
                 <MultipleImageDisplay imageUrls={post.image_urls} />
               ) : post.image_url ? (
