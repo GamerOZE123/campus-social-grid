@@ -233,7 +233,7 @@ export default function AdvertisingPostCard({
       </div>
 
       {/* Image - Similar to PostContent */}
-      <div className="ml-14">
+      <div className="flex justify-center">
         <PostContent
           content=""
           imageUrl={post.image_url}
