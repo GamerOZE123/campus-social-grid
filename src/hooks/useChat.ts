@@ -27,21 +27,22 @@ export const useChat = () => {
   const [currentMessages, setCurrentMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [isChatCleared, setIsChatCleared] = useState<boolean>(false);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
 
   const fetchConversations = async () => {
     if (!user) return;
-    
+
     try {
       console.log('Fetching conversations for user:', user.id);
       const { data, error } = await supabase.rpc('get_user_conversations', {
         target_user_id: user.id
       });
-      
+
       if (error) {
         console.error('Error fetching conversations:', error);
         throw error;
       }
-      
+
       console.log('Fetched conversations:', data);
       setConversations(data || []);
     } catch (error) {
@@ -54,7 +55,8 @@ export const useChat = () => {
   const fetchMessages = async (conversationId: string, offset = 0, limit = 15) => {
     try {
       if (!user) return;
-      
+      setActiveConversationId(conversationId);
+
       // Get the cleared_at timestamp for this user and conversation
       const { data: clearedData } = await supabase
         .from('cleared_chats')
@@ -62,31 +64,29 @@ export const useChat = () => {
         .eq('user_id', user.id)
         .eq('conversation_id', conversationId)
         .single();
-      
+
       setIsChatCleared(!!clearedData);
-      
+
       console.log('Fetching messages for conversation:', conversationId);
-      
-      // Build the query with optional timestamp filter
+
       let query = supabase
         .from('messages')
         .select('*')
         .eq('conversation_id', conversationId);
-      
-      // If chat was cleared, only fetch messages after the cleared timestamp
+
       if (clearedData?.cleared_at) {
         query = query.gt('created_at', clearedData.cleared_at);
       }
-      
+
       const { data, error } = await query
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
-      
+
       if (error) {
         console.error('Error fetching messages:', error);
         throw error;
       }
-      
+
       console.log('Fetched messages:', data);
       if (offset === 0) {
         setCurrentMessages(data?.reverse() || []);
@@ -114,7 +114,7 @@ export const useChat = () => {
 
     try {
       console.log('Sending message:', { conversationId, content, userId: user.id });
-      
+
       const { data, error } = await supabase
         .from('messages')
         .insert({
@@ -124,12 +124,12 @@ export const useChat = () => {
         })
         .select()
         .single();
-      
+
       if (error) {
         console.error('Error sending message:', error);
         return { success: false, error: error.message };
       }
-      
+
       console.log('Message sent successfully:', data);
       await fetchMessages(conversationId);
       return { success: true, data };
@@ -148,12 +148,12 @@ export const useChat = () => {
         user1_id: user.id,
         user2_id: otherUserId
       });
-      
+
       if (error) {
         console.error('Error creating conversation:', error);
         throw error;
       }
-      
+
       console.log('Conversation created/found:', data);
       await fetchConversations();
       return data;
@@ -176,7 +176,7 @@ export const useChat = () => {
             cleared_at: new Date().toISOString()
           },
           {
-            onConflict: 'cleared_chats_user_id_conversation_id_key' // ✅ correct constraint
+            onConflict: 'cleared_chats_user_id_conversation_id_key'
           }
         );
 
@@ -198,28 +198,23 @@ export const useChat = () => {
   useEffect(() => {
     if (!user) return;
 
-    fetchConversations();
-    
-    // Set up real-time listener for new messages in user's conversations
     const channel = supabase
-      .channel('messages-changes')
+      .channel(`messages-changes-${user.id}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=in.(${conversations.map(c => c.conversation_id).join(',')})`
+          table: 'messages'
         },
         (payload) => {
-          console.log('New message received:', payload);
-          
-          // If it's for the current conversation, add message directly to avoid full refetch
-          if (payload.new?.conversation_id && currentMessages.length > 0 && payload.new.conversation_id === currentMessages[0]?.conversation_id) {
-            setCurrentMessages(prev => [...prev, payload.new as Message]);
+          const newMsg = payload.new as Message;
+          console.log('Realtime message received:', newMsg);
+
+          if (newMsg.conversation_id === activeConversationId) {
+            setCurrentMessages((prev) => [...prev, newMsg]);
           }
-          
-          // Always refresh conversations to update order and last message
+
           fetchConversations();
         }
       )
@@ -228,7 +223,7 @@ export const useChat = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, conversations]); // Removed currentMessages from deps to avoid infinite loop
+  }, [user, activeConversationId]);
 
   return {
     conversations,
@@ -240,6 +235,6 @@ export const useChat = () => {
     sendMessage,
     createConversation,
     clearChat,
-    refreshConversations: fetchConversations
+    refreshConversations: fetchConversations,
   };
 };
