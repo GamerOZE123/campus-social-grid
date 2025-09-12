@@ -165,26 +165,35 @@ export const useChat = () => {
 
   // Subscribe to realtime messages
 useEffect(() => {
-  if (!user || !activeConversationId) return;
+  if (!user) return;
 
-  // Subscribe only to messages for the active conversation
   const channel = supabase
-    .channel(`conversation-${activeConversationId}`)
+    .channel('messages')
     .on(
       'postgres_changes',
       {
-        event: 'INSERT',
+        event: '*', // ✅ listens for INSERT, UPDATE, DELETE
         schema: 'public',
         table: 'messages',
-        filter: `conversation_id=eq.${activeConversationId}`,
       },
       (payload) => {
-        const newMsg = payload.new as Message;
+        const msg = payload.new as Message;
 
-        // Append new message if it belongs here
-        setCurrentMessages((prev) => [...prev, newMsg]);
+        if (msg.conversation_id === activeConversationId) {
+          if (payload.eventType === 'INSERT') {
+            setCurrentMessages((prev) => [...prev, msg]);
+          } else if (payload.eventType === 'UPDATE') {
+            setCurrentMessages((prev) =>
+              prev.map((m) => (m.id === msg.id ? msg : m))
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setCurrentMessages((prev) =>
+              prev.filter((m) => m.id !== payload.old.id)
+            );
+          }
+        }
 
-        // Refresh conversations sidebar
+        // Keep sidebar fresh
         fetchConversations();
       }
     )
@@ -194,6 +203,7 @@ useEffect(() => {
     supabase.removeChannel(channel);
   };
 }, [user, activeConversationId]);
+
 
 
   return {
