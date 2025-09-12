@@ -27,22 +27,17 @@ export const useChat = () => {
   const [currentMessages, setCurrentMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [isChatCleared, setIsChatCleared] = useState<boolean>(false);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
 
   const fetchConversations = async () => {
     if (!user) return;
-    
+
     try {
-      console.log('Fetching conversations for user:', user.id);
       const { data, error } = await supabase.rpc('get_user_conversations', {
-        target_user_id: user.id
+        target_user_id: user.id,
       });
-      
-      if (error) {
-        console.error('Error fetching conversations:', error);
-        throw error;
-      }
-      
-      console.log('Fetched conversations:', data);
+
+      if (error) throw error;
       setConversations(data || []);
     } catch (error) {
       console.error('Error fetching conversations:', error);
@@ -52,52 +47,45 @@ export const useChat = () => {
   };
 
   const fetchMessages = async (conversationId: string, offset = 0, limit = 15) => {
+    if (!user) return;
+
     try {
-      if (!user) return;
-      
-      // Get the cleared_at timestamp for this user and conversation
+      // Track active conversation
+      setActiveConversationId(conversationId);
+
+      // Get cleared timestamp
       const { data: clearedData } = await supabase
         .from('cleared_chats')
         .select('cleared_at')
         .eq('user_id', user.id)
         .eq('conversation_id', conversationId)
         .single();
-      
+
       setIsChatCleared(!!clearedData);
-      
-      console.log('Fetching messages for conversation:', conversationId);
-      
-      // Build the query with optional timestamp filter
+
       let query = supabase
         .from('messages')
         .select('*')
         .eq('conversation_id', conversationId);
-      
-      // If chat was cleared, only fetch messages after the cleared timestamp
+
       if (clearedData?.cleared_at) {
         query = query.gt('created_at', clearedData.cleared_at);
       }
-      
+
       const { data, error } = await query
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
-      
-      if (error) {
-        console.error('Error fetching messages:', error);
-        throw error;
-      }
-      
-      console.log('Fetched messages:', data);
+
+      if (error) throw error;
+
       if (offset === 0) {
         setCurrentMessages(data?.reverse() || []);
       } else {
-        setCurrentMessages(prev => [...(data?.reverse() || []), ...prev]);
+        setCurrentMessages((prev) => [...(data?.reverse() || []), ...prev]);
       }
     } catch (error) {
       console.error('Error fetching messages:', error);
-      if (offset === 0) {
-        setCurrentMessages([]);
-      }
+      if (offset === 0) setCurrentMessages([]);
     }
   };
 
@@ -108,30 +96,25 @@ export const useChat = () => {
 
   const sendMessage = async (conversationId: string, content: string) => {
     if (!user || !content.trim()) {
-      console.log('Cannot send message: no user or empty content');
       return { success: false, error: 'No user or empty content' };
     }
 
     try {
-      console.log('Sending message:', { conversationId, content, userId: user.id });
-      
       const { data, error } = await supabase
         .from('messages')
         .insert({
           conversation_id: conversationId,
           sender_id: user.id,
-          content: content.trim()
+          content: content.trim(),
         })
         .select()
         .single();
-      
-      if (error) {
-        console.error('Error sending message:', error);
-        return { success: false, error: error.message };
-      }
-      
-      console.log('Message sent successfully:', data);
-      await fetchMessages(conversationId);
+
+      if (error) throw error;
+
+      // Optimistically add message
+      setCurrentMessages((prev) => [...prev, data]);
+
       return { success: true, data };
     } catch (error) {
       console.error('Error sending message:', error);
@@ -143,18 +126,12 @@ export const useChat = () => {
     if (!user) return null;
 
     try {
-      console.log('Creating conversation between:', user.id, 'and', otherUserId);
       const { data, error } = await supabase.rpc('get_or_create_conversation', {
         user1_id: user.id,
-        user2_id: otherUserId
+        user2_id: otherUserId,
       });
-      
-      if (error) {
-        console.error('Error creating conversation:', error);
-        throw error;
-      }
-      
-      console.log('Conversation created/found:', data);
+
+      if (error) throw error;
       await fetchConversations();
       return data;
     } catch (error) {
@@ -163,72 +140,59 @@ export const useChat = () => {
     }
   };
 
-const clearChat = async (conversationId: string) => {
-  if (!user) return { success: false, error: 'No user' };
+  const clearChat = async (conversationId: string) => {
+    if (!user) return { success: false, error: 'No user' };
 
-  try {
-    const { error } = await supabase
-      .from('cleared_chats')
-      .upsert(
+    try {
+      const { error } = await supabase.from('cleared_chats').upsert(
         {
           user_id: user.id,
           conversation_id: conversationId,
-          cleared_at: new Date().toISOString()
+          cleared_at: new Date().toISOString(),
         },
-        {
-          onConflict: 'cleared_chats_user_id_conversation_id_key' // ✅ correct constraint
-        }
+        { onConflict: 'cleared_chats_user_id_conversation_id_key' }
       );
 
-    if (error) {
+      if (error) throw error;
+
+      setIsChatCleared(true);
+      setCurrentMessages([]);
+      return { success: true };
+    } catch (error) {
       console.error('Error clearing chat:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: (error as Error).message };
     }
+  };
 
-    setIsChatCleared(true);
-    setCurrentMessages([]);
-    console.log('Chat cleared successfully');
-    return { success: true };
-  } catch (error) {
-    console.error('Error clearing chat:', error);
-    return { success: false, error: (error as Error).message };
-  }
-};
-
-
+  // Subscribe to realtime messages
   useEffect(() => {
-    if (user) {
-      fetchConversations();
-      
-      // Set up real-time listener for new messages
-      const channel = supabase
-        .channel('messages-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'messages'
-          },
-          (payload) => {
-            console.log('New message received:', payload);
-            
-            // If it's for the current conversation, add message directly to avoid full refetch
-            if (payload.new?.conversation_id && currentMessages.length > 0 && payload.new.conversation_id === currentMessages[0]?.conversation_id) {
-              setCurrentMessages(prev => [...prev, payload.new as Message]);
-            }
-            
-            // Always refresh conversations to update order and last message
-            fetchConversations();
-          }
-        )
-        .subscribe();
+    if (!user) return;
 
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [user, currentMessages]);
+    fetchConversations();
+
+    const channel = supabase
+      .channel(`user-${user.id}-messages`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        (payload) => {
+          const newMsg = payload.new as Message;
+
+          // If it's for the active conversation → append directly
+          if (newMsg.conversation_id === activeConversationId) {
+            setCurrentMessages((prev) => [...prev, newMsg]);
+          }
+
+          // Always refresh conversations to update sidebar
+          fetchConversations();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, activeConversationId]);
 
   return {
     conversations,
@@ -240,6 +204,6 @@ const clearChat = async (conversationId: string) => {
     sendMessage,
     createConversation,
     clearChat,
-    refreshConversations: fetchConversations
+    refreshConversations: fetchConversations,
   };
 };
