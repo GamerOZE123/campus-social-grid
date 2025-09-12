@@ -8,6 +8,14 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 interface MultipleImageDisplayProps {
   imageUrls: string[];
   className?: string;
+  onLike?: (e?: React.MouseEvent) => void;
+  onComment?: (e?: React.MouseEvent) => void;
+  onShare?: () => void;
+  isLiked?: boolean;
+  likesCount?: number;
+  commentsCount?: number;
+  postId?: string;
+  postContent?: string;
 }
 
 const isImageUrl = (url: string) => {
@@ -36,7 +44,18 @@ const getDisplayAspectRatio = (actualRatio: number): number => {
   return actualRatio;
 };
 
-export default function MultipleImageDisplay({ imageUrls, className = '' }: MultipleImageDisplayProps) {
+export default function MultipleImageDisplay({ 
+  imageUrls, 
+  className = '', 
+  onLike, 
+  onComment, 
+  onShare, 
+  isLiked = false, 
+  likesCount = 0, 
+  commentsCount = 0,
+  postId = '',
+  postContent = ''
+}: MultipleImageDisplayProps) {
   const [showFullImage, setShowFullImage] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [api, setApi] = useState<CarouselApi>();
@@ -80,7 +99,7 @@ export default function MultipleImageDisplay({ imageUrls, className = '' }: Mult
     
     return (
       <>
-        <div className={`w-full max-w-lg ${className}`}>
+        <div className={`w-full max-w-lg ${className}`} data-image-container>
           {isPlaceholder(imageUrl) ? (
             <ImagePlaceholder status="loading" className="max-w-lg" />
           ) : shouldConstrainImage(aspectRatio) ? (
@@ -111,6 +130,12 @@ export default function MultipleImageDisplay({ imageUrls, className = '' }: Mult
             isOpen={showFullImage}
             onClose={() => setShowFullImage(false)}
             alt="Post content"
+            onLike={onLike}
+            onComment={onComment}
+            onShare={onShare}
+            isLiked={isLiked}
+            likesCount={likesCount}
+            commentsCount={commentsCount}
           />
         )}
       </>
@@ -120,7 +145,7 @@ export default function MultipleImageDisplay({ imageUrls, className = '' }: Mult
   // Multiple images carousel
   return (
     <>
-      <div className={`w-full max-w-lg ${className}`}>
+      <div className={`w-full max-w-lg ${className}`} data-image-container>
         <Carousel 
           setApi={setApi} 
           className="w-full"
@@ -194,6 +219,12 @@ export default function MultipleImageDisplay({ imageUrls, className = '' }: Mult
           onNavigate={navigateImage}
           currentIndex={selectedImageIndex + 1}
           totalImages={imageUrls.length}
+          onLike={onLike}
+          onComment={onComment}
+          onShare={onShare}
+          isLiked={isLiked}
+          likesCount={likesCount}
+          commentsCount={commentsCount}
         />
       )}
     </>

@@ -7,6 +7,14 @@ import ImageModal from "./ImageModal";
 interface PostContentProps {
   content: string;
   imageUrl?: string;
+  onLike?: (e?: React.MouseEvent) => void;
+  onComment?: (e?: React.MouseEvent) => void;
+  onShare?: () => void;
+  isLiked?: boolean;
+  likesCount?: number;
+  commentsCount?: number;
+  postId?: string;
+  postContent?: string;
 }
 
 const isImageUrl = (url: string) => {
@@ -44,7 +52,18 @@ const getFileNameFromUrl = (url: string) => {
   return url.split("/").pop() || "File";
 };
 
-export default function PostContent({ content, imageUrl }: PostContentProps) {
+export default function PostContent({ 
+  content, 
+  imageUrl, 
+  onLike, 
+  onComment, 
+  onShare, 
+  isLiked = false, 
+  likesCount = 0, 
+  commentsCount = 0,
+  postId = '',
+  postContent = ''
+}: PostContentProps) {
   const [showFullImage, setShowFullImage] = useState(false);
   
   const handleDownload = () => {
@@ -68,7 +87,7 @@ export default function PostContent({ content, imageUrl }: PostContentProps) {
 
       {/* Image or file preview */}
       {imageUrl && (
-        <div className="rounded-xl overflow-hidden">
+        <div className="rounded-xl overflow-hidden" data-image-container>
           {isImageUrl(imageUrl) ? (
             <div className="w-full max-w-lg">
               {shouldConstrainImage(getImageAspectRatio(imageUrl)) ? (
@@ -119,6 +138,12 @@ export default function PostContent({ content, imageUrl }: PostContentProps) {
           isOpen={showFullImage}
           onClose={() => setShowFullImage(false)}
           alt="Post content"
+          onLike={onLike}
+          onComment={onComment}
+          onShare={onShare}
+          isLiked={isLiked}
+          likesCount={likesCount}
+          commentsCount={commentsCount}
         />
       )}
     </div>

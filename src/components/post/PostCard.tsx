@@ -64,6 +64,10 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
     navigate(`/post/${post.id}`);
   };
 
+  const handleShareClick = () => {
+    onShare?.();
+  };
+
   const handleDeletePost = async () => {
     if (!window.confirm('Are you sure you want to delete this post?')) return;
 
@@ -110,11 +114,29 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
           {(post.image_urls?.length > 0 || post.image_url) && (
             <div className="flex justify-center">
               {post.image_urls?.length > 0 ? (
-                <MultipleImageDisplay imageUrls={post.image_urls} />
+                <MultipleImageDisplay 
+                  imageUrls={post.image_urls}
+                  onLike={handleLikeClick}
+                  onComment={handleCommentClick}
+                  onShare={handleShareClick}
+                  isLiked={isLiked}
+                  likesCount={likesCount}
+                  commentsCount={post.comments_count}
+                  postId={post.id}
+                  postContent={post.content}
+                />
               ) : post.image_url ? (
                 <PostContent
                   content=""
                   imageUrl={post.image_url}
+                  onLike={handleLikeClick}
+                  onComment={handleCommentClick}
+                  onShare={handleShareClick}
+                  isLiked={isLiked}
+                  likesCount={likesCount}
+                  commentsCount={post.comments_count}
+                  postId={post.id}
+                  postContent={post.content}
                 />
               ) : null}
             </div>
