@@ -99,29 +99,28 @@ export const useChat = () => {
       return { success: false, error: 'No user or empty content' };
     }
 
-    try {
-      const { data, error } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: conversationId,
-          sender_id: user.id,
-          content: content.trim(),
-        })
-        .select()
-        .single();
+  try {
+  const { data, error } = await supabase
+    .from('messages')
+    .insert({
+      conversation_id: conversationId,
+      sender_id: user.id,
+      content: content.trim(),
+    })
+    .select()
+    .single();
 
-      if (error) throw error;
+  if (error) throw error;
 
-      // Optimistically add message
-      setCurrentMessages((prev) => [...prev, data]);
+  // ❌ Remove this — realtime will add the message automatically
+  // setCurrentMessages((prev) => [...prev, data]);
 
-      return { success: true, data };
-    } catch (error) {
-      console.error('Error sending message:', error);
-      return { success: false, error: (error as Error).message };
-    }
+  return { success: true, data };
+} catch (error) {
+  console.error('Error sending message:', error);
+  return { success: false, error: (error as Error).message };
+}
   };
-
   const createConversation = async (otherUserId: string) => {
     if (!user) return null;
 
