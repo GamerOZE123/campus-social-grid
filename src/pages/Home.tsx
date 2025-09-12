@@ -282,6 +282,7 @@ export default function Home() {
                 <AdvertisingPostCard
                   key={`ad-${mixedPost.data.id}`}
                   post={mixedPost.data as AdvertisingPost}
+                  onLikeUpdate={fetchPosts}
                 />
               );
             })
