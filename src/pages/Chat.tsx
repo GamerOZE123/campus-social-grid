@@ -27,6 +27,7 @@ export default function Chat() {
   const [showUserList, setShowUserList] = useState(true);
   const [unreadMessages, setUnreadMessages] = useState<Set<string>>(new Set());
   const [isAtBottom, setIsAtBottom] = useState(true);
+  const [newMessageNotification, setNewMessageNotification] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -47,13 +48,20 @@ export default function Chat() {
   const { recentChats, addRecentChat, refreshRecentChats } = useRecentChats();
   const { getUserById } = useUsers();
 
-  // ✅ Auto-scroll when new messages arrive and user is at bottom
+  // ✅ Auto-scroll when new messages arrive and user is at bottom, notify if not
   useEffect(() => {
-    if (
-      currentMessages.length > previousMessagesLength.current &&
-      isAtBottom
-    ) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (currentMessages.length > previousMessagesLength.current) {
+      const isNewMessage = currentMessages.length > 0;
+      
+      if (isNewMessage && isAtBottom) {
+        // User is at bottom, auto-scroll to new message
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      } else if (isNewMessage && !isAtBottom) {
+        // User is reading old messages, show notification
+        setNewMessageNotification(true);
+      }
     }
     previousMessagesLength.current = currentMessages.length;
   }, [currentMessages, isAtBottom]);
@@ -77,6 +85,11 @@ export default function Chat() {
     const atTop = scrollTop <= 10;
 
     setIsAtBottom(atBottom);
+    
+    // Clear notification when user scrolls to bottom
+    if (atBottom && newMessageNotification) {
+      setNewMessageNotification(false);
+    }
 
     if (atTop && selectedConversationId && currentMessages.length >= 20) {
       const prevHeight = scrollHeight;
@@ -107,6 +120,7 @@ export default function Chat() {
       setSelectedUser(userProfile);
       const conversationId = await createConversation(userId);
       setSelectedConversationId(conversationId);
+      setNewMessageNotification(false); // Clear any existing notifications
 
       setUnreadMessages(prev => {
         const newSet = new Set(prev);
@@ -265,7 +279,7 @@ export default function Chat() {
                 <div 
                   ref={messagesContainerRef}
                   onScroll={handleScroll}
-                  className="flex-1 p-4 overflow-y-auto space-y-4"
+                  className="flex-1 p-4 overflow-y-auto space-y-4 relative"
                 >
                   {currentMessages.length ? (
                     currentMessages.map((message) => (
@@ -289,6 +303,22 @@ export default function Chat() {
                     </div>
                   )}
                   <div ref={messagesEndRef} />
+                  
+                  {/* New message notification */}
+                  {newMessageNotification && (
+                    <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-10">
+                      <Button 
+                        onClick={() => {
+                          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                          setNewMessageNotification(false);
+                        }}
+                        className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
+                        size="sm"
+                      >
+                        New message ↓
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Input */}
@@ -374,7 +404,7 @@ export default function Chat() {
             <div 
               ref={messagesContainerRef}
               onScroll={handleScroll}
-              className="flex-1 p-4 overflow-y-auto space-y-4 pb-safe"
+              className="flex-1 p-4 overflow-y-auto space-y-4 pb-safe relative"
               style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
             >
               {currentMessages.length ? (
@@ -399,6 +429,22 @@ export default function Chat() {
                 </div>
               )}
               <div ref={messagesEndRef} />
+              
+              {/* New message notification */}
+              {newMessageNotification && (
+                <div className="fixed bottom-32 left-1/2 transform -translate-x-1/2 z-10">
+                  <Button 
+                    onClick={() => {
+                      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                      setNewMessageNotification(false);
+                    }}
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
+                    size="sm"
+                  >
+                    New message ↓
+                  </Button>
+                </div>
+              )}
             </div>
 
             <div className="border-t border-border p-4 bg-card/95 backdrop-blur-sm sticky bottom-0">
