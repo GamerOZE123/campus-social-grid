@@ -2,10 +2,17 @@ import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Heart, ExternalLink, TrendingUp } from 'lucide-react';
+import { Heart, ExternalLink, TrendingUp, MoreHorizontal } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import PostContent from '@/components/post/PostContent';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface AdvertisingPost {
   id: string;
@@ -38,6 +45,17 @@ export default function AdvertisingPostCard({
   const { toast } = useToast();
   const [liked, setLiked] = useState(isLiked);
   const [likesCount, setLikesCount] = useState(post.likes_count);
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = (now.getTime() - date.getTime()) / 1000;
+    
+    if (diffInSeconds < 60) return 'just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h`;
+    return `${Math.floor(diffInSeconds / 86400)}d`;
+  };
 
   const handleClick = async () => {
     try {
@@ -107,95 +125,153 @@ export default function AdvertisingPostCard({
     }
   };
 
+  const handleComment = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // For ads, we could show a modal or redirect to the ad's page
+    handleClick();
+  };
+
+  const handleShare = () => {
+    // For ads, we could share the ad URL
+    if (navigator.share) {
+      navigator.share({
+        title: post.title,
+        text: post.description || '',
+        url: post.redirect_url
+      });
+    } else {
+      // Fallback to copying URL
+      navigator.clipboard.writeText(post.redirect_url);
+      toast({
+        title: "Link copied",
+        description: "Ad link copied to clipboard",
+      });
+    }
+  };
+
+  // Extract company info
+  const companyName = post.company_profiles?.company_name || 'Company';
+  const companyLogo = post.company_profiles?.logo_url;
+  const isOwnAd = user?.id === post.company_id;
+
   return (
     <div 
       className="cursor-pointer hover:bg-muted/20 transition-colors overflow-hidden group w-full p-4 space-y-3 border-b border-border"
       onClick={handleClick}
     >
-      {/* Company Info Header */}
-      {post.company_profiles && (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {post.company_profiles.logo_url && (
-              <img 
-                src={post.company_profiles.logo_url} 
-                alt={post.company_profiles.company_name}
-                className="w-8 h-8 rounded-full object-cover"
-              />
-            )}
-            <div>
-              <span className="font-medium text-foreground">
-                {post.company_profiles.company_name}
-              </span>
-              <div className="text-sm text-muted-foreground">
-                {new Date(post.created_at).toLocaleDateString()}
-              </div>
-            </div>
-          </div>
-          <Badge 
-            variant="secondary" 
-            className="bg-primary/90 text-primary-foreground text-xs"
-          >
-            Ad
-          </Badge>
+      {/* Header - Similar to PostHeader */}
+      <div className="flex gap-3">
+        {/* Company Avatar */}
+        <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+          {companyLogo ? (
+            <img src={companyLogo} alt={companyName} className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-sm font-bold text-white">
+              {companyName.charAt(0)}
+            </span>
+          )}
         </div>
-      )}
 
-      {/* Title */}
-      <h3 className="font-medium text-foreground">
-        {post.title}
-      </h3>
+        {/* Right section */}
+        <div className="flex-1">
+          <div className="flex items-center justify-between">
+            {/* Company info */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="font-semibold text-foreground">
+                {companyName}
+              </p>
+              <Badge 
+                variant="secondary" 
+                className="bg-primary/90 text-primary-foreground text-xs"
+              >
+                Ad
+              </Badge>
+              <span className="text-sm text-muted-foreground">· {formatDate(post.created_at)}</span>
+            </div>
 
-      {/* Description */}
-      {post.description && (
-        <p className="text-muted-foreground text-sm">
-          {post.description}
-        </p>
-      )}
+            {/* Dropdown actions - only show for own ads */}
+            {isOwnAd && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <MoreHorizontal className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+                    Edit Ad
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    Delete Ad
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
 
-      {/* Ad Label positioned above image */}
-      <div className="relative">
-        {/* Image */}
-        <div className="relative overflow-hidden rounded-lg">
-          <img 
-            src={post.image_url} 
-            alt={post.title}
-            className="w-full h-auto object-cover group-hover:opacity-95 transition-opacity duration-300"
-          />
+          {/* Title and Description as Caption */}
+          <div className="mt-1">
+            <h3 className="font-medium text-foreground mb-1">
+              {post.title}
+            </h3>
+            {post.description && (
+              <p className="text-foreground leading-relaxed whitespace-pre-line">
+                {post.description}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Actions - Similar to regular posts */}
+      {/* Image - Similar to PostContent */}
+      <div className="ml-14">
+        <PostContent
+          content=""
+          imageUrl={post.image_url}
+        />
+      </div>
+
+      {/* Actions - Similar to PostActions */}
       <div className="flex items-center justify-center pt-2">
         <div className="flex items-center gap-8">
-          {/* Like Button */}
           <Button
             variant="ghost"
             size="sm"
             onClick={handleLike}
-            className="flex items-center gap-2 hover:bg-muted/50"
+            className={`flex items-center gap-2 hover:bg-muted/50 ${
+              liked ? "text-red-500 hover:text-red-600" : ""
+            }`}
           >
-            <Heart 
-              className={`w-5 h-5 ${liked ? 'fill-red-500 text-red-500' : 'text-muted-foreground'}`} 
-            />
+            <Heart className={`w-5 h-5 ${liked ? "fill-current" : ""}`} />
             <span className="font-medium">{likesCount}</span>
           </Button>
-
-          {/* Click Count */}
+          
           <Button
             variant="ghost"
             size="sm"
+            onClick={handleComment}
             className="flex items-center gap-2 hover:bg-muted/50"
           >
             <TrendingUp className="w-5 h-5" />
             <span className="font-medium">{post.click_count}</span>
           </Button>
-
-          {/* Visit Button */}
+          
           <Button 
             variant="ghost" 
-            size="sm"
-            onClick={handleClick}
+            size="sm" 
+            onClick={(e) => {
+              e.stopPropagation();
+              handleShare();
+            }}
             className="flex items-center gap-2 hover:bg-muted/50"
           >
             <ExternalLink className="w-5 h-5" />
