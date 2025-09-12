@@ -212,13 +212,14 @@ const clearChat = async (conversationId: string) => {
           },
           (payload) => {
             console.log('New message received:', payload);
-            // Refresh conversations to update order
-            fetchConversations();
             
-            // If it's for the current conversation, refresh messages
-            if (payload.new?.conversation_id === currentMessages?.[0]?.conversation_id) {
-              fetchMessages(payload.new.conversation_id);
+            // If it's for the current conversation, add message directly to avoid full refetch
+            if (payload.new?.conversation_id && currentMessages.length > 0 && payload.new.conversation_id === currentMessages[0]?.conversation_id) {
+              setCurrentMessages(prev => [...prev, payload.new as Message]);
             }
+            
+            // Always refresh conversations to update order and last message
+            fetchConversations();
           }
         )
         .subscribe();
@@ -227,7 +228,7 @@ const clearChat = async (conversationId: string) => {
         supabase.removeChannel(channel);
       };
     }
-  }, [user]);
+  }, [user, currentMessages]);
 
   return {
     conversations,
