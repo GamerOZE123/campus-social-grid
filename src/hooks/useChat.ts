@@ -186,7 +186,7 @@ export const useChat = () => {
   try {
     const now = new Date().toISOString();
 
-    // Mark chat as deleted for this user
+    // Mark chat as deleted in deleted_chats table
     const { error: deletedError } = await supabase.from("deleted_chats").upsert(
       {
         user_id: user.id,
@@ -195,22 +195,16 @@ export const useChat = () => {
       },
       { onConflict: ["user_id", "conversation_id"] }
     );
-    if (deletedError) {
-      console.error("deleted_chats error:", deletedError);
-      throw deletedError;
-    }
+    if (deletedError) throw deletedError;
 
-    // Remove from recent_chats (use other_user_id instead of conversation_id)
+    // Soft delete in recent_chats
     const { error: recentError } = await supabase
       .from("recent_chats")
-      .delete()
+      .update({ deleted_at: now })
       .eq("user_id", user.id)
       .eq("other_user_id", otherUserId);
 
-    if (recentError) {
-      console.error("recent_chats error:", recentError);
-      throw recentError;
-    }
+    if (recentError) throw recentError;
 
     // Update UI immediately
     setConversations((prev) =>
