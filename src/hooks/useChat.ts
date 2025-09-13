@@ -180,7 +180,7 @@ export const useChat = () => {
     }
   };
 
-  const deleteChat = async (conversationId: string) => {
+  const deleteChat = async (conversationId: string, otherUserId: string) => {
   if (!user) return { success: false, error: "No user" };
 
   try {
@@ -195,16 +195,22 @@ export const useChat = () => {
       },
       { onConflict: ["user_id", "conversation_id"] }
     );
-    if (deletedError) throw deletedError;
+    if (deletedError) {
+      console.error("deleted_chats error:", deletedError);
+      throw deletedError;
+    }
 
-    // ✅ Remove from recent_chats too
+    // Remove from recent_chats (use other_user_id instead of conversation_id)
     const { error: recentError } = await supabase
       .from("recent_chats")
       .delete()
       .eq("user_id", user.id)
-      .eq("conversation_id", conversationId);
+      .eq("other_user_id", otherUserId);
 
-    if (recentError) throw recentError;
+    if (recentError) {
+      console.error("recent_chats error:", recentError);
+      throw recentError;
+    }
 
     // Update UI immediately
     setConversations((prev) =>
@@ -222,6 +228,7 @@ export const useChat = () => {
     return { success: false, error: (error as Error).message };
   }
 };
+
 
 
   // Subscribe to realtime changes
