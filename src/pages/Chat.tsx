@@ -42,6 +42,7 @@ export default function Chat() {
     sendMessage, 
     createConversation,
     clearChat,
+    deleteChat,
     refreshConversations
   } = useChat();
   
@@ -149,6 +150,12 @@ export default function Chat() {
     if (isMobile) setShowUserList(false);
   };
 
+  const handleBackToUserList = () => {
+    setShowUserList(true);
+    setSelectedConversationId(null);
+    setSelectedUser(null);
+  };
+
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversationId) return;
     const msg = newMessage.trim();
@@ -165,18 +172,18 @@ export default function Chat() {
   };
 
   const handleDeleteChat = async () => {
-  if (!selectedConversationId) return;
-  const result = await deleteChat(selectedConversationId);
-  if (result.success) {
-    toast.success('Chat deleted');
-    setSelectedConversationId(null);
-    setSelectedUser(null);
-    refreshConversations();
-    refreshRecentChats();
-  } else {
-    toast.error('Failed to delete chat');
-  }
-};
+    if (!selectedConversationId) return;
+    const result = await deleteChat(selectedConversationId);
+    if (result.success) {
+      toast.success('Chat deleted');
+      setSelectedConversationId(null);
+      setSelectedUser(null);
+      refreshConversations();
+      refreshRecentChats();
+    } else {
+      toast.error('Failed to delete chat');
+    }
+  };
 
 
   const handleBlockUser = async () => {
@@ -239,7 +246,7 @@ export default function Chat() {
                     <div>
                       <h3 
                         className="font-semibold text-foreground cursor-pointer hover:text-primary"
-                        onClick={() => handleUsernameClick(selectedUser.user_id)}
+                        onClick={() => navigate(`/profile/${selectedUser.user_id}`)}
                       >
                         {selectedUser.full_name || selectedUser.username}
                       </h3>
