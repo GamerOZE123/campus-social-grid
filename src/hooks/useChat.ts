@@ -164,8 +164,8 @@ export const useChat = () => {
           user_id: user.id,
           conversation_id: conversationId,
           cleared_at: now,
-        } as any,
-        { onConflict: "user_id,conversation_id" }
+        },
+        { onConflict: ["user_id", "conversation_id"] }
       );
 
       if (error) throw error;
@@ -184,16 +184,14 @@ export const useChat = () => {
     if (!user) return { success: false, error: "No user" };
 
     try {
+      const now = new Date().toISOString();
       const { error } = await supabase.from("deleted_chats").upsert(
         {
           user_id: user.id,
           conversation_id: conversationId,
-          deleted_at: new Date().toISOString(),
+          deleted_at: now,
         },
-        {
-          onConflict: ["user_id", "conversation_id"],
-          update: { deleted_at: new Date().toISOString() }
-        }
+        { onConflict: ["user_id", "conversation_id"] }
       );
 
       if (error) throw error;
