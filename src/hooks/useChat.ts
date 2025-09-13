@@ -155,59 +155,60 @@ export const useChat = () => {
   };
 
   const clearChat = async (conversationId: string) => {
-    if (!user) return { success: false, error: "No user" };
+  if (!user) return { success: false, error: "No user" };
 
-    try {
-      const { error } = await supabase.from("cleared_chats").upsert(
-        {
-          user_id: user.id,
-          conversation_id: conversationId,
-          cleared_at: new Date().toISOString(),
-        },
-        { onConflict: ["user_id", "conversation_id"] }
-      );
+  try {
+    const now = new Date().toISOString();
+    const { error } = await supabase.from("cleared_chats").upsert(
+      {
+        user_id: user.id,
+        conversation_id: conversationId,
+        cleared_at: now,
+      },
+      { onConflict: ["user_id", "conversation_id"] }
+    );
 
-      if (error) throw error;
+    if (error) throw error;
 
-      setIsChatCleared(true);
+    setIsChatCleared(true);
+    setClearedAt(now);  // ✅ ensures filtering works instantly
+    setCurrentMessages([]);
+    return { success: true };
+  } catch (error) {
+    console.error("Error clearing chat:", error);
+    return { success: false, error: (error as Error).message };
+  }
+};
+
+const deleteChat = async (conversationId: string) => {
+  if (!user) return { success: false, error: "No user" };
+
+  try {
+    const { error } = await supabase.from("deleted_chats").upsert(
+      {
+        user_id: user.id,
+        conversation_id: conversationId,
+      },
+      { onConflict: ["user_id", "conversation_id"] }
+    );
+
+    if (error) throw error;
+
+    setConversations((prev) =>
+      prev.filter((c) => c.conversation_id !== conversationId)
+    );
+
+    if (activeConversationId === conversationId) {
+      setActiveConversationId(null);
       setCurrentMessages([]);
-      return { success: true };
-    } catch (error) {
-      console.error("Error clearing chat:", error);
-      return { success: false, error: (error as Error).message };
     }
-  };
 
-  const deleteChat = async (conversationId: string) => {
-    if (!user) return { success: false, error: "No user" };
-
-    try {
-      const { error } = await supabase.from("deleted_chats").upsert(
-        {
-          user_id: user.id,
-          conversation_id: conversationId,
-          deleted_at: new Date().toISOString(),
-        },
-        { onConflict: ["user_id", "conversation_id"] }
-      );
-
-      if (error) throw error;
-
-      // Remove from local state immediately
-      setConversations((prev) =>
-        prev.filter((c) => c.conversation_id !== conversationId)
-      );
-      if (activeConversationId === conversationId) {
-        setCurrentMessages([]);
-        setActiveConversationId(null);
-      }
-
-      return { success: true };
-    } catch (error) {
-      console.error("Error deleting chat:", error);
-      return { success: false, error: (error as Error).message };
-    }
-  };
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting chat:", error);
+    return { success: false, error: (error as Error).message };
+  }
+};
 
   // Subscribe to realtime changes
   useEffect(() => {
