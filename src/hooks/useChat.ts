@@ -184,14 +184,19 @@ export const useChat = () => {
     if (!user) return { success: false, error: "No user" };
 
     try {
-      await supabase.from("deleted_chats").upsert(
+      const { error } = await supabase.from("deleted_chats").upsert(
         {
           user_id: user.id,
           conversation_id: conversationId,
           deleted_at: new Date().toISOString(),
         },
-        { onConflict: ["user_id", "conversation_id"] }
+        {
+          onConflict: ["user_id", "conversation_id"],
+          update: { deleted_at: new Date().toISOString() }
+        }
       );
+
+      if (error) throw error;
 
       // Remove from UI immediately
       setConversations(prev =>
