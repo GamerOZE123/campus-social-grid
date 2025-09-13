@@ -39,7 +39,18 @@ export const useChat = () => {
       });
 
       if (error) throw error;
-      setConversations(data || []);
+
+      // ✅ Filter out conversations deleted by the user
+      const { data: deleted } = await supabase
+        .from("deleted_chats")
+        .select("conversation_id")
+        .eq("user_id", user.id);
+
+      const deletedIds = deleted?.map((d) => d.conversation_id) || [];
+
+      setConversations((data || []).filter(
+        (conv: Conversation) => !deletedIds.includes(conv.conversation_id)
+      ));
     } catch (error) {
       console.error("Error fetching conversations:", error);
     } finally {
@@ -118,7 +129,6 @@ export const useChat = () => {
 
       if (error) throw error;
 
-      // ❌ Don’t push to state, realtime will add it
       return { success: true, data };
     } catch (error) {
       console.error("Error sending message:", error);
@@ -148,15 +158,14 @@ export const useChat = () => {
     if (!user) return { success: false, error: "No user" };
 
     try {
-   const { error } = await supabase.from('cleared_chats').upsert(
-  {
-    user_id: user.id,
-    conversation_id: conversationId,
-    cleared_at: new Date().toISOString(),
-  },
-  { onConflict: ['user_id', 'conversation_id'] }
-);
-
+      const { error } = await supabase.from("cleared_chats").upsert(
+        {
+          user_id: user.id,
+          conversation_id: conversationId,
+          cleared_at: new Date().toISOString(),
+        },
+        { onConflict: ["user_id", "conversation_id"] }
+      );
 
       if (error) throw error;
 
@@ -169,6 +178,37 @@ export const useChat = () => {
     }
   };
 
+  const deleteChat = async (conversationId: string) => {
+    if (!user) return { success: false, error: "No user" };
+
+    try {
+      const { error } = await supabase.from("deleted_chats").upsert(
+        {
+          user_id: user.id,
+          conversation_id: conversationId,
+          deleted_at: new Date().toISOString(),
+        },
+        { onConflict: ["user_id", "conversation_id"] }
+      );
+
+      if (error) throw error;
+
+      // Remove from local state immediately
+      setConversations((prev) =>
+        prev.filter((c) => c.conversation_id !== conversationId)
+      );
+      if (activeConversationId === conversationId) {
+        setCurrentMessages([]);
+        setActiveConversationId(null);
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error deleting chat:", error);
+      return { success: false, error: (error as Error).message };
+    }
+  };
+
   // Subscribe to realtime changes
   useEffect(() => {
     if (!user) return;
@@ -177,17 +217,12 @@ export const useChat = () => {
       .channel("messages")
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "messages",
-        },
+        { event: "*", schema: "public", table: "messages" },
         (payload) => {
           const msg = payload.new as Message;
 
           if (msg.conversation_id === activeConversationId) {
             if (payload.eventType === "INSERT") {
-              // Only add if not before cleared_at
               if (!clearedAt || msg.created_at > clearedAt) {
                 setCurrentMessages((prev) => [...prev, msg]);
               }
@@ -201,37 +236,13 @@ export const useChat = () => {
               );
             }
           }
-
           fetchConversations();
-        }
-      )
-      .subscribe();
-
-    const clearChannel = supabase
-      .channel("cleared_chats")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "cleared_chats",
-        },
-        (payload) => {
-          if (
-            payload.new.conversation_id === activeConversationId &&
-            payload.new.user_id === user.id
-          ) {
-            setClearedAt(payload.new.cleared_at);
-            setCurrentMessages([]);
-            setIsChatCleared(true);
-          }
         }
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(msgChannel);
-      supabase.removeChannel(clearChannel);
     };
   }, [user, activeConversationId, clearedAt]);
 
@@ -245,6 +256,7 @@ export const useChat = () => {
     sendMessage,
     createConversation,
     clearChat,
+    deleteChat, // ✅ New
     refreshConversations: fetchConversations,
   };
 };
