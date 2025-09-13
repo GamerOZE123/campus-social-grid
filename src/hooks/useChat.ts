@@ -40,7 +40,7 @@ export const useChat = () => {
 
       if (error) throw error;
 
-      // ✅ Filter out conversations deleted by the user
+      // Filter out conversations deleted by the user
       const { data: deleted } = await supabase
         .from("deleted_chats")
         .select("conversation_id")
@@ -184,23 +184,22 @@ export const useChat = () => {
     if (!user) return { success: false, error: "No user" };
 
     try {
-      const { error } = await supabase.from("deleted_chats").upsert(
+      await supabase.from("deleted_chats").upsert(
         {
           user_id: user.id,
           conversation_id: conversationId,
-        } as any,
-        { onConflict: "user_id,conversation_id" }
+          deleted_at: new Date().toISOString(),
+        },
+        { onConflict: ["user_id", "conversation_id"] }
       );
 
-      if (error) throw error;
-
-      setConversations((prev) =>
-        prev.filter((c) => c.conversation_id !== conversationId)
+      // Remove from UI immediately
+      setConversations(prev =>
+        prev.filter(c => c.conversation_id !== conversationId)
       );
-
       if (activeConversationId === conversationId) {
-        setActiveConversationId(null);
         setCurrentMessages([]);
+        setActiveConversationId(null);
       }
 
       return { success: true };
@@ -212,41 +211,40 @@ export const useChat = () => {
 
   // Subscribe to realtime changes
   useEffect(() => {
-  if (!user) return;
+    if (!user) return;
 
-  const msgChannel = supabase
-    .channel("messages")
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "messages" },
-      (payload) => {
-        const msg = payload.new as Message;
+    const msgChannel = supabase
+      .channel("messages")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "messages" },
+        (payload) => {
+          const msg = payload.new as Message;
 
-        if (msg.conversation_id === activeConversationId) {
-          if (payload.eventType === "INSERT") {
-            if (!clearedAt || msg.created_at > clearedAt) {
-              setCurrentMessages((prev) => [...prev, msg]); // <-- This is where your snippet runs
+          if (msg.conversation_id === activeConversationId) {
+            if (payload.eventType === "INSERT") {
+              if (!clearedAt || msg.created_at > clearedAt) {
+                setCurrentMessages((prev) => [...prev, msg]);
+              }
+            } else if (payload.eventType === "UPDATE") {
+              setCurrentMessages((prev) =>
+                prev.map((m) => (m.id === msg.id ? msg : m))
+              );
+            } else if (payload.eventType === "DELETE") {
+              setCurrentMessages((prev) =>
+                prev.filter((m) => m.id !== payload.old.id)
+              );
             }
-          } else if (payload.eventType === "UPDATE") {
-            setCurrentMessages((prev) =>
-              prev.map((m) => (m.id === msg.id ? msg : m))
-            );
-          } else if (payload.eventType === "DELETE") {
-            setCurrentMessages((prev) =>
-              prev.filter((m) => m.id !== payload.old.id)
-            );
           }
+          fetchConversations();
         }
-        fetchConversations();
-      }
-    )
-    .subscribe();
+      )
+      .subscribe();
 
-  return () => {
-    supabase.removeChannel(msgChannel);
-  };
-}, [user, activeConversationId, clearedAt]);
-
+    return () => {
+      supabase.removeChannel(msgChannel);
+    };
+  }, [user, activeConversationId, clearedAt]);
 
   return {
     conversations,
@@ -258,7 +256,7 @@ export const useChat = () => {
     sendMessage,
     createConversation,
     clearChat,
-    deleteChat, // ✅ New
+    deleteChat,
     refreshConversations: fetchConversations,
   };
 };
