@@ -212,40 +212,41 @@ const deleteChat = async (conversationId: string) => {
 
   // Subscribe to realtime changes
   useEffect(() => {
-    if (!user) return;
+  if (!user) return;
 
-    const msgChannel = supabase
-      .channel("messages")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "messages" },
-        (payload) => {
-          const msg = payload.new as Message;
+  const msgChannel = supabase
+    .channel("messages")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "messages" },
+      (payload) => {
+        const msg = payload.new as Message;
 
-          if (msg.conversation_id === activeConversationId) {
-            if (payload.eventType === "INSERT") {
-              if (!clearedAt || msg.created_at > clearedAt) {
-                setCurrentMessages((prev) => [...prev, msg]);
-              }
-            } else if (payload.eventType === "UPDATE") {
-              setCurrentMessages((prev) =>
-                prev.map((m) => (m.id === msg.id ? msg : m))
-              );
-            } else if (payload.eventType === "DELETE") {
-              setCurrentMessages((prev) =>
-                prev.filter((m) => m.id !== payload.old.id)
-              );
+        if (msg.conversation_id === activeConversationId) {
+          if (payload.eventType === "INSERT") {
+            if (!clearedAt || msg.created_at > clearedAt) {
+              setCurrentMessages((prev) => [...prev, msg]); // <-- This is where your snippet runs
             }
+          } else if (payload.eventType === "UPDATE") {
+            setCurrentMessages((prev) =>
+              prev.map((m) => (m.id === msg.id ? msg : m))
+            );
+          } else if (payload.eventType === "DELETE") {
+            setCurrentMessages((prev) =>
+              prev.filter((m) => m.id !== payload.old.id)
+            );
           }
-          fetchConversations();
         }
-      )
-      .subscribe();
+        fetchConversations();
+      }
+    )
+    .subscribe();
 
-    return () => {
-      supabase.removeChannel(msgChannel);
-    };
-  }, [user, activeConversationId, clearedAt]);
+  return () => {
+    supabase.removeChannel(msgChannel);
+  };
+}, [user, activeConversationId, clearedAt]);
+
 
   return {
     conversations,
