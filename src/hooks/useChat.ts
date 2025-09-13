@@ -181,36 +181,48 @@ export const useChat = () => {
   };
 
   const deleteChat = async (conversationId: string) => {
-    if (!user) return { success: false, error: "No user" };
+  if (!user) return { success: false, error: "No user" };
 
-    try {
-      const now = new Date().toISOString();
-      const { error } = await supabase.from("deleted_chats").upsert(
-        {
-          user_id: user.id,
-          conversation_id: conversationId,
-          deleted_at: now,
-        },
-        { onConflict: ["user_id", "conversation_id"] }
-      );
+  try {
+    const now = new Date().toISOString();
 
-      if (error) throw error;
+    // Mark chat as deleted for this user
+    const { error: deletedError } = await supabase.from("deleted_chats").upsert(
+      {
+        user_id: user.id,
+        conversation_id: conversationId,
+        deleted_at: now,
+      },
+      { onConflict: ["user_id", "conversation_id"] }
+    );
+    if (deletedError) throw deletedError;
 
-      // Remove from UI immediately
-      setConversations(prev =>
-        prev.filter(c => c.conversation_id !== conversationId)
-      );
-      if (activeConversationId === conversationId) {
-        setCurrentMessages([]);
-        setActiveConversationId(null);
-      }
+    // ✅ Remove from recent_chats too
+    const { error: recentError } = await supabase
+      .from("recent_chats")
+      .delete()
+      .eq("user_id", user.id)
+      .eq("conversation_id", conversationId);
 
-      return { success: true };
-    } catch (error) {
-      console.error("Error deleting chat:", error);
-      return { success: false, error: (error as Error).message };
+    if (recentError) throw recentError;
+
+    // Update UI immediately
+    setConversations((prev) =>
+      prev.filter((c) => c.conversation_id !== conversationId)
+    );
+
+    if (activeConversationId === conversationId) {
+      setCurrentMessages([]);
+      setActiveConversationId(null);
     }
-  };
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting chat:", error);
+    return { success: false, error: (error as Error).message };
+  }
+};
+
 
   // Subscribe to realtime changes
   useEffect(() => {
