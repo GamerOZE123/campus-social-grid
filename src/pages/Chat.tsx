@@ -48,25 +48,18 @@ export default function Chat() {
   const { recentChats, addRecentChat, refreshRecentChats } = useRecentChats();
   const { getUserById } = useUsers();
 
-  // ✅ Auto-scroll when new messages arrive and user is at bottom, notify if not
+  // ✅ Auto-scroll when new messages arrive
   useEffect(() => {
     if (currentMessages.length > previousMessagesLength.current) {
-      const isNewMessage = currentMessages.length > 0;
-      
-      if (isNewMessage && isAtBottom) {
-        // User is at bottom, auto-scroll to new message
-        setTimeout(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
-      } else if (isNewMessage && !isAtBottom) {
-        // User is reading old messages, show notification
+      if (isAtBottom) {
+        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+      } else {
         setNewMessageNotification(true);
       }
     }
     previousMessagesLength.current = currentMessages.length;
   }, [currentMessages, isAtBottom]);
 
-  // ✅ Scroll to bottom when opening a conversation
   useEffect(() => {
     if (selectedConversationId && currentMessages.length > 0) {
       setTimeout(() => {
@@ -76,25 +69,57 @@ export default function Chat() {
     }
   }, [selectedConversationId]);
 
-  // ✅ Handle scrolling (detect top/bottom + load more)
+  // ✅ Realtime: move chats to top + unread badge
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('chat-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        (payload) => {
+          const message = payload.new;
+
+          if (message.sender_id !== user.id) {
+            const chatUserId = message.sender_id;
+
+            // Move chat to top
+            const updated = [
+              recentChats.find((c) => c.other_user_id === chatUserId) || {
+                other_user_id: chatUserId,
+                other_user_name: 'Unknown',
+                other_user_university: '',
+              },
+              ...recentChats.filter((c) => c.other_user_id !== chatUserId),
+            ];
+
+            (recentChats as any).splice(0, recentChats.length, ...updated);
+
+            // Add unread badge
+            if (selectedUser?.user_id !== chatUserId) {
+              setUnreadMessages((prev) => new Set(prev).add(chatUserId));
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, recentChats, selectedUser]);
+
   const handleScroll = () => {
     if (!messagesContainerRef.current) return;
-
     const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
     const atBottom = scrollTop + clientHeight >= scrollHeight - 10;
     const atTop = scrollTop <= 10;
-
     setIsAtBottom(atBottom);
-    
-    // Clear notification when user scrolls to bottom
-    if (atBottom && newMessageNotification) {
-      setNewMessageNotification(false);
-    }
-
+    if (atBottom) setNewMessageNotification(false);
     if (atTop && selectedConversationId && currentMessages.length >= 20) {
       const prevHeight = scrollHeight;
       loadOlderMessages(selectedConversationId).then(() => {
-        // ✅ keep scroll position stable when prepending messages
         setTimeout(() => {
           if (messagesContainerRef.current) {
             const newHeight = messagesContainerRef.current.scrollHeight;
@@ -105,98 +130,64 @@ export default function Chat() {
     }
   };
 
-  // ✅ Fetch messages when selecting a conversation
   useEffect(() => {
-    if (selectedConversationId) {
-      fetchMessages(selectedConversationId);
-    }
+    if (selectedConversationId) fetchMessages(selectedConversationId);
   }, [selectedConversationId]);
 
   const handleUserClick = async (userId: string) => {
-    try {
-      const userProfile = await getUserById(userId);
-      if (!userProfile) return;
-
-      setSelectedUser(userProfile);
-      const conversationId = await createConversation(userId);
-      setSelectedConversationId(conversationId);
-      setNewMessageNotification(false); // Clear any existing notifications
-
-      setUnreadMessages(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(userId);
-        return newSet;
-      });
-
-      if (isMobile) setShowUserList(false);
-    } catch (error) {
-      console.error('Error starting chat:', error);
-    }
+    const userProfile = await getUserById(userId);
+    if (!userProfile) return;
+    setSelectedUser(userProfile);
+    const conversationId = await createConversation(userId);
+    setSelectedConversationId(conversationId);
+    setNewMessageNotification(false);
+    setUnreadMessages((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(userId);
+      return newSet;
+    });
+    if (isMobile) setShowUserList(false);
   };
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversationId) return;
-    const messageToSend = newMessage.trim();
+    const msg = newMessage.trim();
     setNewMessage('');
-    try {
-      await sendMessage(selectedConversationId, messageToSend);
-      if (selectedUser?.user_id) await addRecentChat(selectedUser.user_id);
-    } catch (error) {
-      console.error('Error sending message:', error);
-      setNewMessage(messageToSend);
-    }
-  };
-
-  const handleBackToUserList = () => {
-    setShowUserList(true);
-    setSelectedConversationId(null);
-    setSelectedUser(null);
-  };
-
-  const handleUsernameClick = (userId: string) => {
-    navigate(`/profile/${userId}`);
+    await sendMessage(selectedConversationId, msg);
+    if (selectedUser?.user_id) await addRecentChat(selectedUser.user_id);
   };
 
   const handleClearChat = async () => {
     if (!selectedConversationId || !user) return;
-    try {
-      const result = await clearChat(selectedConversationId);
-      if (result.success) toast.success('Chat cleared successfully');
-      else throw new Error(result.error || 'Failed to clear chat');
-    } catch {
-      toast.error('Failed to clear chat');
-    }
+    const result = await clearChat(selectedConversationId);
+    if (result.success) toast.success('Chat cleared');
+    else toast.error('Failed to clear chat');
   };
 
   const handleDeleteChat = async () => {
-    if (!selectedConversationId || !user) return;
-    try {
-      await supabase.from('deleted_chats').insert({
-        user_id: user.id,
-        conversation_id: selectedConversationId,
-        reason: 'deleted'
-      });
-      toast.success('Chat deleted successfully');
-      handleBackToUserList();
-      refreshConversations();
-      refreshRecentChats();
-    } catch {
-      toast.error('Failed to delete chat');
-    }
-  };
+  if (!selectedConversationId) return;
+  const result = await deleteChat(selectedConversationId);
+  if (result.success) {
+    toast.success('Chat deleted');
+    setSelectedConversationId(null);
+    setSelectedUser(null);
+    refreshConversations();
+    refreshRecentChats();
+  } else {
+    toast.error('Failed to delete chat');
+  }
+};
+
 
   const handleBlockUser = async () => {
     if (!selectedUser?.user_id || !user) return;
-    try {
-      await supabase.from('blocked_users').insert({
-        blocker_id: user.id,
-        blocked_id: selectedUser.user_id
-      });
-      toast.success('User blocked successfully');
-      handleBackToUserList();
-    } catch {
-      toast.error('Failed to block user');
-    }
+    await supabase.from('blocked_users').insert({
+      blocker_id: user.id,
+      blocked_id: selectedUser.user_id
+    });
+    toast.success('User blocked');
+    setSelectedConversationId(null);
+    setSelectedUser(null);
   };
 
   // --- UI ---
