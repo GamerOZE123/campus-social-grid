@@ -8,7 +8,6 @@ interface RecentChat {
   other_user_avatar: string;
   other_user_university: string;
   last_interacted_at: string;
-  deleted_at?: string | null; // Ensure deleted_at is included
 }
 
 export const useRecentChats = () => {
@@ -30,16 +29,8 @@ export const useRecentChats = () => {
         throw error;
       }
 
-      // Log raw data to inspect deleted_at
-      console.log('Raw recent chats from RPC:', data);
-
-      // Filter out chats where deleted_at is not null
-      const filteredChats = (data || []).filter(
-        (chat: RecentChat) => !chat.deleted_at
-      );
-
-      console.log('Filtered recent chats:', filteredChats);
-      setRecentChats(filteredChats);
+      console.log('Fetched recent chats:', data);
+      setRecentChats(data || []);
     } catch (error) {
       console.error('Error fetching recent chats:', JSON.stringify(error, null, 2));
     } finally {
@@ -62,7 +53,7 @@ export const useRecentChats = () => {
         throw error;
       }
 
-      await fetchRecentChats();
+      await fetchRecentChats();  // Refresh list (restores if previously deleted)
     } catch (error) {
       console.error('Error adding recent chat:', JSON.stringify(error, null, 2));
     }
@@ -72,7 +63,7 @@ export const useRecentChats = () => {
     if (user) {
       fetchRecentChats();
 
-      // Real-time listener for messages to update recent chats
+      // Real-time: Refresh on new messages (Instagram: chat bubbles up/reappears)
       const messageChannel = supabase
         .channel('recent-chats-messages')
         .on(
@@ -83,13 +74,16 @@ export const useRecentChats = () => {
             table: 'messages',
           },
           (payload) => {
-            console.log('New message for recent chats:', payload);
-            fetchRecentChats();
+            const message = payload.new;
+            if (message.sender_id !== user.id && message.conversation_id) {
+              // If new message from other user, refresh to restore/add chat
+              fetchRecentChats();
+            }
           }
         )
         .subscribe();
 
-      // Real-time listener for recent_chats updates (e.g., deletions)
+      // Real-time: Refresh on recent_chats updates (e.g., self-deletion)
       const recentChatsChannel = supabase
         .channel('recent-chats-updates')
         .on(
