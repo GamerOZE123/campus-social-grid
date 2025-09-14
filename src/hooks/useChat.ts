@@ -158,12 +158,14 @@ export const useChat = () => {
     }
   };
 
-  const deleteChat = async (conversationId: string, otherUserId: string) => {
+
+const deleteChat = async (conversationId: string, otherUserId: string) => {
   if (!user) return { success: false, error: 'No user' };
   try {
     const now = new Date().toISOString();
-    console.log('Deleting chat:', { userId: user.id, conversationId, otherUserId });
+    console.log('Deleting chat (Instagram-style):', { userId: user.id, conversationId, otherUserId });
 
+    // Mark in deleted_chats (per-user)
     const { error: deletedError } = await supabase
       .from('deleted_chats')
       .upsert(
@@ -179,12 +181,12 @@ export const useChat = () => {
       throw deletedError;
     }
 
+    // Soft-delete in recent_chats (hides from your list only)
     const { data: recentChat } = await supabase
       .from('recent_chats')
       .select('id')
       .eq('user_id', user.id)
       .eq('other_user_id', otherUserId)
-      .is('deleted_at', null)
       .single();
 
     if (recentChat) {
@@ -198,16 +200,21 @@ export const useChat = () => {
         throw recentError;
       }
     } else {
-      console.warn('No recent chat found for user:', user.id, 'other_user:', otherUserId);
+      console.warn('No recent chat found; skipping update');
     }
 
+    // Local UI update
     setConversations((prev) =>
       prev.filter((c) => c.conversation_id !== conversationId)
     );
     if (activeConversationId === conversationId) {
-      setCurrentMessages([]);
+      setCurrentMessages([]);  // Clear messages from view (Instagram: empty on re-open)
       setActiveConversationId(null);
     }
+
+    // Trigger refresh for recent list
+    // Note: Call refreshRecentChats() in Chat.tsx after this
+
     return { success: true };
   } catch (error) {
     console.error('Error deleting chat:', JSON.stringify(error, null, 2));
