@@ -160,26 +160,26 @@ export default function Chat() {
     if (result.success) toast.success('Chat cleared');
     else toast.error('Failed to clear chat');
   };
-
-  const handleDeleteChat = async () => {
-    if (!selectedConversationId || !selectedUser?.user_id) {
-      console.error('Missing conversationId or userId:', { selectedConversationId, userId: selectedUser?.user_id });
-      toast.error('Cannot delete chat: Missing conversation or user');
-      return;
-    }
-    console.log('Deleting chat with:', { conversationId: selectedConversationId, otherUserId: selectedUser.user_id });
-    const result = await deleteChat(selectedConversationId, selectedUser.user_id);
-    console.log('Delete result:', result);
-    if (result.success) {
-      toast.success('Chat deleted');
-      setSelectedConversationId(null);
-      setSelectedUser(null);
-      refreshConversations();
-      refreshRecentChats();
-    } else {
-      toast.error('Failed to delete chat: ' + result.error);
-    }
-  };
+  
+const handleDeleteChat = async () => {
+  if (!selectedConversationId || !selectedUser?.user_id) {
+    console.error('Missing conversationId or userId:', { selectedConversationId, userId: selectedUser?.user_id });
+    toast.error('Cannot delete chat: Missing conversation or user');
+    return;
+  }
+  console.log('Deleting chat with:', { conversationId: selectedConversationId, otherUserId: selectedUser.user_id });
+  const result = await deleteChat(selectedConversationId, selectedUser.user_id);
+  console.log('Delete result:', result);
+  if (result.success) {
+    toast.success('Chat deleted');
+    setSelectedConversationId(null);
+    setSelectedUser(null);
+    refreshConversations();
+    refreshRecentChats();
+  } else {
+    toast.error('Failed to delete chat: ' + result.error);
+  }
+};
 
   const handleBlockUser = async () => {
     if (!selectedUser?.user_id || !user) return;
