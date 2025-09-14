@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import Layout from '@/components/layout/Layout';
 import MobileLayout from '@/components/layout/MobileLayout';
@@ -7,7 +6,7 @@ import MobileChatHeader from '@/components/chat/MobileChatHeader';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Send, MoreVertical, Trash2, MessageSquareX, UserX } from 'lucide-react';
+import { Send, MoreVertical, Trash2, MessageSquareX, UserX, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useChat } from '@/hooks/useChat';
 import { useRecentChats } from '@/hooks/useRecentChats';
@@ -45,7 +44,7 @@ export default function Chat() {
     deleteChat,
     refreshConversations,
   } = useChat();
-  const { recentChats, loading: recentLoading, addRecentChat, refreshRecentChats } = useRecentChats();
+  const { recentChats, loading, addRecentChat, refreshRecentChats } = useRecentChats(); // Added loading
   const { getUserById } = useUsers();
 
   // Auto-scroll when new messages arrive
@@ -93,7 +92,7 @@ export default function Chat() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, recentChats, selectedUser]);
+  }, [user, selectedUser]);
 
   const handleScroll = () => {
     if (!messagesContainerRef.current) return;
@@ -121,10 +120,18 @@ export default function Chat() {
 
   const handleUserClick = async (userId: string) => {
     const userProfile = await getUserById(userId);
-    if (!userProfile) return;
+    if (!userProfile) {
+      console.error('Failed to fetch user profile:', userId);
+      toast.error('Failed to load user profile');
+      return;
+    }
     console.log('Selected user:', userProfile);
     setSelectedUser(userProfile);
     const conversationId = await createConversation(userId);
+    if (!conversationId) {
+      toast.error('Failed to create conversation');
+      return;
+    }
     setSelectedConversationId(conversationId);
     setNewMessageNotification(false);
     setUnreadMessages((prev) => {
@@ -145,8 +152,12 @@ export default function Chat() {
     if (!newMessage.trim() || !selectedConversationId) return;
     const msg = newMessage.trim();
     setNewMessage('');
-    await sendMessage(selectedConversationId, msg);
-    if (selectedUser?.user_id) await addRecentChat(selectedUser.user_id);
+    const result = await sendMessage(selectedConversationId, msg);
+    if (result.success && selectedUser?.user_id) {
+      await addRecentChat(selectedUser.user_id);
+    } else {
+      toast.error('Failed to send message');
+    }
   };
 
   const handleClearChat = async () => {
@@ -225,10 +236,15 @@ export default function Chat() {
 
   const handleBlockUser = async () => {
     if (!selectedUser?.user_id || !user) return;
-    await supabase.from('blocked_users').insert({
+    const { error } = await supabase.from('blocked_users').insert({
       blocker_id: user.id,
       blocked_id: selectedUser.user_id,
     });
+    if (error) {
+      console.error('Error blocking user:', error);
+      toast.error('Failed to block user');
+      return;
+    }
     toast.success('User blocked');
     setSelectedConversationId(null);
     setSelectedUser(null);
@@ -252,62 +268,74 @@ export default function Chat() {
                   </Button>
                 )}
               </h3>
-              {recentChats.length === 0 && !recentLoading && (
+              {loading && (
+                <div className="flex items-center justify-center">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              )}
+              {!loading && recentChats.length === 0 && (
                 <p className="text-muted-foreground text-sm">No recent chats. Start one!</p>
               )}
-              {recentChats.map((chat) => (
-                <div
-                  key={chat.other_user_id}
-                  className={`flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors relative ${
-                    selectedChatsForBulk.has(chat.other_user_id) ? 'bg-destructive/10' : ''
-                  }`}
-                  onClick={() => handleUserClick(chat.other_user_id)}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    toggleBulkSelect(chat.other_user_id);
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedChatsForBulk.has(chat.other_user_id)}
-                    onChange={(e) => {
-                      e.stopPropagation();
+              {!loading &&
+                recentChats.map((chat) => (
+                  <div
+                    key={chat.other_user_id}
+                    className={`flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors relative ${
+                      selectedChatsForBulk.has(chat.other_user_id) ? 'bg-destructive/10' : ''
+                    }`}
+                    onClick={() => handleUserClick(chat.other_user_id)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
                       toggleBulkSelect(chat.other_user_id);
                     }}
-                    className="mr-2"
-                  />
-                  <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center relative">
-                    <span className="text-sm font-bold text-white">
-                      {chat.other_user_name?.charAt(0) || 'U'}
-                    </span>
-                    {unreadMessages.has(chat.other_user_id) && (
-                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedChatsForBulk.has(chat.other_user_id)}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        toggleBulkSelect(chat.other_user_id);
+                      }}
+                      className="mr-2"
+                    />
+                    <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center relative">
+                      <span className="text-sm font-bold text-white">
+                        {chat.other_user_name?.charAt(0) || 'U'}
+                      </span>
+                      {unreadMessages.has(chat.other_user_id) && (
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground">{chat.other_user_name}</p>
+                      <p className="text-sm text-muted-foreground">{chat.other_user_university}</p>
+                    </div>
+                    {selectedChatsForBulk.size === 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const conv = conversations.find((c) => c.other_user_id === chat.other_user_id);
+                          if (conv) handleDeleteChat(conv.conversation_id, chat.other_user_id);
+                          else toast.error('Conversation not found');
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     )}
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">{chat.other_user_name}</p>
-                    <p className="text-sm text-muted-foreground">{chat.other_user_university}</p>
-                  </div>
-                  {selectedChatsForBulk.size === 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const conv = conversations.find((c) => c.other_user_id === chat.other_user_id);
-                        if (conv) handleDeleteChat(conv.conversation_id, chat.other_user_id);
-                      }}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
+                ))}
             </div>
           </div>
           {/* Right column - chat */}
           <div className="flex-1 bg-card border border-border rounded-2xl flex flex-col h-full">
-            {selectedUser ? (
+            {chatLoading && (
+              <div className="flex-1 flex items-center justify-center">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            )}
+            {!chatLoading && selectedUser ? (
               <>
                 {/* Chat header */}
                 <div className="p-4 border-b border-border flex items-center justify-between">
@@ -469,57 +497,64 @@ export default function Chat() {
                   </Button>
                 )}
               </h3>
-              {recentChats.length === 0 && !recentLoading && (
+              {loading && (
+                <div className="flex items-center justify-center">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              )}
+              {!loading && recentChats.length === 0 && (
                 <p className="text-muted-foreground text-sm">No recent chats. Start one!</p>
               )}
-              {recentChats.map((chat) => (
-                <div
-                  key={chat.other_user_id}
-                  className={`flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors relative ${
-                    selectedChatsForBulk.has(chat.other_user_id) ? 'bg-destructive/10' : ''
-                  }`}
-                  onClick={() => handleUserClick(chat.other_user_id)}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    toggleBulkSelect(chat.other_user_id);
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedChatsForBulk.has(chat.other_user_id)}
-                    onChange={(e) => {
-                      e.stopPropagation();
+              {!loading &&
+                recentChats.map((chat) => (
+                  <div
+                    key={chat.other_user_id}
+                    className={`flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors relative ${
+                      selectedChatsForBulk.has(chat.other_user_id) ? 'bg-destructive/10' : ''
+                    }`}
+                    onClick={() => handleUserClick(chat.other_user_id)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
                       toggleBulkSelect(chat.other_user_id);
                     }}
-                    className="mr-2"
-                  />
-                  <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center relative">
-                    <span className="text-sm font-bold text-white">
-                      {chat.other_user_name?.charAt(0) || 'U'}
-                    </span>
-                    {unreadMessages.has(chat.other_user_id) && (
-                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedChatsForBulk.has(chat.other_user_id)}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        toggleBulkSelect(chat.other_user_id);
+                      }}
+                      className="mr-2"
+                    />
+                    <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center relative">
+                      <span className="text-sm font-bold text-white">
+                        {chat.other_user_name?.charAt(0) || 'U'}
+                      </span>
+                      {unreadMessages.has(chat.other_user_id) && (
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-foreground">{chat.other_user_name}</p>
+                      <p className="text-sm text-muted-foreground">{chat.other_user_university}</p>
+                    </div>
+                    {selectedChatsForBulk.size === 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const conv = conversations.find((c) => c.other_user_id === chat.other_user_id);
+                          if (conv) handleDeleteChat(conv.conversation_id, chat.other_user_id);
+                          else toast.error('Conversation not found');
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     )}
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-foreground">{chat.other_user_name}</p>
-                    <p className="text-sm text-muted-foreground">{chat.other_user_university}</p>
-                  </div>
-                  {selectedChatsForBulk.size === 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const conv = conversations.find((c) => c.other_user_id === chat.other_user_id);
-                        if (conv) handleDeleteChat(conv.conversation_id, chat.other_user_id);
-                      }}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
+                ))}
             </div>
           </div>
         </MobileLayout>
@@ -540,7 +575,12 @@ export default function Chat() {
               className="flex-1 p-4 overflow-y-auto space-y-4 pb-safe relative"
               style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
             >
-              {currentMessages.length ? (
+              {chatLoading && (
+                <div className="flex items-center justify-center h-full">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                </div>
+              )}
+              {!chatLoading && currentMessages.length ? (
                 currentMessages.map((message) => (
                   <div
                     key={message.id}
