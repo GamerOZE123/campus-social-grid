@@ -43,19 +43,49 @@ export const useRecentChats = () => {
 
     try {
       console.log('Adding recent chat:', { userId: user.id, otherUserId });
+
+      // Fetch user details client-side
+      const { data: userData, error: userError } = await supabase
+        .from('users')  // Adjust table name if different
+        .select('full_name, username, university, avatar_url')
+        .eq('id', otherUserId)
+        .single();
+
+      if (userError) {
+        console.error('Error fetching user details:', JSON.stringify(userError, null, 2));
+        throw userError;
+      }
+
+      if (!userData) {
+        console.error('No user data found for ID:', otherUserId);
+        throw new Error('User not found');
+      }
+
+      const otherUserName = userData.full_name || userData.username || 'Unknown';
+      const otherUserUniversity = userData.university || '';
+      const otherUserAvatar = userData.avatar_url || '';
+
+      console.log('User details fetched:', { otherUserName, otherUserUniversity, otherUserAvatar });
+
+      // Call updated RPC with details
       const { error } = await supabase.rpc('upsert_recent_chat', {
         current_user_id: user.id,
         target_user_id: otherUserId,
+        other_user_name: otherUserName,
+        other_user_university: otherUserUniversity,
+        other_user_avatar: otherUserAvatar,
       });
 
       if (error) {
-        console.error('Error adding recent chat:', JSON.stringify(error, null, 2));
+        console.error('Error upserting recent chat:', JSON.stringify(error, null, 2));
         throw error;
       }
 
-      await fetchRecentChats();  // Refresh list (restores if previously deleted)
+      console.log('Recent chat added successfully');
+      await fetchRecentChats();  // Refresh list
     } catch (error) {
       console.error('Error adding recent chat:', JSON.stringify(error, null, 2));
+      toast.error('Failed to add recent chat');  // User feedback
     }
   };
 
@@ -75,9 +105,9 @@ export const useRecentChats = () => {
           },
           (payload) => {
             const message = payload.new;
-            if (message.sender_id !== user.id && message.conversation_id) {
-              // If new message from other user, refresh to restore/add chat
-              fetchRecentChats();
+            if (message.sender_id !== user.id) {
+              console.log('New incoming message, refreshing recent chats');
+              fetchRecentChats();  // Restore/add chat
             }
           }
         )
