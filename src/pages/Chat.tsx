@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import Layout from '@/components/layout/Layout';
 import MobileLayout from '@/components/layout/MobileLayout';
@@ -27,6 +28,8 @@ export default function Chat() {
   const [unreadMessages, setUnreadMessages] = useState<Set<string>>(new Set());
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [newMessageNotification, setNewMessageNotification] = useState(false);
+  const [deletingChatId, setDeletingChatId] = useState<string | null>(null); // For confirmation dialog
+  const [selectedChatsForBulk, setSelectedChatsForBulk] = useState<Set<string>>(new Set()); // For bulk delete
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const previousMessagesLength = useRef(0);
@@ -78,16 +81,7 @@ export default function Chat() {
           const message = payload.new;
           if (message.sender_id !== user.id) {
             const chatUserId = message.sender_id;
-            // Move chat to top
-            const updated = [
-              recentChats.find((c) => c.other_user_id === chatUserId) || {
-                other_user_id: chatUserId,
-                other_user_name: 'Unknown',
-                other_user_university: '',
-              },
-              ...recentChats.filter((c) => c.other_user_id !== chatUserId),
-            ];
-            (recentChats as any).splice(0, recentChats.length, ...updated);
+            // Move chat to top and add to recentChats (handled by useRecentChats.ts)
             // Add unread badge
             if (selectedUser?.user_id !== chatUserId) {
               setUnreadMessages((prev) => new Set(prev).add(chatUserId));
@@ -128,6 +122,7 @@ export default function Chat() {
   const handleUserClick = async (userId: string) => {
     const userProfile = await getUserById(userId);
     if (!userProfile) return;
+    console.log('Selected user:', userProfile);
     setSelectedUser(userProfile);
     const conversationId = await createConversation(userId);
     setSelectedConversationId(conversationId);
@@ -160,26 +155,73 @@ export default function Chat() {
     if (result.success) toast.success('Chat cleared');
     else toast.error('Failed to clear chat');
   };
-  
-const handleDeleteChat = async () => {
-  if (!selectedConversationId || !selectedUser?.user_id) {
-    console.error('Missing conversationId or userId:', { selectedConversationId, userId: selectedUser?.user_id });
-    toast.error('Cannot delete chat: Missing conversation or user');
-    return;
-  }
-  console.log('Deleting chat with:', { conversationId: selectedConversationId, otherUserId: selectedUser.user_id });
-  const result = await deleteChat(selectedConversationId, selectedUser.user_id);
-  console.log('Delete result:', result);
-  if (result.success) {
-    toast.success('Chat deleted');
-    setSelectedConversationId(null);
-    setSelectedUser(null);
-    refreshConversations();
-    refreshRecentChats();
-  } else {
-    toast.error('Failed to delete chat: ' + result.error);
-  }
-};
+
+  const handleDeleteChat = async (conversationId?: string, otherUserId?: string) => {
+    if (conversationId && otherUserId) {
+      // Single delete: Show confirmation
+      setDeletingChatId(conversationId);
+      return;
+    }
+
+    // Bulk delete
+    if (selectedChatsForBulk.size === 0) {
+      toast.error('No chats selected for deletion');
+      return;
+    }
+
+    let successCount = 0;
+    for (const otherUserId of selectedChatsForBulk) {
+      const conv = conversations.find((c) => c.other_user_id === otherUserId);
+      if (conv) {
+        const result = await deleteChat(conv.conversation_id, otherUserId);
+        if (result.success) successCount++;
+        else console.error('Failed to delete chat:', otherUserId, result.error);
+      }
+    }
+
+    if (successCount > 0) {
+      toast.success(`Deleted ${successCount} chat${successCount > 1 ? 's' : ''} for you`);
+      setSelectedChatsForBulk(new Set());
+      setSelectedConversationId(null);
+      setSelectedUser(null);
+      refreshConversations();
+      refreshRecentChats();
+    } else {
+      toast.error('Failed to delete chats');
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deletingChatId || !selectedUser?.user_id) {
+      console.error('Missing conversationId or userId:', { deletingChatId, userId: selectedUser?.user_id });
+      toast.error('Cannot delete chat: Missing details');
+      setDeletingChatId(null);
+      return;
+    }
+    console.log('Confirming delete:', { conversationId: deletingChatId, otherUserId: selectedUser.user_id });
+    const result = await deleteChat(deletingChatId, selectedUser.user_id);
+    console.log('Delete result:', result);
+    setDeletingChatId(null);
+    if (result.success) {
+      toast.success('Chat deleted for you');
+      setSelectedConversationId(null);
+      setSelectedUser(null);
+      refreshConversations();
+      refreshRecentChats();
+    } else {
+      toast.error('Failed to delete chat: ' + result.error);
+    }
+  };
+
+  const toggleBulkSelect = (otherUserId: string) => {
+    const newSet = new Set(selectedChatsForBulk);
+    if (newSet.has(otherUserId)) {
+      newSet.delete(otherUserId);
+    } else {
+      newSet.add(otherUserId);
+    }
+    setSelectedChatsForBulk(newSet);
+  };
 
   const handleBlockUser = async () => {
     if (!selectedUser?.user_id || !user) return;
@@ -192,7 +234,7 @@ const handleDeleteChat = async () => {
     setSelectedUser(null);
   };
 
-  // --- UI ---
+  // --- UI (Desktop) ---
   if (!isMobile) {
     return (
       <Layout>
@@ -202,13 +244,38 @@ const handleDeleteChat = async () => {
             <h2 className="text-xl font-bold text-foreground mb-4">Messages</h2>
             <UserSearch onStartChat={handleUserClick} />
             <div className="mt-6 space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground">Recent Chats</h3>
+              <h3 className="text-sm font-medium text-muted-foreground flex justify-between items-center">
+                Recent Chats
+                {selectedChatsForBulk.size > 0 && (
+                  <Button variant="destructive" size="sm" onClick={() => handleDeleteChat()}>
+                    Delete Selected ({selectedChatsForBulk.size})
+                  </Button>
+                )}
+              </h3>
+              {recentChats.length === 0 && !loading && (
+                <p className="text-muted-foreground text-sm">No recent chats. Start one!</p>
+              )}
               {recentChats.map((chat) => (
                 <div
                   key={chat.other_user_id}
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors relative"
+                  className={`flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors relative ${
+                    selectedChatsForBulk.has(chat.other_user_id) ? 'bg-destructive/10' : ''
+                  }`}
                   onClick={() => handleUserClick(chat.other_user_id)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    toggleBulkSelect(chat.other_user_id);
+                  }}
                 >
+                  <input
+                    type="checkbox"
+                    checked={selectedChatsForBulk.has(chat.other_user_id)}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      toggleBulkSelect(chat.other_user_id);
+                    }}
+                    className="mr-2"
+                  />
                   <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center relative">
                     <span className="text-sm font-bold text-white">
                       {chat.other_user_name?.charAt(0) || 'U'}
@@ -221,6 +288,19 @@ const handleDeleteChat = async () => {
                     <p className="font-medium text-foreground">{chat.other_user_name}</p>
                     <p className="text-sm text-muted-foreground">{chat.other_user_university}</p>
                   </div>
+                  {selectedChatsForBulk.size === 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const conv = conversations.find((c) => c.other_user_id === chat.other_user_id);
+                        if (conv) handleDeleteChat(conv.conversation_id, chat.other_user_id);
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>
@@ -257,7 +337,7 @@ const handleDeleteChat = async () => {
                       <DropdownMenuItem onClick={handleClearChat}>
                         <MessageSquareX className="w-4 h-4 mr-2" /> Clear Chat
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={handleDeleteChat}>
+                      <DropdownMenuItem onClick={() => handleDeleteChat(selectedConversationId!, selectedUser.user_id)}>
                         <Trash2 className="w-4 h-4 mr-2" /> Delete Chat
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={handleBlockUser} className="text-destructive">
@@ -303,7 +383,6 @@ const handleDeleteChat = async () => {
                     </div>
                   )}
                   <div ref={messagesEndRef} />
-                  {/* New message notification */}
                   {newMessageNotification && (
                     <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-10">
                       <Button
@@ -349,13 +428,32 @@ const handleDeleteChat = async () => {
                 </div>
               </div>
             )}
+            {/* Confirmation Dialog (Instagram-style) */}
+            {deletingChatId && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                <div className="bg-card p-6 rounded-lg max-w-sm w-full mx-4">
+                  <h3 className="text-lg font-semibold mb-2">Delete Chat?</h3>
+                  <p className="text-muted-foreground mb-4">
+                    This will remove the chat from your inbox only. The other person will still have it.
+                  </p>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setDeletingChatId(null)}>
+                      Cancel
+                    </Button>
+                    <Button variant="destructive" onClick={confirmDelete}>
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </Layout>
     );
   }
 
-  // Mobile UI
+  // --- Mobile UI ---
   return (
     <>
       {showUserList ? (
@@ -363,13 +461,38 @@ const handleDeleteChat = async () => {
           <div className="p-4">
             <UserSearch onStartChat={handleUserClick} />
             <div className="mt-6 space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground">Recent Chats</h3>
+              <h3 className="text-sm font-medium text-muted-foreground flex justify-between items-center">
+                Recent Chats
+                {selectedChatsForBulk.size > 0 && (
+                  <Button variant="destructive" size="sm" onClick={() => handleDeleteChat()}>
+                    Delete Selected ({selectedChatsForBulk.size})
+                  </Button>
+                )}
+              </h3>
+              {recentChats.length === 0 && !loading && (
+                <p className="text-muted-foreground text-sm">No recent chats. Start one!</p>
+              )}
               {recentChats.map((chat) => (
                 <div
                   key={chat.other_user_id}
-                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                  className={`flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors relative ${
+                    selectedChatsForBulk.has(chat.other_user_id) ? 'bg-destructive/10' : ''
+                  }`}
                   onClick={() => handleUserClick(chat.other_user_id)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    toggleBulkSelect(chat.other_user_id);
+                  }}
                 >
+                  <input
+                    type="checkbox"
+                    checked={selectedChatsForBulk.has(chat.other_user_id)}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      toggleBulkSelect(chat.other_user_id);
+                    }}
+                    className="mr-2"
+                  />
                   <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center relative">
                     <span className="text-sm font-bold text-white">
                       {chat.other_user_name?.charAt(0) || 'U'}
@@ -382,6 +505,19 @@ const handleDeleteChat = async () => {
                     <p className="font-medium text-foreground">{chat.other_user_name}</p>
                     <p className="text-sm text-muted-foreground">{chat.other_user_university}</p>
                   </div>
+                  {selectedChatsForBulk.size === 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const conv = conversations.find((c) => c.other_user_id === chat.other_user_id);
+                        if (conv) handleDeleteChat(conv.conversation_id, chat.other_user_id);
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>
@@ -394,7 +530,7 @@ const handleDeleteChat = async () => {
             userUniversity={selectedUser?.university || 'University'}
             onBackClick={handleBackToUserList}
             onClearChat={handleClearChat}
-            onDeleteChat={handleDeleteChat}
+            onDeleteChat={() => handleDeleteChat(selectedConversationId!, selectedUser.user_id)}
             onBlockUser={handleBlockUser}
           />
           <div className="flex-1 flex flex-col overflow-hidden">
@@ -435,7 +571,6 @@ const handleDeleteChat = async () => {
                 </div>
               )}
               <div ref={messagesEndRef} />
-              {/* New message notification */}
               {newMessageNotification && (
                 <div className="fixed bottom-32 left-1/2 transform -translate-x-1/2 z-10">
                   <Button
@@ -472,6 +607,24 @@ const handleDeleteChat = async () => {
               </div>
             </div>
           </div>
+          {deletingChatId && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+              <div className="bg-card p-6 rounded-lg max-w-sm w-full mx-4">
+                <h3 className="text-lg font-semibold mb-2">Delete Chat?</h3>
+                <p className="text-muted-foreground mb-4">
+                  This will remove the chat from your inbox only. The other person will still have it.
+                </p>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setDeletingChatId(null)}>
+                    Cancel
+                  </Button>
+                  <Button variant="destructive" onClick={confirmDelete}>
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </>
