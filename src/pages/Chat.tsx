@@ -20,7 +20,6 @@ export default function Chat() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [newMessage, setNewMessage] = useState('');
@@ -28,28 +27,25 @@ export default function Chat() {
   const [unreadMessages, setUnreadMessages] = useState<Set<string>>(new Set());
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [newMessageNotification, setNewMessageNotification] = useState(false);
-
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const previousMessagesLength = useRef(0);
-
-  const { 
-    conversations, 
-    currentMessages, 
+  const {
+    conversations,
+    currentMessages,
     loading: chatLoading,
     fetchMessages,
     loadOlderMessages,
-    sendMessage, 
+    sendMessage,
     createConversation,
     clearChat,
     deleteChat,
-    refreshConversations
+    refreshConversations,
   } = useChat();
-  
   const { recentChats, addRecentChat, refreshRecentChats } = useRecentChats();
   const { getUserById } = useUsers();
 
-  // ✅ Auto-scroll when new messages arrive
+  // Auto-scroll when new messages arrive
   useEffect(() => {
     if (currentMessages.length > previousMessagesLength.current) {
       if (isAtBottom) {
@@ -70,10 +66,9 @@ export default function Chat() {
     }
   }, [selectedConversationId]);
 
-  // ✅ Realtime: move chats to top + unread badge
+  // Realtime: move chats to top + unread badge
   useEffect(() => {
     if (!user) return;
-
     const channel = supabase
       .channel('chat-realtime')
       .on(
@@ -81,10 +76,8 @@ export default function Chat() {
         { event: 'INSERT', schema: 'public', table: 'messages' },
         (payload) => {
           const message = payload.new;
-
           if (message.sender_id !== user.id) {
             const chatUserId = message.sender_id;
-
             // Move chat to top
             const updated = [
               recentChats.find((c) => c.other_user_id === chatUserId) || {
@@ -94,9 +87,7 @@ export default function Chat() {
               },
               ...recentChats.filter((c) => c.other_user_id !== chatUserId),
             ];
-
             (recentChats as any).splice(0, recentChats.length, ...updated);
-
             // Add unread badge
             if (selectedUser?.user_id !== chatUserId) {
               setUnreadMessages((prev) => new Set(prev).add(chatUserId));
@@ -105,7 +96,6 @@ export default function Chat() {
         }
       )
       .subscribe();
-
     return () => {
       supabase.removeChannel(channel);
     };
@@ -172,8 +162,14 @@ export default function Chat() {
   };
 
   const handleDeleteChat = async () => {
-    if (!selectedConversationId) return;
-    const result = await deleteChat(selectedConversationId);
+    if (!selectedConversationId || !selectedUser?.user_id) {
+      console.error('Missing conversationId or userId:', { selectedConversationId, userId: selectedUser?.user_id });
+      toast.error('Cannot delete chat: Missing conversation or user');
+      return;
+    }
+    console.log('Deleting chat with:', { conversationId: selectedConversationId, otherUserId: selectedUser.user_id });
+    const result = await deleteChat(selectedConversationId, selectedUser.user_id);
+    console.log('Delete result:', result);
     if (result.success) {
       toast.success('Chat deleted');
       setSelectedConversationId(null);
@@ -181,16 +177,15 @@ export default function Chat() {
       refreshConversations();
       refreshRecentChats();
     } else {
-      toast.error('Failed to delete chat');
+      toast.error('Failed to delete chat: ' + result.error);
     }
   };
-
 
   const handleBlockUser = async () => {
     if (!selectedUser?.user_id || !user) return;
     await supabase.from('blocked_users').insert({
       blocker_id: user.id,
-      blocked_id: selectedUser.user_id
+      blocked_id: selectedUser.user_id,
     });
     toast.success('User blocked');
     setSelectedConversationId(null);
@@ -230,7 +225,6 @@ export default function Chat() {
               ))}
             </div>
           </div>
-
           {/* Right column - chat */}
           <div className="flex-1 bg-card border border-border rounded-2xl flex flex-col h-full">
             {selectedUser ? (
@@ -244,7 +238,7 @@ export default function Chat() {
                       </span>
                     </div>
                     <div>
-                      <h3 
+                      <h3
                         className="font-semibold text-foreground cursor-pointer hover:text-primary"
                         onClick={() => navigate(`/profile/${selectedUser.user_id}`)}
                       >
@@ -272,21 +266,29 @@ export default function Chat() {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-
                 {/* Chat messages */}
-                <div 
+                <div
                   ref={messagesContainerRef}
                   onScroll={handleScroll}
                   className="flex-1 p-4 overflow-y-auto space-y-4 relative"
                 >
                   {currentMessages.length ? (
                     currentMessages.map((message) => (
-                      <div key={message.id} className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
-                          message.sender_id === user?.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
-                        }`}>
+                      <div
+                        key={message.id}
+                        className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div
+                          className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
+                            message.sender_id === user?.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
+                          }`}
+                        >
                           <p className="text-sm">{message.content}</p>
-                          <p className={`text-xs mt-1 ${message.sender_id === user?.id ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                          <p
+                            className={`text-xs mt-1 ${
+                              message.sender_id === user?.id ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                            }`}
+                          >
                             {new Date(message.created_at).toLocaleTimeString()}
                           </p>
                         </div>
@@ -301,11 +303,10 @@ export default function Chat() {
                     </div>
                   )}
                   <div ref={messagesEndRef} />
-                  
                   {/* New message notification */}
                   {newMessageNotification && (
                     <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-10">
-                      <Button 
+                      <Button
                         onClick={() => {
                           messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
                           setNewMessageNotification(false);
@@ -318,7 +319,6 @@ export default function Chat() {
                     </div>
                   )}
                 </div>
-
                 {/* Input */}
                 <div className="border-t border-border p-4">
                   <div className="flex gap-2">
@@ -355,7 +355,7 @@ export default function Chat() {
     );
   }
 
-  // ✅ Mobile UI stays same, just uses the same scroll handling
+  // Mobile UI
   return (
     <>
       {showUserList ? (
@@ -397,9 +397,8 @@ export default function Chat() {
             onDeleteChat={handleDeleteChat}
             onBlockUser={handleBlockUser}
           />
-
           <div className="flex-1 flex flex-col overflow-hidden">
-            <div 
+            <div
               ref={messagesContainerRef}
               onScroll={handleScroll}
               className="flex-1 p-4 overflow-y-auto space-y-4 pb-safe relative"
@@ -407,12 +406,21 @@ export default function Chat() {
             >
               {currentMessages.length ? (
                 currentMessages.map((message) => (
-                  <div key={message.id} className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-xs px-4 py-2 rounded-2xl ${
-                      message.sender_id === user?.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
-                    }`}>
+                  <div
+                    key={message.id}
+                    className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-xs px-4 py-2 rounded-2xl ${
+                        message.sender_id === user?.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
+                      }`}
+                    >
                       <p className="text-sm">{message.content}</p>
-                      <p className={`text-xs mt-1 ${message.sender_id === user?.id ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                      <p
+                        className={`text-xs mt-1 ${
+                          message.sender_id === user?.id ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                        }`}
+                      >
                         {new Date(message.created_at).toLocaleTimeString()}
                       </p>
                     </div>
@@ -427,11 +435,10 @@ export default function Chat() {
                 </div>
               )}
               <div ref={messagesEndRef} />
-              
               {/* New message notification */}
               {newMessageNotification && (
                 <div className="fixed bottom-32 left-1/2 transform -translate-x-1/2 z-10">
-                  <Button 
+                  <Button
                     onClick={() => {
                       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
                       setNewMessageNotification(false);
@@ -444,7 +451,6 @@ export default function Chat() {
                 </div>
               )}
             </div>
-
             <div className="border-t border-border p-4 bg-card/95 backdrop-blur-sm sticky bottom-0">
               <div className="flex gap-2">
                 <Textarea
