@@ -182,10 +182,8 @@ export const useChat = () => {
 
   const deleteChat = async (conversationId: string, otherUserId: string) => {
   if (!user) return { success: false, error: "No user" };
-
   try {
     const now = new Date().toISOString();
-
     // Mark chat as deleted in deleted_chats table
     const { error: deletedError } = await supabase.from("deleted_chats").upsert(
       {
@@ -196,26 +194,21 @@ export const useChat = () => {
       { onConflict: ["user_id", "conversation_id"] }
     );
     if (deletedError) throw deletedError;
-
     // Soft delete in recent_chats
     const { error: recentError } = await supabase
       .from("recent_chats")
       .update({ deleted_at: now })
       .eq("user_id", user.id)
       .eq("other_user_id", otherUserId);
-
     if (recentError) throw recentError;
-
     // Update UI immediately
     setConversations((prev) =>
       prev.filter((c) => c.conversation_id !== conversationId)
     );
-
     if (activeConversationId === conversationId) {
       setCurrentMessages([]);
       setActiveConversationId(null);
     }
-
     return { success: true };
   } catch (error) {
     console.error("Error deleting chat:", error);
