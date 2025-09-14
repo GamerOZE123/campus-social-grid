@@ -159,64 +159,61 @@ export const useChat = () => {
   };
 
   const deleteChat = async (conversationId: string, otherUserId: string) => {
-    if (!user) return { success: false, error: 'No user' };
-    try {
-      const now = new Date().toISOString();
-      console.log('Deleting chat:', { userId: user.id, conversationId, otherUserId });
+  if (!user) return { success: false, error: 'No user' };
+  try {
+    const now = new Date().toISOString();
+    console.log('Deleting chat:', { userId: user.id, conversationId, otherUserId });
 
-      // Upsert into deleted_chats
-      const { error: deletedError } = await supabase
-        .from('deleted_chats')
-        .upsert(
-          {
-            user_id: user.id,
-            conversation_id: conversationId,
-            deleted_at: now,
-          },
-          { onConflict: ['user_id', 'conversation_id'] }
-        );
-      if (deletedError) {
-        console.error('Deleted chats error:', deletedError);
-        throw deletedError;
-      }
-
-      // Check if recent_chats record exists
-      const { data: recentChat } = await supabase
-        .from('recent_chats')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('other_user_id', otherUserId)
-        .is('deleted_at', null)
-        .single();
-
-      if (recentChat) {
-        const { error: recentError } = await supabase
-          .from('recent_chats')
-          .update({ deleted_at: now })
-          .eq('user_id', user.id)
-          .eq('other_user_id', otherUserId);
-        if (recentError) {
-          console.error('Recent chats error:', recentError);
-          throw recentError;
-        }
-      } else {
-        console.warn('No recent chat found for user:', user.id, 'other_user:', otherUserId);
-      }
-
-      // Update UI
-      setConversations((prev) =>
-        prev.filter((c) => c.conversation_id !== conversationId)
+    const { error: deletedError } = await supabase
+      .from('deleted_chats')
+      .upsert(
+        {
+          user_id: user.id,
+          conversation_id: conversationId,
+          deleted_at: now,
+        },
+        { onConflict: ['user_id', 'conversation_id'] }
       );
-      if (activeConversationId === conversationId) {
-        setCurrentMessages([]);
-        setActiveConversationId(null);
-      }
-      return { success: true };
-    } catch (error) {
-      console.error('Error deleting chat:', JSON.stringify(error, null, 2));
-      return { success: false, error: (error as Error).message };
+    if (deletedError) {
+      console.error('Deleted chats error:', deletedError);
+      throw deletedError;
     }
-  };
+
+    const { data: recentChat } = await supabase
+      .from('recent_chats')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('other_user_id', otherUserId)
+      .is('deleted_at', null)
+      .single();
+
+    if (recentChat) {
+      const { error: recentError } = await supabase
+        .from('recent_chats')
+        .update({ deleted_at: now })
+        .eq('user_id', user.id)
+        .eq('other_user_id', otherUserId);
+      if (recentError) {
+        console.error('Recent chats error:', recentError);
+        throw recentError;
+      }
+    } else {
+      console.warn('No recent chat found for user:', user.id, 'other_user:', otherUserId);
+    }
+
+    setConversations((prev) =>
+      prev.filter((c) => c.conversation_id !== conversationId)
+    );
+    if (activeConversationId === conversationId) {
+      setCurrentMessages([]);
+      setActiveConversationId(null);
+    }
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting chat:', JSON.stringify(error, null, 2));
+    return { success: false, error: (error as Error).message };
+  }
+};
 
   // Subscribe to realtime changes
   useEffect(() => {
