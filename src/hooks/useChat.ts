@@ -184,7 +184,17 @@ export const useChat = () => {
   if (!user) return { success: false, error: "No user" };
   try {
     const now = new Date().toISOString();
-    // Mark chat as deleted in deleted_chats table
+    console.log("Deleting chat:", { userId: user.id, conversationId, otherUserId });
+
+    // Check if recent_chats record exists
+    const { data: recentChat } = await supabase
+      .from("recent_chats")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("other_user_id", otherUserId)
+      .single();
+
+    // Upsert into deleted_chats
     const { error: deletedError } = await supabase.from("deleted_chats").upsert(
       {
         user_id: user.id,
@@ -193,15 +203,27 @@ export const useChat = () => {
       },
       { onConflict: ["user_id", "conversation_id"] }
     );
-    if (deletedError) throw deletedError;
-    // Soft delete in recent_chats
-    const { error: recentError } = await supabase
-      .from("recent_chats")
-      .update({ deleted_at: now })
-      .eq("user_id", user.id)
-      .eq("other_user_id", otherUserId);
-    if (recentError) throw recentError;
-    // Update UI immediately
+    if (deletedError) {
+      console.error("Deleted chats error:", deletedError);
+      throw deletedError;
+    }
+
+    // Update recent_chats if it exists
+    if (recentChat) {
+      const { error: recentError } = await supabase
+        .from("recent_chats")
+        .update({ deleted_at: now })
+        .eq("user_id", user.id)
+        .eq("other_user_id", otherUserId);
+      if (recentError) {
+        console.error("Recent chats error:", recentError);
+        throw recentError;
+      }
+    } else {
+      console.warn("No recent chat found for user:", user.id, "other_user:", otherUserId);
+    }
+
+    // Update UI
     setConversations((prev) =>
       prev.filter((c) => c.conversation_id !== conversationId)
     );
@@ -211,7 +233,7 @@ export const useChat = () => {
     }
     return { success: true };
   } catch (error) {
-    console.error("Error deleting chat:", error);
+    console.error("Error deleting chat:", JSON.stringify(error, null, 2));
     return { success: false, error: (error as Error).message };
   }
 };
