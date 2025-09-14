@@ -145,7 +145,7 @@ export const useChat = () => {
           conversation_id: conversationId,
           cleared_at: now,
         },
-        { onConflict: ['user_id', 'conversation_id'] }
+        { onConflict: 'user_id,conversation_id' }
       );
       if (error) throw error;
       setIsChatCleared(true);
@@ -174,7 +174,7 @@ const deleteChat = async (conversationId: string, otherUserId: string) => {
           conversation_id: conversationId,
           deleted_at: now,
         },
-        { onConflict: ['user_id', 'conversation_id'] }
+        { onConflict: 'user_id,conversation_id' }
       );
     if (deletedError) {
       console.error('Deleted chats error:', deletedError);
@@ -192,9 +192,8 @@ const deleteChat = async (conversationId: string, otherUserId: string) => {
     if (recentChat) {
       const { error: recentError } = await supabase
         .from('recent_chats')
-        .update({ deleted_at: now })
-        .eq('user_id', user.id)
-        .eq('other_user_id', otherUserId);
+        .delete()
+        .eq('id', recentChat.id);
       if (recentError) {
         console.error('Recent chats error:', recentError);
         throw recentError;

@@ -45,7 +45,7 @@ export default function Chat() {
     deleteChat,
     refreshConversations,
   } = useChat();
-  const { recentChats, addRecentChat, refreshRecentChats } = useRecentChats();
+  const { recentChats, loading: recentLoading, addRecentChat, refreshRecentChats } = useRecentChats();
   const { getUserById } = useUsers();
 
   // Auto-scroll when new messages arrive
@@ -252,7 +252,7 @@ export default function Chat() {
                   </Button>
                 )}
               </h3>
-              {recentChats.length === 0 && !loading && (
+              {recentChats.length === 0 && !recentLoading && (
                 <p className="text-muted-foreground text-sm">No recent chats. Start one!</p>
               )}
               {recentChats.map((chat) => (
@@ -469,7 +469,7 @@ export default function Chat() {
                   </Button>
                 )}
               </h3>
-              {recentChats.length === 0 && !loading && (
+              {recentChats.length === 0 && !recentLoading && (
                 <p className="text-muted-foreground text-sm">No recent chats. Start one!</p>
               )}
               {recentChats.map((chat) => (
