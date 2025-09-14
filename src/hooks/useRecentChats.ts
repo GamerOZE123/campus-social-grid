@@ -8,7 +8,7 @@ interface RecentChat {
   other_user_avatar: string;
   other_user_university: string;
   last_interacted_at: string;
-  deleted_at?: string | null; // Add deleted_at to interface
+  deleted_at?: string | null; // Ensure deleted_at is included
 }
 
 export const useRecentChats = () => {
@@ -26,16 +26,19 @@ export const useRecentChats = () => {
       });
 
       if (error) {
-        console.error('Error fetching recent chats:', error);
+        console.error('Error fetching recent chats:', JSON.stringify(error, null, 2));
         throw error;
       }
 
-      // Filter out chats where deleted_at is not null (client-side fallback)
+      // Log raw data to inspect deleted_at
+      console.log('Raw recent chats from RPC:', data);
+
+      // Filter out chats where deleted_at is not null
       const filteredChats = (data || []).filter(
         (chat: RecentChat) => !chat.deleted_at
       );
 
-      console.log('Fetched and filtered recent chats:', filteredChats);
+      console.log('Filtered recent chats:', filteredChats);
       setRecentChats(filteredChats);
     } catch (error) {
       console.error('Error fetching recent chats:', JSON.stringify(error, null, 2));
@@ -55,7 +58,7 @@ export const useRecentChats = () => {
       });
 
       if (error) {
-        console.error('Error adding recent chat:', error);
+        console.error('Error adding recent chat:', JSON.stringify(error, null, 2));
         throw error;
       }
 
@@ -69,9 +72,9 @@ export const useRecentChats = () => {
     if (user) {
       fetchRecentChats();
 
-      // Set up real-time listener for new messages to update recent chats
-      const channel = supabase
-        .channel('recent-chats-updates')
+      // Real-time listener for messages to update recent chats
+      const messageChannel = supabase
+        .channel('recent-chats-messages')
         .on(
           'postgres_changes',
           {
@@ -81,13 +84,32 @@ export const useRecentChats = () => {
           },
           (payload) => {
             console.log('New message for recent chats:', payload);
-            // Refresh recent chats to update order
             fetchRecentChats();
           }
         )
         .subscribe();
+
+      // Real-time listener for recent_chats updates (e.g., deletions)
+      const recentChatsChannel = supabase
+        .channel('recent-chats-updates')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'recent_chats',
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            console.log('Recent chats update:', payload);
+            fetchRecentChats();
+          }
+        )
+        .subscribe();
+
       return () => {
-        supabase.removeChannel(channel);
+        supabase.removeChannel(messageChannel);
+        supabase.removeChannel(recentChatsChannel);
       };
     }
   }, [user]);
