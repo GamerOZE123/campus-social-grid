@@ -1103,6 +1103,7 @@ export type Database = {
       recent_chats: {
         Row: {
           created_at: string
+          deleted_at: string | null
           id: string
           last_interacted_at: string
           other_user_id: string
@@ -1110,6 +1111,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
           last_interacted_at?: string
           other_user_id: string
@@ -1117,6 +1119,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
           last_interacted_at?: string
           other_user_id?: string
@@ -1433,7 +1436,15 @@ export type Database = {
         }[]
       }
       upsert_recent_chat: {
-        Args: { current_user_id: string; target_user_id: string }
+        Args:
+          | {
+              current_user_id: string
+              other_user_avatar: string
+              other_user_name: string
+              other_user_university: string
+              target_user_id: string
+            }
+          | { current_user_id: string; target_user_id: string }
         Returns: undefined
       }
       user_in_conversation: {
