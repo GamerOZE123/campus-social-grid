@@ -119,29 +119,36 @@ export default function Chat() {
   }, [selectedConversationId]);
 
   const handleUserClick = async (userId: string) => {
-  const userProfile = await getUserById(userId);
-  if (!userProfile) {
-    console.error('Failed to fetch user profile:', userId);
-    toast.error('Failed to load user profile');
-    return;
+  try {
+    const userProfile = await getUserById(userId);
+    if (!userProfile) {
+      console.error('Failed to fetch user profile:', userId);
+      toast.error('Failed to load user profile');
+      return;
+    }
+    console.log('Selected user:', userProfile);
+    setSelectedUser(userProfile);
+    const conversationId = await createConversation(userId);
+    if (!conversationId) {
+      console.error('Failed to create conversation for user:', userId);
+      toast.error('Failed to create conversation');
+      return;
+    }
+    setSelectedConversationId(conversationId);
+    setNewMessageNotification(false);
+    setUnreadMessages((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(userId);
+      return newSet;
+    });
+    console.log('Attempting to add recent chat for user:', userId);
+    await addRecentChat(userId); // This should now work
+    console.log('Successfully added to recent chats:', userId);
+    if (isMobile) setShowUserList(false);
+  } catch (error) {
+    console.error('Error in handleUserClick:', JSON.stringify(error, null, 2));
+    toast.error('An error occurred while starting the chat');
   }
-  console.log('Selected user:', userProfile);
-  setSelectedUser(userProfile);
-  const conversationId = await createConversation(userId);
-  if (!conversationId) {
-    toast.error('Failed to create conversation');
-    return;
-  }
-  setSelectedConversationId(conversationId);
-  setNewMessageNotification(false);
-  setUnreadMessages((prev) => {
-    const newSet = new Set(prev);
-    newSet.delete(userId);
-    return newSet;
-  });
-  // Add this line to immediately add to recent chats
-  await addRecentChat(userId);
-  if (isMobile) setShowUserList(false);
 };
   const handleBackToUserList = () => {
     setShowUserList(true);
