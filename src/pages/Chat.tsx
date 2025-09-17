@@ -119,29 +119,30 @@ export default function Chat() {
   }, [selectedConversationId]);
 
   const handleUserClick = async (userId: string) => {
-    const userProfile = await getUserById(userId);
-    if (!userProfile) {
-      console.error('Failed to fetch user profile:', userId);
-      toast.error('Failed to load user profile');
-      return;
-    }
-    console.log('Selected user:', userProfile);
-    setSelectedUser(userProfile);
-    const conversationId = await createConversation(userId);
-    if (!conversationId) {
-      toast.error('Failed to create conversation');
-      return;
-    }
-    setSelectedConversationId(conversationId);
-    setNewMessageNotification(false);
-    setUnreadMessages((prev) => {
-      const newSet = new Set(prev);
-      newSet.delete(userId);
-      return newSet;
-    });
-    if (isMobile) setShowUserList(false);
-  };
-
+  const userProfile = await getUserById(userId);
+  if (!userProfile) {
+    console.error('Failed to fetch user profile:', userId);
+    toast.error('Failed to load user profile');
+    return;
+  }
+  console.log('Selected user:', userProfile);
+  setSelectedUser(userProfile);
+  const conversationId = await createConversation(userId);
+  if (!conversationId) {
+    toast.error('Failed to create conversation');
+    return;
+  }
+  setSelectedConversationId(conversationId);
+  setNewMessageNotification(false);
+  setUnreadMessages((prev) => {
+    const newSet = new Set(prev);
+    newSet.delete(userId);
+    return newSet;
+  });
+  // Add this line to immediately add to recent chats
+  await addRecentChat(userId);
+  if (isMobile) setShowUserList(false);
+};
   const handleBackToUserList = () => {
     setShowUserList(true);
     setSelectedConversationId(null);
