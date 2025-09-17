@@ -1,3 +1,4 @@
+import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -48,9 +49,9 @@ const addRecentChat = async (otherUserId: string) => {
   try {
     console.log('Adding recent chat:', { userId: user.id, otherUserId });
 
-    // Fetch user details
+    // Change 'users' to 'profiles'
     const { data: userData, error: userError } = await supabase
-      .from('users')
+      .from('profiles')  // <-- Key change
       .select('full_name, username, university, avatar_url')
       .eq('id', otherUserId)
       .single();
@@ -89,7 +90,6 @@ const addRecentChat = async (otherUserId: string) => {
     toast.error('Failed to add recent chat');
   }
 };
-
   useEffect(() => {
     if (user) {
       fetchRecentChats();
