@@ -49,11 +49,11 @@ const addRecentChat = async (otherUserId: string) => {
   try {
     console.log('Adding recent chat:', { userId: user.id, otherUserId });
 
-    // Change 'users' to 'profiles'
+    // Fetch user details from profiles table
     const { data: userData, error: userError } = await supabase
-      .from('profiles')  // <-- Key change
+      .from('profiles')
       .select('full_name, username, university, avatar_url')
-      .eq('id', otherUserId)
+      .eq('user_id', otherUserId)
       .single();
 
     if (userError || !userData) {
@@ -68,14 +68,14 @@ const addRecentChat = async (otherUserId: string) => {
 
     console.log('User details fetched:', { otherUserName, otherUserUniversity, otherUserAvatar });
 
-    // Call upsert_recent_chat RPC
-    const { error: upsertError } = await supabase.rpc('upsert_recent_chat', {
+    // Call upsert_recent_chat RPC with type assertion to bypass strict typing
+    const { error: upsertError } = await supabase.rpc('upsert_recent_chat' as any, {
       current_user_id: user.id,
       target_user_id: otherUserId,
       other_user_name: otherUserName,
       other_user_university: otherUserUniversity,
       other_user_avatar: otherUserAvatar,
-    });
+    } as any);
 
     if (upsertError) {
       console.error('Error upserting recent chat:', JSON.stringify(upsertError, null, 2));
