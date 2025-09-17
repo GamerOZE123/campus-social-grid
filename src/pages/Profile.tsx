@@ -37,6 +37,7 @@ interface PostWithProfile {
   id: string;
   content: string;
   image_url?: string;
+  image_urls?: string[];
   created_at: string;
   likes_count: number;
   comments_count: number;
@@ -55,6 +56,7 @@ interface TransformedPost {
   id: string;
   content: string;
   image_url?: string;
+  image_urls?: string[];
   created_at: string;
   likes_count: number;
   comments_count: number;
@@ -218,6 +220,7 @@ export default function Profile() {
       id: post.id,
       content: post.content,
       image_url: post.image_url,
+      image_urls: post.image_urls,
       created_at: post.created_at,
       likes_count: post.likes_count,
       comments_count: post.comments_count,

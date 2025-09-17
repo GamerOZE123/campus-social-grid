@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { X, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -32,7 +34,8 @@ export default function EditProfileModal({
     username: '',
     bio: '',
     university: '',
-    major: ''
+    major: '',
+    avatar_url: ''
   });
 
   // Banner local state
@@ -64,7 +67,8 @@ export default function EditProfileModal({
           username: data.username || '',
           bio: data.bio || '',
           university: data.university || '',
-          major: data.major || ''
+          major: data.major || '',
+          avatar_url: data.avatar_url || ''
         });
         setVerticalPosition(data.banner_position || 50);
       }
@@ -95,6 +99,32 @@ export default function EditProfileModal({
     } catch (error) {
       console.error('Banner upload error:', error);
       toast.error('Failed to upload banner');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Avatar upload handler
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setLoading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/avatar_${Date.now()}.${fileExt}`;
+      const { data, error } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+      if (error) throw error;
+      const { data: publicUrlData } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+      const publicUrl = publicUrlData?.publicUrl || '';
+      setProfile({ ...profile, avatar_url: publicUrl });
+      toast.success('Avatar uploaded!');
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      toast.error('Failed to upload avatar');
     } finally {
       setLoading(false);
     }
@@ -145,6 +175,7 @@ export default function EditProfileModal({
           bio: profile.bio,
           university: profile.university,
           major: profile.major,
+          avatar_url: profile.avatar_url,
           banner_url: localBannerUrl,
           banner_height: localBannerHeight,
           banner_position: verticalPosition,
@@ -170,19 +201,41 @@ export default function EditProfileModal({
           <DialogTitle>Edit Profile</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          {/* Avatar upload */}
+          <div>
+            <Label>Profile Picture</Label>
+            <div className="flex items-center gap-4 mt-2">
+              <Avatar className="w-16 h-16">
+                <AvatarImage src={profile.avatar_url} />
+                <AvatarFallback>
+                  {profile.full_name?.charAt(0) || profile.username?.charAt(0) || 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                  disabled={loading}
+                  className="cursor-pointer"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Banner upload */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <Label>Banner</Label>
               {localBannerUrl && (
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
                   onClick={handleBannerDelete}
                   disabled={loading}
-                  className="text-destructive hover:text-destructive"
+                  className="text-destructive hover:text-destructive p-1 h-auto"
                 >
-                  Delete Banner
+                  <X className="w-4 h-4" />
                 </Button>
               )}
             </div>
@@ -196,7 +249,7 @@ export default function EditProfileModal({
                     objectPosition: `center ${verticalPosition}%`
                   }}
                 />
-                <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm rounded px-2 py-1 text-xs">
+                <div className="absolute top-2 left-2 bg-background/80 backdrop-blur-sm rounded px-2 py-1 text-xs">
                   Preview
                 </div>
               </div>
