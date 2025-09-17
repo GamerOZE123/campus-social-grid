@@ -39,36 +39,30 @@ export const useRecentChats = () => {
     }
   };
 
+import { toast } from 'sonner'; // Add this
+
 const addRecentChat = async (otherUserId: string) => {
   if (!user) {
     console.error('No authenticated user found');
     toast.error('Please log in to add a chat');
     return;
   }
-
   try {
     console.log('Adding recent chat:', { userId: user.id, otherUserId });
-
-    // Change 'users' to 'profiles'
     const { data: userData, error: userError } = await supabase
-      .from('profiles')  // <-- Key change
+      .from('profiles')
       .select('full_name, username, university, avatar_url')
       .eq('id', otherUserId)
       .single();
-
     if (userError || !userData) {
       console.error('Error fetching user details:', userError?.message || 'No user data');
       toast.error('Failed to fetch user details');
       throw new Error(userError?.message || 'User not found');
     }
-
     const otherUserName = userData.full_name || userData.username || 'Unknown';
     const otherUserUniversity = userData.university || '';
     const otherUserAvatar = userData.avatar_url || '';
-
     console.log('User details fetched:', { otherUserName, otherUserUniversity, otherUserAvatar });
-
-    // Call upsert_recent_chat RPC
     const { error: upsertError } = await supabase.rpc('upsert_recent_chat', {
       current_user_id: user.id,
       target_user_id: otherUserId,
@@ -76,21 +70,19 @@ const addRecentChat = async (otherUserId: string) => {
       other_user_university: otherUserUniversity,
       other_user_avatar: otherUserAvatar,
     });
-
     if (upsertError) {
       console.error('Error upserting recent chat:', JSON.stringify(upsertError, null, 2));
       toast.error('Failed to add user to recent chats');
       throw upsertError;
     }
-
     console.log('Recent chat added successfully for user:', otherUserId);
-    await fetchRecentChats(); // Refresh the list
+    await fetchRecentChats();
   } catch (error) {
     console.error('Error in addRecentChat:', JSON.stringify(error, null, 2));
     toast.error('Failed to add recent chat');
   }
 };
-  useEffect(() => {
+useEffect(() => {
     if (user) {
       fetchRecentChats();
 
