@@ -68,10 +68,14 @@ export default function UsersSidebar() {
                   className="flex items-center gap-3 cursor-pointer flex-1"
                   onClick={() => handleUserClick(suggestedUser.user_id)}
                 >
-                  <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
-                    <span className="text-sm font-bold text-white">
-                      {suggestedUser.full_name?.charAt(0) || suggestedUser.username?.charAt(0) || 'U'}
-                    </span>
+                  <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center overflow-hidden">
+                    {suggestedUser.avatar_url ? (
+                      <img src={suggestedUser.avatar_url} alt={suggestedUser.full_name || suggestedUser.username} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-sm font-bold text-white">
+                        {suggestedUser.full_name?.charAt(0) || suggestedUser.username?.charAt(0) || 'U'}
+                      </span>
+                    )}
                   </div>
                   <div>
                     <p className="text-sm font-medium text-foreground">

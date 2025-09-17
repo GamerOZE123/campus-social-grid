@@ -7,6 +7,7 @@ import { ArrowLeft, MoreVertical, MessageSquareX, Trash2, UserX } from 'lucide-r
 interface MobileChatHeaderProps {
   userName: string;
   userUniversity: string;
+  userAvatar?: string;
   onBackClick: () => void;
   onMenuClick?: () => void;
   onClearChat?: () => void;
@@ -17,6 +18,7 @@ interface MobileChatHeaderProps {
 export default function MobileChatHeader({ 
   userName, 
   userUniversity, 
+  userAvatar,
   onBackClick,
   onMenuClick,
   onClearChat,
@@ -37,10 +39,14 @@ export default function MobileChatHeader({
           </Button>
           
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
-              <span className="text-sm font-bold text-white">
-                {userName?.charAt(0) || 'U'}
-              </span>
+            <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center overflow-hidden">
+              {userAvatar ? (
+                <img src={userAvatar} alt={userName} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-sm font-bold text-white">
+                  {userName?.charAt(0) || 'U'}
+                </span>
+              )}
             </div>
             <div>
               <h3 className="font-semibold text-foreground">{userName}</h3>

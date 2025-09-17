@@ -306,10 +306,14 @@ export default function Chat() {
                       }}
                       className="mr-2"
                     />
-                    <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center relative">
-                      <span className="text-sm font-bold text-white">
-                        {chat.other_user_name?.charAt(0) || 'U'}
-                      </span>
+                    <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center relative overflow-hidden">
+                      {chat.other_user_avatar ? (
+                        <img src={chat.other_user_avatar} alt={chat.other_user_name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-sm font-bold text-white">
+                          {chat.other_user_name?.charAt(0) || 'U'}
+                        </span>
+                      )}
                       {unreadMessages.has(chat.other_user_id) && (
                         <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
                       )}
@@ -348,10 +352,14 @@ export default function Chat() {
                 {/* Chat header */}
                 <div className="p-4 border-b border-border flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
-                      <span className="text-sm font-bold text-white">
-                        {selectedUser.full_name?.charAt(0) || selectedUser.username?.charAt(0) || 'U'}
-                      </span>
+                    <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center overflow-hidden">
+                      {selectedUser.avatar_url ? (
+                        <img src={selectedUser.avatar_url} alt={selectedUser.full_name || selectedUser.username} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-sm font-bold text-white">
+                          {selectedUser.full_name?.charAt(0) || selectedUser.username?.charAt(0) || 'U'}
+                        </span>
+                      )}
                     </div>
                     <div>
                       <h3
@@ -535,14 +543,18 @@ export default function Chat() {
                       }}
                       className="mr-2"
                     />
-                    <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center relative">
-                      <span className="text-sm font-bold text-white">
-                        {chat.other_user_name?.charAt(0) || 'U'}
-                      </span>
-                      {unreadMessages.has(chat.other_user_id) && (
-                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
-                      )}
-                    </div>
+                     <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center relative overflow-hidden">
+                       {chat.other_user_avatar ? (
+                         <img src={chat.other_user_avatar} alt={chat.other_user_name} className="w-full h-full object-cover" />
+                       ) : (
+                         <span className="text-sm font-bold text-white">
+                           {chat.other_user_name?.charAt(0) || 'U'}
+                         </span>
+                       )}
+                       {unreadMessages.has(chat.other_user_id) && (
+                         <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
+                       )}
+                     </div>
                     <div className="flex-1">
                       <p className="font-medium text-foreground">{chat.other_user_name}</p>
                       <p className="text-sm text-muted-foreground">{chat.other_user_university}</p>
@@ -571,6 +583,7 @@ export default function Chat() {
           <MobileChatHeader
             userName={selectedUser?.full_name || selectedUser?.username || 'Unknown User'}
             userUniversity={selectedUser?.university || 'University'}
+            userAvatar={selectedUser?.avatar_url}
             onBackClick={handleBackToUserList}
             onClearChat={handleClearChat}
             onDeleteChat={() => handleDeleteChat(selectedConversationId!, selectedUser.user_id)}

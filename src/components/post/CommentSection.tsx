@@ -1,9 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { Trash2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Comment {
   id: string;
@@ -32,6 +33,28 @@ export default function CommentSection({
 }: CommentSectionProps) {
   const { user } = useAuth();
   const [newComment, setNewComment] = useState('');
+  const [userProfile, setUserProfile] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('avatar_url')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (error) throw error;
+        setUserProfile(data);
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    };
+
+    fetchUserProfile();
+  }, [user]);
 
   const handleAddComment = async () => {
     if (!newComment.trim()) return;
@@ -53,10 +76,14 @@ export default function CommentSection({
       {/* Add Comment */}
       {user && (
         <div className="flex gap-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center flex-shrink-0">
-            <span className="text-xs font-bold text-white">
-              {user.email?.charAt(0).toUpperCase()}
-            </span>
+          <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+            {userProfile?.avatar_url ? (
+              <img src={userProfile.avatar_url} alt="Your avatar" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-xs font-bold text-white">
+                {user.email?.charAt(0).toUpperCase()}
+              </span>
+            )}
           </div>
           <div className="flex-1 flex gap-2">
             <Input
@@ -86,10 +113,14 @@ export default function CommentSection({
       <div className="space-y-3">
         {comments.map((comment) => (
           <div key={comment.id} className="flex gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-xs font-bold text-white">
-                {comment.profiles?.full_name?.charAt(0) || comment.profiles?.username?.charAt(0) || 'U'}
-              </span>
+            <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
+              {comment.profiles?.avatar_url ? (
+                <img src={comment.profiles.avatar_url} alt={comment.profiles.full_name || comment.profiles.username} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-xs font-bold text-white">
+                  {comment.profiles?.full_name?.charAt(0) || comment.profiles?.username?.charAt(0) || 'U'}
+                </span>
+              )}
             </div>
             <div className="flex-1 bg-muted/50 rounded-lg p-3">
               <div className="flex items-center justify-between mb-1">

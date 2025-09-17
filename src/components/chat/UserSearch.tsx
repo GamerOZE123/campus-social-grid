@@ -99,10 +99,14 @@ export default function UserSearch({ onStartChat }: UserSearchProps) {
                     className="flex items-center gap-3 cursor-pointer flex-1"
                     onClick={(e) => handleUserClick(searchUser, e)}
                   >
-                    <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
-                      <span className="text-sm font-bold text-white">
-                        {searchUser.full_name?.charAt(0) || searchUser.username?.charAt(0) || 'U'}
-                      </span>
+                    <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center overflow-hidden">
+                      {searchUser.avatar_url ? (
+                        <img src={searchUser.avatar_url} alt={searchUser.full_name || searchUser.username} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-sm font-bold text-white">
+                          {searchUser.full_name?.charAt(0) || searchUser.username?.charAt(0) || 'U'}
+                        </span>
+                      )}
                     </div>
                     <div>
                       <p className="font-semibold text-foreground">{searchUser.full_name || searchUser.username}</p>
