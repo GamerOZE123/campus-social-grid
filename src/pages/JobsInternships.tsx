@@ -1,11 +1,10 @@
+
 import React, { useEffect, useState } from 'react';
 import Layout from '@/components/layout/Layout';
-import MobileLayout from '@/components/layout/MobileLayout';
 import { ArrowLeft, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { supabase } from '@/integrations/supabase/client';
 import DetailedJobForm from '@/components/jobs/DetailedJobForm';
 import StudentApplicationForm from '@/components/jobs/StudentApplicationForm';
@@ -15,7 +14,6 @@ import CompanyApplicantsView from '@/components/jobs/CompanyApplicantsView';
 export default function JobsInternships() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const isMobile = useIsMobile();
   const [userType, setUserType] = useState<'student' | 'company'>('student');
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -79,125 +77,97 @@ export default function JobsInternships() {
   };
 
   if (loading) {
-    const loadingContent = (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-
-    return isMobile ? (
-      <MobileLayout>
-        {loadingContent}
-      </MobileLayout>
-    ) : (
+    return (
       <Layout>
-        {loadingContent}
+        <div className="flex items-center justify-center h-64">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+        </div>
       </Layout>
     );
   }
 
   // Show form if user doesn't have profile yet
   if (showForm || !hasProfile) {
-    const formContent = (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/university')}
-            className="p-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-          </Button>
-          <h1 className="text-2xl font-bold text-foreground">
-            {userType === 'student' ? 'Complete Your Profile' : 'Company Setup'}
-          </h1>
-        </div>
-        {userType === 'company' && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate('/university')}
-            className="p-2"
-          >
-            <X className="w-4 h-4" />
-          </Button>
-        )}
-      </div>
-
-      {userType === 'company' ? (
-        <DetailedJobForm 
-          onComplete={handleFormComplete}
-          onCancel={() => navigate('/university')}
-        />
-      ) : (
-        <StudentApplicationForm 
-          onComplete={handleFormComplete}
-          onCancel={() => navigate('/university')}
-        />
-        )}
-      </div>
-    );
-
-    return isMobile ? (
-      <MobileLayout>
-        <div className="container mx-auto px-4 py-6">
-          {formContent}
-        </div>
-      </MobileLayout>
-    ) : (
+    return (
       <Layout>
         <div className="container mx-auto px-4 py-6">
-          {formContent}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/university')}
+                className="p-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              <h1 className="text-2xl font-bold text-foreground">
+                {userType === 'student' ? 'Complete Your Profile' : 'Company Setup'}
+              </h1>
+            </div>
+            {userType === 'company' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate('/university')}
+                className="p-2"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+
+          {userType === 'company' ? (
+            <DetailedJobForm 
+              onComplete={handleFormComplete}
+              onCancel={() => navigate('/university')}
+            />
+          ) : (
+            <StudentApplicationForm 
+              onComplete={handleFormComplete}
+              onCancel={() => navigate('/university')}
+            />
+            )}
+          </div>
         </div>
       </Layout>
     );
   }
 
   // Show the appropriate jobs view based on user type
-  const mainContent = (
-    <div className="space-y-4 relative">
-      <div className="flex items-center justify-between">
-      <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate('/university')}
-          className="p-2"
-        >
-          <ArrowLeft className="w-4 h-4" />
-        </Button>
-        <h1 className="text-2xl font-bold text-foreground">
-          {userType === 'student' ? 'Explore Jobs' : 'Job Applications'}
-        </h1>
-      </div>
-      {userType === 'company' && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate('/university')}
-          className="p-2"
-        >
-          <X className="w-4 h-4" />
-        </Button>
-      )}
-    </div>
-
-    {userType === 'student' ? <StudentJobsView /> : <CompanyApplicantsView />}
-    </div>
-  );
-
-  return isMobile ? (
-    <MobileLayout>
-      <div className="container mx-auto px-4 py-6">
-        {mainContent}
-      </div>
-    </MobileLayout>
-  ) : (
+  return (
     <Layout>
       <div className="container mx-auto px-4 py-6">
-        {mainContent}
+        <div className="space-y-4 relative">
+          <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/university')}
+              className="p-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <h1 className="text-2xl font-bold text-foreground">
+              {userType === 'student' ? 'Explore Jobs' : 'Job Applications'}
+            </h1>
+          </div>
+          {userType === 'company' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/university')}
+              className="p-2"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+
+        {userType === 'student' ? <StudentJobsView /> : <CompanyApplicantsView />}
+        </div>
       </div>
     </Layout>
   );

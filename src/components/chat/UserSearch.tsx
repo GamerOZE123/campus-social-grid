@@ -52,9 +52,16 @@ export default function UserSearch({ onStartChat }: UserSearchProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleUserClick = async (selectedUser: any, e: React.MouseEvent) => {
+  const handleUserClick = (selectedUser: any, e: React.MouseEvent) => {
     e.stopPropagation();
-    await onStartChat(selectedUser.user_id);
+    navigate(`/profile/${selectedUser.user_id}`);
+    setShowResults(false);
+    setQuery('');
+  };
+
+  const handleStartChat = async (userId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    await onStartChat(userId);
     setShowResults(false);
     setQuery('');
   };
@@ -88,25 +95,33 @@ export default function UserSearch({ onStartChat }: UserSearchProps) {
                 className="p-3 border-b border-border last:border-b-0 hover:bg-muted/30 transition-colors"
               >
                 <div className="flex items-center justify-between">
-                <div 
-                  className="flex items-center gap-3 cursor-pointer flex-1"
-                  onClick={(e) => handleUserClick(searchUser, e)}
-                >
-                  <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center overflow-hidden">
-                    {searchUser.avatar_url ? (
-                      <img src={searchUser.avatar_url} alt={searchUser.full_name || searchUser.username} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-sm font-bold text-white">
-                        {searchUser.full_name?.charAt(0) || searchUser.username?.charAt(0) || 'U'}
-                      </span>
-                    )}
+                  <div 
+                    className="flex items-center gap-3 cursor-pointer flex-1"
+                    onClick={(e) => handleUserClick(searchUser, e)}
+                  >
+                    <div className="w-10 h-10 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center overflow-hidden">
+                      {searchUser.avatar_url ? (
+                        <img src={searchUser.avatar_url} alt={searchUser.full_name || searchUser.username} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-sm font-bold text-white">
+                          {searchUser.full_name?.charAt(0) || searchUser.username?.charAt(0) || 'U'}
+                        </span>
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-foreground">{searchUser.full_name || searchUser.username}</p>
+                      <p className="text-sm text-muted-foreground">@{searchUser.username}</p>
+                      {searchUser.university && <p className="text-xs text-muted-foreground">{searchUser.university}</p>}
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-semibold text-foreground">{searchUser.full_name || searchUser.username}</p>
-                    <p className="text-sm text-muted-foreground">@{searchUser.username}</p>
-                    {searchUser.university && <p className="text-xs text-muted-foreground">{searchUser.university}</p>}
-                  </div>
-                </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => handleStartChat(searchUser.user_id, e)}
+                    className="ml-2 hover:bg-primary/10"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                  </Button>
                 </div>
               </div>
             ))
