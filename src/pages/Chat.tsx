@@ -27,6 +27,7 @@ export default function Chat() {
   const [unreadMessages, setUnreadMessages] = useState<Set<string>>(new Set());
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [newMessageNotification, setNewMessageNotification] = useState(false);
+  const [showDeleteMode, setShowDeleteMode] = useState(false);
   const [deletingChatId, setDeletingChatId] = useState<string | null>(null); // For confirmation dialog
   const [selectedChatsForBulk, setSelectedChatsForBulk] = useState<Set<string>>(new Set()); // For bulk delete
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -270,12 +271,21 @@ export default function Chat() {
             <div className="mt-6 space-y-4">
               <h3 className="text-sm font-medium text-muted-foreground flex justify-between items-center">
                 Recent Chats
-                {selectedChatsForBulk.size > 0 && (
-                  <Button variant="destructive" size="sm" onClick={() => handleDeleteChat()}>
-                    Delete Selected ({selectedChatsForBulk.size})
-                  </Button>
-                )}
+                <Button variant="ghost" size="sm" onClick={toggleDeleteMode}>
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
               </h3>
+              {showDeleteMode && (
+                <div className="bg-muted/50 p-3 rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-2">Select chats to delete</p>
+                  {selectedChatsForBulk.size > 0 && (
+                    <Button variant="destructive" size="sm" onClick={() => handleDeleteChat()}>
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete Selected ({selectedChatsForBulk.size})
+                    </Button>
+                  )}
+                </div>
+              )}
               {loading && (
                 <div className="flex items-center justify-center">
                   <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -291,21 +301,19 @@ export default function Chat() {
                     className={`flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors relative ${
                       selectedChatsForBulk.has(chat.other_user_id) ? 'bg-destructive/10' : ''
                     }`}
-                    onClick={() => handleUserClick(chat.other_user_id)}
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      toggleBulkSelect(chat.other_user_id);
-                    }}
+                    onClick={() => showDeleteMode ? toggleBulkSelect(chat.other_user_id) : handleUserClick(chat.other_user_id)}
                   >
-                    <input
-                      type="checkbox"
-                      checked={selectedChatsForBulk.has(chat.other_user_id)}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        toggleBulkSelect(chat.other_user_id);
-                      }}
-                      className="mr-2"
-                    />
+                    {showDeleteMode && (
+                      <input
+                        type="checkbox"
+                        checked={selectedChatsForBulk.has(chat.other_user_id)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          toggleBulkSelect(chat.other_user_id);
+                        }}
+                        className="mr-2"
+                      />
+                    )}
                     <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center relative overflow-hidden">
                       {chat.other_user_avatar ? (
                         <img src={chat.other_user_avatar} alt={chat.other_user_name} className="w-full h-full object-cover" />
@@ -322,7 +330,7 @@ export default function Chat() {
                       <p className="font-medium text-foreground">{chat.other_user_name}</p>
                       <p className="text-sm text-muted-foreground">{chat.other_user_university}</p>
                     </div>
-                    {selectedChatsForBulk.size === 0 && (
+                    {showDeleteMode && selectedChatsForBulk.has(chat.other_user_id) && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -333,7 +341,7 @@ export default function Chat() {
                           else toast.error('Conversation not found');
                         }}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4 text-destructive" />
                       </Button>
                     )}
                   </div>
@@ -507,12 +515,21 @@ export default function Chat() {
             <div className="mt-6 space-y-4">
               <h3 className="text-sm font-medium text-muted-foreground flex justify-between items-center">
                 Recent Chats
-                {selectedChatsForBulk.size > 0 && (
-                  <Button variant="destructive" size="sm" onClick={() => handleDeleteChat()}>
-                    Delete Selected ({selectedChatsForBulk.size})
-                  </Button>
-                )}
+                <Button variant="ghost" size="sm" onClick={toggleDeleteMode}>
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
               </h3>
+              {showDeleteMode && (
+                <div className="bg-muted/50 p-3 rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-2">Select chats to delete</p>
+                  {selectedChatsForBulk.size > 0 && (
+                    <Button variant="destructive" size="sm" onClick={() => handleDeleteChat()}>
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Delete Selected ({selectedChatsForBulk.size})
+                    </Button>
+                  )}
+                </div>
+              )}
               {loading && (
                 <div className="flex items-center justify-center">
                   <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -528,21 +545,19 @@ export default function Chat() {
                     className={`flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors relative ${
                       selectedChatsForBulk.has(chat.other_user_id) ? 'bg-destructive/10' : ''
                     }`}
-                    onClick={() => handleUserClick(chat.other_user_id)}
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      toggleBulkSelect(chat.other_user_id);
-                    }}
+                    onClick={() => showDeleteMode ? toggleBulkSelect(chat.other_user_id) : handleUserClick(chat.other_user_id)}
                   >
-                    <input
-                      type="checkbox"
-                      checked={selectedChatsForBulk.has(chat.other_user_id)}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        toggleBulkSelect(chat.other_user_id);
-                      }}
-                      className="mr-2"
-                    />
+                    {showDeleteMode && (
+                      <input
+                        type="checkbox"
+                        checked={selectedChatsForBulk.has(chat.other_user_id)}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          toggleBulkSelect(chat.other_user_id);
+                        }}
+                        className="mr-2"
+                      />
+                    )}
                      <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center relative overflow-hidden">
                        {chat.other_user_avatar ? (
                          <img src={chat.other_user_avatar} alt={chat.other_user_name} className="w-full h-full object-cover" />
@@ -559,7 +574,7 @@ export default function Chat() {
                       <p className="font-medium text-foreground">{chat.other_user_name}</p>
                       <p className="text-sm text-muted-foreground">{chat.other_user_university}</p>
                     </div>
-                    {selectedChatsForBulk.size === 0 && (
+                    {showDeleteMode && selectedChatsForBulk.has(chat.other_user_id) && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -570,7 +585,7 @@ export default function Chat() {
                           else toast.error('Conversation not found');
                         }}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4 text-destructive" />
                       </Button>
                     )}
                   </div>

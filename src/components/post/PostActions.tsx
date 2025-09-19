@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Heart, MessageCircle, Share } from 'lucide-react';
+import { Heart, MessageCircle, Share, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import ShareModal from './ShareModal';
@@ -81,7 +81,8 @@ export default function PostActions({
           {/* Views Count */}
           {viewsCount > 0 && (
             <div className="flex items-center gap-2 text-muted-foreground">
-              <span className="text-sm font-medium">{viewsCount} views</span>
+              <Eye className="w-4 h-4" />
+              <span className="text-sm font-medium">{viewsCount}</span>
             </div>
           )}
         </div>
