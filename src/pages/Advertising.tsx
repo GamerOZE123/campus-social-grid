@@ -14,6 +14,8 @@ export default function Advertising() {
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   const fetchAdvertisingPosts = async () => {
+    if (!user) return;
+    
     try {
       const { data, error } = await supabase
         .from('advertising_posts')
@@ -25,6 +27,7 @@ export default function Advertising() {
           )
         `)
         .eq('is_active', true)
+        .eq('company_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -37,14 +40,16 @@ export default function Advertising() {
   };
 
   useEffect(() => {
-    fetchAdvertisingPosts();
-  }, []);
+    if (user) {
+      fetchAdvertisingPosts();
+    }
+  }, [user]);
 
   return (
     <Layout>
       <div className="max-w-2xl mx-auto space-y-8">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-foreground">Advertising Posts</h1>
+          <h1 className="text-3xl font-bold text-foreground">My Advertising Posts</h1>
           <Button
             size="lg"
             className="rounded-full w-12 h-12 shadow-lg hover:shadow-xl transition-shadow"
@@ -71,23 +76,9 @@ export default function Advertising() {
           </div>
         ) : (
           <div className="text-center py-12 text-muted-foreground">
-            No advertising posts yet.
+            You haven't created any advertising posts yet. Click the + button to create your first ad!
           </div>
         )}
-
-        {/* What's Your Thought Section */}
-        <div className="mt-10 p-6 rounded-xl bg-surface shadow">
-          <h2 className="text-xl font-bold text-foreground mb-2">What's your thought?</h2>
-          <p className="text-muted-foreground mb-4">
-            Share your feedback or suggestions about advertising on campus.
-          </p>
-          <textarea
-            className="w-full p-3 border border-border rounded-lg bg-background text-foreground resize-none"
-            rows={3}
-            placeholder="Type your thoughts here..."
-          />
-          <Button className="mt-3">Submit</Button>
-        </div>
 
         {/* Create Advertising Post Modal */}
         <CreateAdvertisingPostModal
