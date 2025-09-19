@@ -38,6 +38,7 @@ interface TransformedPost {
   created_at: string;
   likes_count: number;
   comments_count: number;
+  views_count: number;
   user_id: string;
   user_name: string;
   user_username: string;
@@ -74,6 +75,7 @@ interface MixedPost {
 export default function Home() {
   const { user } = useAuth();
   const [mixedPosts, setMixedPosts] = useState<MixedPost[]>([]);
+  const [seenPostIds, setSeenPostIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const isMobile = useIsMobile();
 
@@ -81,11 +83,20 @@ export default function Home() {
     try {
       console.log('Fetching posts...');
       
-      // Fetch regular posts
-      const { data: postsData, error: postsError } = await supabase
+      // First get all posts, excluding already seen ones
+      let query = supabase
         .from('posts')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      // Exclude seen posts if we have any
+      if (seenPostIds.size > 0) {
+        const seenIds = Array.from(seenPostIds);
+        query = query.not('id', 'in', `(${seenIds.map(id => `"${id}"`).join(',')})`);
+      }
+
+      const { data: postsData, error: postsError } = await query;
       
       if (postsError) {
         console.error('Error fetching posts:', postsError);
@@ -166,6 +177,7 @@ export default function Home() {
           created_at: post.created_at,
           likes_count: post.likes_count || 0,
           comments_count: post.comments_count || 0,
+          views_count: post.views_count || 0,
           user_id: post.user_id,
           user_name: userName,
           user_username: userUsername,
@@ -178,6 +190,17 @@ export default function Home() {
           }
         };
       }).sort(() => Math.random() - 0.5); // Randomly shuffle posts
+
+      // Update seen posts
+      const newPostIds = transformedPosts.map(p => p.id);
+      setSeenPostIds(prev => new Set([...prev, ...newPostIds]));
+
+      // If no new posts and we have seen posts, reset and fetch again
+      if (transformedPosts.length === 0 && seenPostIds.size > 0) {
+        setSeenPostIds(new Set());
+        fetchPosts();
+        return;
+      }
 
       // Create algorithm to intersperse advertising posts
       const mixedArray: MixedPost[] = [];

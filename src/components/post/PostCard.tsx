@@ -9,6 +9,8 @@ import MultipleImageDisplay from './MultipleImageDisplay';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLikes } from '@/hooks/useLikes';
+import { usePostViews } from '@/hooks/usePostViews';
+import { useViewportTracker } from '@/hooks/useViewportTracker';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -21,6 +23,7 @@ interface Post {
   created_at: string;
   likes_count: number;
   comments_count: number;
+  views_count: number;
   user_id?: string;
   user_name?: string;
   user_username?: string;
@@ -44,6 +47,12 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
   const { user } = useAuth();
   const [showEditModal, setShowEditModal] = useState(false);
   const { isLiked, likesCount, loading: likesLoading, toggleLike } = useLikes(post.id);
+  const { recordPostView } = usePostViews();
+  
+  // Track when post enters viewport to record view
+  const postRef = useViewportTracker(() => {
+    recordPostView(post.id);
+  });
 
   const handleHashtagClick = (hashtag: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -96,7 +105,7 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
   return (
     <>
       <ClickablePostCard postId={post.id}>
-        <div className="w-full p-4 space-y-3 hover:bg-muted/20 transition-colors border-b border-border">
+        <div ref={postRef} className="w-full p-4 space-y-3 hover:bg-muted/20 transition-colors border-b border-border">
           {/* Header (with caption inside) */}
           <PostHeader
             username={username}
@@ -161,6 +170,7 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
           <PostActions
             likesCount={likesCount}
             commentsCount={post.comments_count}
+            viewsCount={post.views_count}
             isLiked={isLiked}
             likesLoading={likesLoading}
             onLike={handleLikeClick}

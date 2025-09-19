@@ -41,6 +41,7 @@ interface PostWithProfile {
   created_at: string;
   likes_count: number;
   comments_count: number;
+  views_count: number;
   user_id: string;
   hashtags?: string[];
   profiles: {
@@ -60,6 +61,7 @@ interface TransformedPost {
   created_at: string;
   likes_count: number;
   comments_count: number;
+  views_count: number;
   user_id: string;
   user_name: string;
   user_username: string;
@@ -224,11 +226,12 @@ export default function Profile() {
       created_at: post.created_at,
       likes_count: post.likes_count,
       comments_count: post.comments_count,
+      views_count: post.views_count || 0,
       user_id: post.user_id,
       user_name: post.profiles.full_name || post.profiles.username || 'Unknown',
       user_username: post.profiles.username || 'user',
       user_university: post.profiles.university || 'University',
-      hashtags: post.hashtags
+      hashtags: post.hashtags || []
     }));
   };
 

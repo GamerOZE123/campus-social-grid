@@ -17,6 +17,7 @@ interface PostData {
   image_urls?: string[];
   likes_count: number;
   comments_count: number;
+  views_count: number;
   created_at: string;
   profiles: {
     full_name?: string;
@@ -35,6 +36,7 @@ interface TransformedPost {
   created_at: string;
   likes_count: number;
   comments_count: number;
+  views_count: number;
   user_id: string;
   user_name: string;
   user_username: string;
@@ -104,6 +106,7 @@ export default function Post() {
         created_at: postData.created_at,
         likes_count: postData.likes_count || 0,
         comments_count: postData.comments_count || 0,
+        views_count: postData.views_count || 0,
         user_id: postData.user_id,
         user_name: userName,
         user_username: userUsername,

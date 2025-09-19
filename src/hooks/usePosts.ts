@@ -11,6 +11,7 @@ export interface Post {
   image_urls: string[] | null;
   likes_count: number;
   comments_count: number;
+  views_count: number;
   created_at: string;
   updated_at: string;
   profiles: {

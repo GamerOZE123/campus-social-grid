@@ -8,6 +8,7 @@ import ShareModal from './ShareModal';
 interface PostActionsProps {
   likesCount: number;
   commentsCount: number;
+  viewsCount?: number;
   onLike?: (e?: React.MouseEvent) => void;
   onComment?: (e?: React.MouseEvent) => void;
   onShare?: () => void;
@@ -19,7 +20,8 @@ interface PostActionsProps {
 
 export default function PostActions({ 
   likesCount, 
-  commentsCount, 
+  commentsCount,
+  viewsCount = 0, 
   isLiked = false, 
   onLike, 
   onComment,
@@ -75,6 +77,13 @@ export default function PostActions({
             <Share className="w-5 h-5" />
             <span className="font-medium">Share</span>
           </Button>
+
+          {/* Views Count */}
+          {viewsCount > 0 && (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <span className="text-sm font-medium">{viewsCount} views</span>
+            </div>
+          )}
         </div>
       </div>
 
