@@ -59,12 +59,13 @@ interface AdvertisingPost {
   redirect_url: string;
   click_count: number;
   likes_count: number;
+  views_count: number;
   created_at: string;
   company_id: string;
   company_profiles?: {
     company_name: string;
     logo_url?: string;
-  } | null;
+  };
 }
 
 interface MixedPost {

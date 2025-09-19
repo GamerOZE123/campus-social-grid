@@ -62,6 +62,30 @@ export type Database = {
         }
         Relationships: []
       }
+      advertising_post_views: {
+        Row: {
+          advertising_post_id: string
+          id: string
+          session_id: string
+          user_id: string | null
+          viewed_at: string
+        }
+        Insert: {
+          advertising_post_id: string
+          id?: string
+          session_id: string
+          user_id?: string | null
+          viewed_at?: string
+        }
+        Update: {
+          advertising_post_id?: string
+          id?: string
+          session_id?: string
+          user_id?: string | null
+          viewed_at?: string
+        }
+        Relationships: []
+      }
       advertising_posts: {
         Row: {
           click_count: number
@@ -75,6 +99,7 @@ export type Database = {
           redirect_url: string
           title: string
           updated_at: string
+          views_count: number
         }
         Insert: {
           click_count?: number
@@ -88,6 +113,7 @@ export type Database = {
           redirect_url: string
           title: string
           updated_at?: string
+          views_count?: number
         }
         Update: {
           click_count?: number
@@ -101,6 +127,7 @@ export type Database = {
           redirect_url?: string
           title?: string
           updated_at?: string
+          views_count?: number
         }
         Relationships: []
       }

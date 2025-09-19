@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Heart, ExternalLink, TrendingUp, MoreHorizontal } from 'lucide-react';
+import { Heart, ExternalLink, TrendingUp, MoreHorizontal, Eye } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import PostContent from '@/components/post/PostContent';
+import { useAdvertisingPostViews } from '@/hooks/useAdvertisingPostViews';
+import { useViewportTracker } from '@/hooks/useViewportTracker';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +24,7 @@ interface AdvertisingPost {
   redirect_url: string;
   click_count: number;
   likes_count: number;
+  views_count: number;
   created_at: string;
   company_id: string;
   company_profiles?: {
@@ -45,6 +48,12 @@ export default function AdvertisingPostCard({
   const { toast } = useToast();
   const [liked, setLiked] = useState(isLiked);
   const [likesCount, setLikesCount] = useState(post.likes_count);
+  const { recordAdvertisingPostView } = useAdvertisingPostViews();
+  
+  // Track when ad enters viewport to record view
+  const adRef = useViewportTracker(() => {
+    recordAdvertisingPostView(post.id);
+  });
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -157,6 +166,7 @@ export default function AdvertisingPostCard({
 
   return (
     <div 
+      ref={adRef}
       className="cursor-pointer hover:bg-muted/20 transition-colors overflow-hidden group w-full p-4 space-y-3 border-b border-border"
       onClick={handleClick}
     >
@@ -277,6 +287,14 @@ export default function AdvertisingPostCard({
             <ExternalLink className="w-5 h-5" />
             <span className="font-medium">Visit</span>
           </Button>
+
+          {/* Views Count */}
+          {post.views_count > 0 && (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Eye className="w-5 h-5" />
+              <span className="text-sm font-medium">{post.views_count} views</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
