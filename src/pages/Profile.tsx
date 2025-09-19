@@ -132,8 +132,8 @@ export default function Profile() {
 
       if (postsError) throw postsError;
 
-      // Then get the profile data for the user
-      const { data: profileData, error: profileError } = await supabase
+      // Then get the current profile data for the user (to ensure updated avatar)
+      const { data: currentProfileData, error: profileError } = await supabase
         .from('profiles')
         .select('username, full_name, avatar_url, university')
         .eq('user_id', userId)
@@ -141,10 +141,10 @@ export default function Profile() {
 
       if (profileError) throw profileError;
 
-      // Combine the data
+      // Combine the data using the current profile data to ensure updated avatar
       const postsWithProfile: PostWithProfile[] = (postsData || []).map(post => ({
         ...post,
-        profiles: profileData
+        profiles: currentProfileData
       }));
 
       setPosts(postsWithProfile);

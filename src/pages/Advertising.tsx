@@ -36,8 +36,21 @@ export default function Advertising() {
 
       if (error) throw error;
       
-      const posts = data || [];
-      setAdvertisingPosts(posts);
+      // Fetch company profile for the current user
+      const { data: companyProfile } = await supabase
+        .from('company_profiles')
+        .select('user_id, company_name, logo_url')
+        .eq('user_id', user.id)
+        .single();
+      
+      // Map company profile to advertising posts
+      const postsWithProfiles = (data || []).map(post => ({
+        ...post,
+        company_profiles: companyProfile || null
+      }));
+      
+      const posts = postsWithProfiles;
+      setAdvertisingPosts(postsWithProfiles);
       
       // Calculate analytics
       const totalViews = posts.reduce((sum, post) => sum + (post.views_count || 0), 0);
@@ -174,6 +187,7 @@ export default function Advertising() {
                   <div key={post.id} className={index !== advertisingPosts.length - 1 ? "border-b border-border" : ""}>
                     <AdvertisingPostCard
                       post={post}
+                      showDetailModal={true}
                     />
                   </div>
                 ))}

@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Heart, ExternalLink, TrendingUp, MoreHorizontal, Eye } from 'lucide-react';
+import { Heart, ExternalLink, TrendingUp, MoreHorizontal, Eye, Info } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import PostContent from '@/components/post/PostContent';
 import { useAdvertisingPostViews } from '@/hooks/useAdvertisingPostViews';
 import { useViewportTracker } from '@/hooks/useViewportTracker';
+import AdvertisingPostDetailModal from './AdvertisingPostDetailModal';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,17 +38,20 @@ interface AdvertisingPostCardProps {
   post: AdvertisingPost;
   onLikeUpdate?: () => void;
   isLiked?: boolean;
+  showDetailModal?: boolean;
 }
 
 export default function AdvertisingPostCard({ 
   post, 
   onLikeUpdate,
-  isLiked = false
+  isLiked = false,
+  showDetailModal = false
 }: AdvertisingPostCardProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [liked, setLiked] = useState(isLiked);
   const [likesCount, setLikesCount] = useState(post.likes_count);
+  const [showDetail, setShowDetail] = useState(false);
   const { recordAdvertisingPostView } = useAdvertisingPostViews();
   
   // Track when ad enters viewport to record view
@@ -67,6 +71,11 @@ export default function AdvertisingPostCard({
   };
 
   const handleClick = async () => {
+    if (showDetailModal) {
+      setShowDetail(true);
+      return;
+    }
+
     try {
       // Track the click
       await supabase
@@ -75,6 +84,29 @@ export default function AdvertisingPostCard({
           advertising_post_id: post.id,
           user_id: user?.id || null,
           ip_address: null, // Could be populated from IP detection service
+          user_agent: navigator.userAgent
+        });
+
+      // Open the URL in a new tab
+      window.open(post.redirect_url, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      console.error('Error tracking click:', error);
+      // Still redirect even if tracking fails
+      window.open(post.redirect_url, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const handleVisitSite = async () => {
+    setShowDetail(false);
+    
+    try {
+      // Track the click
+      await supabase
+        .from('advertising_clicks')
+        .insert({
+          advertising_post_id: post.id,
+          user_id: user?.id || null,
+          ip_address: null,
           user_agent: navigator.userAgent
         });
 
@@ -275,18 +307,33 @@ export default function AdvertisingPostCard({
             <span className="font-medium">{post.click_count}</span>
           </Button>
           
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={(e) => {
-              e.stopPropagation();
-              handleShare();
-            }}
-            className="flex items-center gap-2 hover:bg-muted/50"
-          >
-            <ExternalLink className="w-5 h-5" />
-            <span className="font-medium">Visit</span>
-          </Button>
+          {showDetailModal ? (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowDetail(true);
+              }}
+              className="flex items-center gap-2 hover:bg-muted/50"
+            >
+              <Info className="w-5 h-5" />
+              <span className="font-medium">Details</span>
+            </Button>
+          ) : (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={(e) => {
+                e.stopPropagation();
+                handleShare();
+              }}
+              className="flex items-center gap-2 hover:bg-muted/50"
+            >
+              <ExternalLink className="w-5 h-5" />
+              <span className="font-medium">Visit</span>
+            </Button>
+          )}
 
           {/* Views Count */}
           {post.views_count > 0 && (
@@ -297,6 +344,14 @@ export default function AdvertisingPostCard({
           )}
         </div>
       </div>
+
+      {/* Detail Modal */}
+      <AdvertisingPostDetailModal
+        post={post}
+        open={showDetail}
+        onOpenChange={setShowDetail}
+        onVisitSite={handleVisitSite}
+      />
     </div>
   );
 }
