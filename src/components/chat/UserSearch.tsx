@@ -1,22 +1,27 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, MessageCircle } from 'lucide-react';
+import { Search, MessageCircle, MoreVertical, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useUsers } from '@/hooks/useUsers';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface UserSearchProps {
   onStartChat: (userId: string) => void;
+  onToggleDeleteMode?: () => void;
+  deleteMode?: boolean;
 }
 
-export default function UserSearch({ onStartChat }: UserSearchProps) {
+export default function UserSearch({ onStartChat, onToggleDeleteMode, deleteMode = false }: UserSearchProps) {
   const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [showResults, setShowResults] = useState(false);
   const { users, loading, searchUsers } = useUsers();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const searchRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout>();
 
@@ -54,9 +59,15 @@ export default function UserSearch({ onStartChat }: UserSearchProps) {
 
   const handleUserClick = (selectedUser: any, e: React.MouseEvent) => {
     e.stopPropagation();
-    navigate(`/profile/${selectedUser.user_id}`);
-    setShowResults(false);
-    setQuery('');
+    if (isMobile) {
+      // On mobile, clicking anywhere on the user should start chat
+      handleStartChat(selectedUser.user_id, e);
+    } else {
+      // On desktop, maintain original behavior - go to profile
+      navigate(`/profile/${selectedUser.user_id}`);
+      setShowResults(false);
+      setQuery('');
+    }
   };
 
   const handleStartChat = async (userId: string, e: React.MouseEvent) => {
@@ -71,14 +82,31 @@ export default function UserSearch({ onStartChat }: UserSearchProps) {
 
   return (
     <div className="relative" ref={searchRef}>
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-        <Input 
-          placeholder="Search users to chat with..." 
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="pl-10 bg-muted/50 border-muted text-foreground placeholder:text-muted-foreground focus:border-primary"
-        />
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <Input 
+            placeholder="Search users to chat with..." 
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="pl-10 bg-muted/50 border-muted text-foreground placeholder:text-muted-foreground focus:border-primary"
+          />
+        </div>
+        {isMobile && onToggleDeleteMode && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onToggleDeleteMode}>
+                <Trash2 className="w-4 h-4 mr-2" />
+                {deleteMode ? 'Cancel Delete' : 'Delete Users'}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
       
       {showResults && (
@@ -114,14 +142,16 @@ export default function UserSearch({ onStartChat }: UserSearchProps) {
                       {searchUser.university && <p className="text-xs text-muted-foreground">{searchUser.university}</p>}
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => handleStartChat(searchUser.user_id, e)}
-                    className="ml-2 hover:bg-primary/10"
-                  >
-                    <MessageCircle className="w-4 h-4" />
-                  </Button>
+                  {!isMobile && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => handleStartChat(searchUser.user_id, e)}
+                      className="ml-2 hover:bg-primary/10"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             ))

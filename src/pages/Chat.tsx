@@ -28,7 +28,7 @@ export default function Chat() {
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [newMessageNotification, setNewMessageNotification] = useState(false);
   const [deletingChatId, setDeletingChatId] = useState<string | null>(null); // For confirmation dialog
-  const [selectedChatsForBulk, setSelectedChatsForBulk] = useState<Set<string>>(new Set()); // For bulk delete
+  const [deleteMode, setDeleteMode] = useState(false); // For mobile delete mode
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const previousMessagesLength = useRef(0);
@@ -181,33 +181,10 @@ export default function Chat() {
       setDeletingChatId(conversationId);
       return;
     }
+  };
 
-    // Bulk delete
-    if (selectedChatsForBulk.size === 0) {
-      toast.error('No chats selected for deletion');
-      return;
-    }
-
-    let successCount = 0;
-    for (const otherUserId of selectedChatsForBulk) {
-      const conv = conversations.find((c) => c.other_user_id === otherUserId);
-      if (conv) {
-        const result = await deleteChat(conv.conversation_id, otherUserId);
-        if (result.success) successCount++;
-        else console.error('Failed to delete chat:', otherUserId, result.error);
-      }
-    }
-
-    if (successCount > 0) {
-      toast.success(`Deleted ${successCount} chat${successCount > 1 ? 's' : ''} for you`);
-      setSelectedChatsForBulk(new Set());
-      setSelectedConversationId(null);
-      setSelectedUser(null);
-      refreshConversations();
-      refreshRecentChats();
-    } else {
-      toast.error('Failed to delete chats');
-    }
+  const toggleDeleteMode = () => {
+    setDeleteMode(!deleteMode);
   };
 
   const confirmDelete = async () => {
@@ -232,14 +209,20 @@ export default function Chat() {
     }
   };
 
-  const toggleBulkSelect = (otherUserId: string) => {
-    const newSet = new Set(selectedChatsForBulk);
-    if (newSet.has(otherUserId)) {
-      newSet.delete(otherUserId);
+  const handleDeleteUser = async (otherUserId: string) => {
+    const conv = conversations.find((c) => c.other_user_id === otherUserId);
+    if (conv) {
+      const result = await deleteChat(conv.conversation_id, otherUserId);
+      if (result.success) {
+        toast.success('Chat deleted for you');
+        refreshConversations();
+        refreshRecentChats();
+      } else {
+        toast.error('Failed to delete chat: ' + result.error);
+      }
     } else {
-      newSet.add(otherUserId);
+      toast.error('Conversation not found');
     }
-    setSelectedChatsForBulk(newSet);
   };
 
   const handleBlockUser = async () => {
@@ -268,14 +251,7 @@ export default function Chat() {
             <h2 className="text-xl font-bold text-foreground mb-4">Messages</h2>
             <UserSearch onStartChat={handleUserClick} />
             <div className="mt-6 space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground flex justify-between items-center">
-                Recent Chats
-                {selectedChatsForBulk.size > 0 && (
-                  <Button variant="destructive" size="sm" onClick={() => handleDeleteChat()}>
-                    Delete Selected ({selectedChatsForBulk.size})
-                  </Button>
-                )}
-              </h3>
+              <h3 className="text-sm font-medium text-muted-foreground">Recent Chats</h3>
               {loading && (
                 <div className="flex items-center justify-center">
                   <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -288,24 +264,9 @@ export default function Chat() {
                 recentChats.map((chat) => (
                   <div
                     key={chat.other_user_id}
-                    className={`flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors relative ${
-                      selectedChatsForBulk.has(chat.other_user_id) ? 'bg-destructive/10' : ''
-                    }`}
+                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
                     onClick={() => handleUserClick(chat.other_user_id)}
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      toggleBulkSelect(chat.other_user_id);
-                    }}
                   >
-                    <input
-                      type="checkbox"
-                      checked={selectedChatsForBulk.has(chat.other_user_id)}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        toggleBulkSelect(chat.other_user_id);
-                      }}
-                      className="mr-2"
-                    />
                     <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center relative overflow-hidden">
                       {chat.other_user_avatar ? (
                         <img src={chat.other_user_avatar} alt={chat.other_user_name} className="w-full h-full object-cover" />
@@ -322,20 +283,18 @@ export default function Chat() {
                       <p className="font-medium text-foreground">{chat.other_user_name}</p>
                       <p className="text-sm text-muted-foreground">{chat.other_user_university}</p>
                     </div>
-                    {selectedChatsForBulk.size === 0 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const conv = conversations.find((c) => c.other_user_id === chat.other_user_id);
-                          if (conv) handleDeleteChat(conv.conversation_id, chat.other_user_id);
-                          else toast.error('Conversation not found');
-                        }}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const conv = conversations.find((c) => c.other_user_id === chat.other_user_id);
+                        if (conv) handleDeleteChat(conv.conversation_id, chat.other_user_id);
+                        else toast.error('Conversation not found');
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 ))}
             </div>
@@ -503,16 +462,13 @@ export default function Chat() {
       {showUserList ? (
         <MobileLayout showHeader={true} showNavigation={true}>
           <div className="p-4">
-            <UserSearch onStartChat={handleUserClick} />
+            <UserSearch 
+              onStartChat={handleUserClick} 
+              onToggleDeleteMode={toggleDeleteMode}
+              deleteMode={deleteMode}
+            />
             <div className="mt-6 space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground flex justify-between items-center">
-                Recent Chats
-                {selectedChatsForBulk.size > 0 && (
-                  <Button variant="destructive" size="sm" onClick={() => handleDeleteChat()}>
-                    Delete Selected ({selectedChatsForBulk.size})
-                  </Button>
-                )}
-              </h3>
+              <h3 className="text-sm font-medium text-muted-foreground">Recent Chats</h3>
               {loading && (
                 <div className="flex items-center justify-center">
                   <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -525,24 +481,9 @@ export default function Chat() {
                 recentChats.map((chat) => (
                   <div
                     key={chat.other_user_id}
-                    className={`flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors relative ${
-                      selectedChatsForBulk.has(chat.other_user_id) ? 'bg-destructive/10' : ''
-                    }`}
-                    onClick={() => handleUserClick(chat.other_user_id)}
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      toggleBulkSelect(chat.other_user_id);
-                    }}
+                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors relative"
+                    onClick={() => !deleteMode && handleUserClick(chat.other_user_id)}
                   >
-                    <input
-                      type="checkbox"
-                      checked={selectedChatsForBulk.has(chat.other_user_id)}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        toggleBulkSelect(chat.other_user_id);
-                      }}
-                      className="mr-2"
-                    />
                      <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center relative overflow-hidden">
                        {chat.other_user_avatar ? (
                          <img src={chat.other_user_avatar} alt={chat.other_user_name} className="w-full h-full object-cover" />
@@ -559,16 +500,15 @@ export default function Chat() {
                       <p className="font-medium text-foreground">{chat.other_user_name}</p>
                       <p className="text-sm text-muted-foreground">{chat.other_user_university}</p>
                     </div>
-                    {selectedChatsForBulk.size === 0 && (
+                    {deleteMode && (
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          const conv = conversations.find((c) => c.other_user_id === chat.other_user_id);
-                          if (conv) handleDeleteChat(conv.conversation_id, chat.other_user_id);
-                          else toast.error('Conversation not found');
+                          handleDeleteUser(chat.other_user_id);
                         }}
+                        className="text-destructive hover:bg-destructive/10"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
