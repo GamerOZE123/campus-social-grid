@@ -90,8 +90,9 @@ export default function JobsInternships() {
   if (showForm || !hasProfile) {
     return (
       <Layout>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="container mx-auto px-4 py-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
@@ -127,7 +128,8 @@ export default function JobsInternships() {
               onComplete={handleFormComplete}
               onCancel={() => navigate('/university')}
             />
-          )}
+            )}
+          </div>
         </div>
       </Layout>
     );
@@ -136,8 +138,9 @@ export default function JobsInternships() {
   // Show the appropriate jobs view based on user type
   return (
     <Layout>
-      <div className="space-y-4 relative">
-        <div className="flex items-center justify-between">
+      <div className="container mx-auto px-4 py-6">
+        <div className="space-y-4 relative">
+          <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -164,6 +167,7 @@ export default function JobsInternships() {
         </div>
 
         {userType === 'student' ? <StudentJobsView /> : <CompanyApplicantsView />}
+        </div>
       </div>
     </Layout>
   );

@@ -19,13 +19,7 @@ export default function Advertising() {
     try {
       const { data, error } = await supabase
         .from('advertising_posts')
-        .select(`
-          *,
-          company_profiles (
-            company_name,
-            logo_url
-          )
-        `)
+        .select('*')
         .eq('is_active', true)
         .eq('company_id', user.id)
         .order('created_at', { ascending: false });
@@ -47,9 +41,10 @@ export default function Advertising() {
 
   return (
     <Layout>
-      <div className="max-w-2xl mx-auto space-y-8">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-foreground">My Advertising Posts</h1>
+      <div className="container mx-auto px-4 py-6">
+        <div className="max-w-2xl mx-auto space-y-8">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-3xl font-bold text-foreground">My Advertising Posts</h1>
           <Button
             size="lg"
             className="rounded-full w-12 h-12 shadow-lg hover:shadow-xl transition-shadow"
@@ -86,6 +81,7 @@ export default function Advertising() {
           onOpenChange={setShowCreateModal}
           onPostCreated={fetchAdvertisingPosts}
         />
+        </div>
       </div>
     </Layout>
   );
