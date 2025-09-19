@@ -176,7 +176,10 @@ export default function Chat() {
     else toast.error('Failed to clear chat');
   };
 
-  const handleDeleteChat = async (conversationId?: string, otherUserId?: string) => {
+  const toggleDeleteMode = () => {
+    setShowDeleteMode(!showDeleteMode);
+    setSelectedChatsForBulk(new Set());
+  };
     if (conversationId && otherUserId) {
       // Single delete: Show confirmation
       setDeletingChatId(conversationId);
