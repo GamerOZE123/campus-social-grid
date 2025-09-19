@@ -998,6 +998,30 @@ export type Database = {
           },
         ]
       }
+      post_views: {
+        Row: {
+          id: string
+          post_id: string
+          session_id: string
+          user_id: string | null
+          viewed_at: string
+        }
+        Insert: {
+          id?: string
+          post_id: string
+          session_id: string
+          user_id?: string | null
+          viewed_at?: string
+        }
+        Update: {
+          id?: string
+          post_id?: string
+          session_id?: string
+          user_id?: string | null
+          viewed_at?: string
+        }
+        Relationships: []
+      }
       posts: {
         Row: {
           comments_count: number | null
@@ -1010,6 +1034,7 @@ export type Database = {
           likes_count: number | null
           updated_at: string | null
           user_id: string
+          views_count: number
         }
         Insert: {
           comments_count?: number | null
@@ -1022,6 +1047,7 @@ export type Database = {
           likes_count?: number | null
           updated_at?: string | null
           user_id: string
+          views_count?: number
         }
         Update: {
           comments_count?: number | null
@@ -1034,6 +1060,7 @@ export type Database = {
           likes_count?: number | null
           updated_at?: string | null
           user_id?: string
+          views_count?: number
         }
         Relationships: []
       }
