@@ -1,16 +1,19 @@
 
 import React from 'react';
 import Layout from '@/components/layout/Layout';
+import MobileLayout from '@/components/layout/MobileLayout';
 import { Button } from '@/components/ui/button';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useNavigate } from 'react-router-dom';
 import { useChat } from '@/hooks/useChat';
 import { Heart, MessageCircle, User, Check } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function Notifications() {
   const { notifications, loading, markAsRead, markAllAsRead } = useNotifications();
   const { createConversation } = useChat();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -49,18 +52,21 @@ export default function Notifications() {
   };
 
   if (loading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center py-12">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      </Layout>
+    const LoadingComponent = (
+      <div className="flex items-center justify-center py-12">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+
+    return isMobile ? (
+      <MobileLayout>{LoadingComponent}</MobileLayout>
+    ) : (
+      <Layout>{LoadingComponent}</Layout>
     );
   }
 
-  return (
-    <Layout>
-      <div className="space-y-6">
+  const NotificationContent = (
+    <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-foreground">Notifications</h1>
           {notifications.some(n => !n.is_read) && (
@@ -107,7 +113,12 @@ export default function Notifications() {
             </div>
           )}
         </div>
-      </div>
-    </Layout>
+    </div>
+  );
+
+  return isMobile ? (
+    <MobileLayout>{NotificationContent}</MobileLayout>
+  ) : (
+    <Layout>{NotificationContent}</Layout>
   );
 }

@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Layout from '@/components/layout/Layout';
+import MobileLayout from '@/components/layout/MobileLayout';
 import { ArrowLeft, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -10,10 +11,12 @@ import DetailedJobForm from '@/components/jobs/DetailedJobForm';
 import StudentApplicationForm from '@/components/jobs/StudentApplicationForm';
 import StudentJobsView from '@/components/jobs/StudentJobsView';
 import CompanyApplicantsView from '@/components/jobs/CompanyApplicantsView';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export default function JobsInternships() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [userType, setUserType] = useState<'student' | 'company'>('student');
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -77,22 +80,25 @@ export default function JobsInternships() {
   };
 
   if (loading) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-64">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      </Layout>
+    const LoadingComponent = (
+      <div className="flex items-center justify-center h-64">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+
+    return isMobile ? (
+      <MobileLayout>{LoadingComponent}</MobileLayout>
+    ) : (
+      <Layout>{LoadingComponent}</Layout>
     );
   }
 
   // Show form if user doesn't have profile yet
   if (showForm || !hasProfile) {
-    return (
-      <Layout>
-        <div className="container mx-auto px-4 py-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
+    const FormComponent = (
+      <div className="container mx-auto px-4 py-6">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
@@ -128,19 +134,23 @@ export default function JobsInternships() {
               onComplete={handleFormComplete}
               onCancel={() => navigate('/university')}
             />
-            )}
-          </div>
+          )}
         </div>
-      </Layout>
+      </div>
+    );
+
+    return isMobile ? (
+      <MobileLayout>{FormComponent}</MobileLayout>
+    ) : (
+      <Layout>{FormComponent}</Layout>
     );
   }
 
   // Show the appropriate jobs view based on user type
-  return (
-    <Layout>
-      <div className="container mx-auto px-4 py-6">
-        <div className="space-y-4 relative">
-          <div className="flex items-center justify-between">
+  const JobsContent = (
+    <div className="container mx-auto px-4 py-6">
+      <div className="space-y-4 relative">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button
               variant="ghost"
@@ -167,8 +177,13 @@ export default function JobsInternships() {
         </div>
 
         {userType === 'student' ? <StudentJobsView /> : <CompanyApplicantsView />}
-        </div>
       </div>
-    </Layout>
+    </div>
+  );
+
+  return isMobile ? (
+    <MobileLayout>{JobsContent}</MobileLayout>
+  ) : (
+    <Layout>{JobsContent}</Layout>
   );
 }
