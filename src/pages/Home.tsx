@@ -43,6 +43,11 @@ interface TransformedPost {
   user_username: string;
   user_university?: string;
   hashtags?: string[];
+  profiles?: {
+    full_name: string;
+    username: string;
+    avatar_url?: string;
+  };
 }
 
 interface AdvertisingPost {
@@ -165,7 +170,12 @@ export default function Home() {
           user_name: userName,
           user_username: userUsername,
           user_university: userUniversity,
-          hashtags: post.hashtags || []
+          hashtags: post.hashtags || [],
+          profiles: {
+            full_name: profile?.full_name || 'Anonymous User',
+            username: profile?.username || 'user',
+            avatar_url: profile?.avatar_url
+          }
         };
       }).sort(() => Math.random() - 0.5); // Randomly shuffle posts
 
