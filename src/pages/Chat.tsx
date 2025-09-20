@@ -120,6 +120,12 @@ export default function Chat() {
 
   const handleUserClick = async (userId: string) => {
   try {
+    // Ensure the current user is authenticated before proceeding
+    if (!user || !user.id) {
+      toast.error('You must be logged in to start a chat.');
+      return;
+    }
+
     const userProfile = await getUserById(userId);
     if (!userProfile) {
       console.error('Failed to fetch user profile:', userId);
@@ -128,12 +134,16 @@ export default function Chat() {
     }
     console.log('Selected user:', userProfile);
     setSelectedUser(userProfile);
+
+    // Pass the user's ID to the conversation creation function
     const conversationId = await createConversation(userId);
+    
     if (!conversationId) {
       console.error('Failed to create conversation for user:', userId);
       toast.error('Failed to create conversation');
       return;
     }
+    
     setSelectedConversationId(conversationId);
     setNewMessageNotification(false);
     setUnreadMessages((prev) => {
