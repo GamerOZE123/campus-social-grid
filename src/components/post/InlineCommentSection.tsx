@@ -89,7 +89,7 @@ export default function InlineCommentSection({ postId, initialCommentsCount = 0 
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 placeholder="Write a comment..."
-                className="min-h-[60px] resize-none border-muted bg-background"
+                className="min-h-[40px] resize-none border-muted bg-background"
                 disabled={submitting}
               />
               

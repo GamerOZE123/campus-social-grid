@@ -37,7 +37,7 @@ export const useComments = (postId: string) => {
           created_at,
           user_id,
           post_id,
-          profiles (
+          profiles!fk_comments_user_profile (
             full_name,
             username,
             avatar_url
@@ -46,14 +46,17 @@ export const useComments = (postId: string) => {
         .eq('post_id', postId)
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching comments:', error);
+        throw error;
+      }
       
       console.log('Fetched comments:', data);
       
-      // Transform the data to handle profiles array properly
+      // Transform the data to handle profiles properly
       const transformedComments: Comment[] = (data || []).map(comment => ({
         ...comment,
-        profiles: Array.isArray(comment.profiles) ? comment.profiles[0] || null : comment.profiles
+        profiles: comment.profiles || null
       }));
       
       setComments(transformedComments);
@@ -96,7 +99,7 @@ export const useComments = (postId: string) => {
           created_at,
           user_id,
           post_id,
-          profiles (
+          profiles!fk_comments_user_profile (
             full_name,
             username,
             avatar_url
@@ -111,10 +114,10 @@ export const useComments = (postId: string) => {
       
       console.log('Comment added successfully:', data);
       
-      // Transform the data to handle profiles array properly
+      // Transform the data to handle profiles properly
       const transformedComment: Comment = {
         ...data,
-        profiles: Array.isArray(data.profiles) ? data.profiles[0] || null : data.profiles
+        profiles: data.profiles || null
       };
       
       setComments(prev => [...prev, transformedComment]);

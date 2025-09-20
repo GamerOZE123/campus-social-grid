@@ -42,7 +42,7 @@ export default function CommentItem({ comment, onDelete, currentUserId }: Commen
   return (
     <div className="flex gap-3 group animate-fade-in">
       <Avatar className="w-8 h-8">
-        <AvatarImage src={comment.profiles?.avatar_url} />
+        <AvatarImage src={comment.profiles?.avatar_url || ''} />
         <AvatarFallback>
           {comment.profiles?.full_name?.[0] || comment.profiles?.username?.[0] || 'U'}
         </AvatarFallback>
