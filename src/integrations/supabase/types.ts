@@ -492,10 +492,6 @@ export type Database = {
         Row: {
           created_at: string
           id: string
-          last_activity: string | null
-          last_message_id: string | null
-          unread_count_user1: number | null
-          unread_count_user2: number | null
           updated_at: string
           user1_id: string | null
           user2_id: string | null
@@ -503,10 +499,6 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
-          last_activity?: string | null
-          last_message_id?: string | null
-          unread_count_user1?: number | null
-          unread_count_user2?: number | null
           updated_at?: string
           user1_id?: string | null
           user2_id?: string | null
@@ -514,23 +506,11 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
-          last_activity?: string | null
-          last_message_id?: string | null
-          unread_count_user1?: number | null
-          unread_count_user2?: number | null
           updated_at?: string
           user1_id?: string | null
           user2_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "conversations_last_message_id_fkey"
-            columns: ["last_message_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       deleted_chats: {
         Row: {
@@ -952,83 +932,12 @@ export type Database = {
           },
         ]
       }
-      message_reactions: {
-        Row: {
-          created_at: string
-          id: string
-          message_id: string
-          reaction_type: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          message_id: string
-          reaction_type?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          message_id?: string
-          reaction_type?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "message_reactions_message_id_fkey"
-            columns: ["message_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      message_status: {
-        Row: {
-          created_at: string
-          id: string
-          message_id: string
-          status: string
-          timestamp: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          message_id: string
-          status?: string
-          timestamp?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          message_id?: string
-          status?: string
-          timestamp?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "message_status_message_id_fkey"
-            columns: ["message_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       messages: {
         Row: {
           content: string
           conversation_id: string
           created_at: string
           id: string
-          media_type: string | null
-          media_url: string | null
-          message_type: string | null
-          reply_to_message_id: string | null
           sender_id: string
         }
         Insert: {
@@ -1036,10 +945,6 @@ export type Database = {
           conversation_id: string
           created_at?: string
           id?: string
-          media_type?: string | null
-          media_url?: string | null
-          message_type?: string | null
-          reply_to_message_id?: string | null
           sender_id: string
         }
         Update: {
@@ -1047,10 +952,6 @@ export type Database = {
           conversation_id?: string
           created_at?: string
           id?: string
-          media_type?: string | null
-          media_url?: string | null
-          message_type?: string | null
-          reply_to_message_id?: string | null
           sender_id?: string
         }
         Relationships: [
@@ -1059,13 +960,6 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "messages_reply_to_message_id_fkey"
-            columns: ["reply_to_message_id"]
-            isOneToOne: false
-            referencedRelation: "messages"
             referencedColumns: ["id"]
           },
         ]
@@ -1414,74 +1308,6 @@ export type Database = {
           },
         ]
       }
-      typing_status: {
-        Row: {
-          conversation_id: string
-          created_at: string
-          id: string
-          is_typing: boolean
-          last_activity: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          conversation_id: string
-          created_at?: string
-          id?: string
-          is_typing?: boolean
-          last_activity?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          conversation_id?: string
-          created_at?: string
-          id?: string
-          is_typing?: boolean
-          last_activity?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "typing_status_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "conversations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      user_presence: {
-        Row: {
-          created_at: string
-          id: string
-          is_online: boolean
-          last_seen: string
-          status: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_online?: boolean
-          last_seen?: string
-          status?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_online?: boolean
-          last_seen?: string
-          status?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       workout_sessions: {
         Row: {
           calories_burned: number | null
@@ -1627,22 +1453,6 @@ export type Database = {
         Args: { challenge_uuid: string }
         Returns: number
       }
-      get_enhanced_conversations: {
-        Args: { target_user_id: string }
-        Returns: {
-          conversation_id: string
-          is_other_user_online: boolean
-          is_typing: boolean
-          last_message: string
-          last_message_time: string
-          last_seen: string
-          other_user_avatar: string
-          other_user_id: string
-          other_user_name: string
-          other_user_university: string
-          unread_count: number
-        }[]
-      }
       get_or_create_conversation: {
         Args: { user1_id: string; user2_id: string }
         Returns: string
@@ -1693,26 +1503,6 @@ export type Database = {
           other_user_university: string
           unread_count: number
         }[]
-      }
-      mark_messages_as_read: {
-        Args: { conversation_uuid: string; reader_user_id: string }
-        Returns: undefined
-      }
-      update_typing_status: {
-        Args: {
-          conversation_uuid: string
-          typing_state: boolean
-          typing_user_id: string
-        }
-        Returns: undefined
-      }
-      update_user_presence: {
-        Args: {
-          online_status: boolean
-          presence_status?: string
-          target_user_id: string
-        }
-        Returns: undefined
       }
       upsert_recent_chat: {
         Args:
