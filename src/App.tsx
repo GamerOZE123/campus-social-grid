@@ -11,7 +11,7 @@ import Auth from '@/pages/Auth';
 import Home from '@/pages/Home';
 import Profile from '@/pages/Profile';
 import Explore from '@/pages/Explore';
-import Chat from '@/pages/Chat';
+import EnhancedChat from '@/pages/EnhancedChat';
 import University from '@/pages/University';
 import Clubs from '@/pages/Clubs';
 import BuySell from '@/pages/BuySell';
@@ -47,7 +47,7 @@ function App() {
             <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
             <Route path="/profile/:userId?" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/explore" element={<ProtectedRoute><Explore /></ProtectedRoute>} />
-            <Route path="/chat/:conversationId?" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+            <Route path="/chat/:conversationId?" element={<ProtectedRoute><EnhancedChat /></ProtectedRoute>} />
             <Route path="/university" element={<ProtectedRoute><University /></ProtectedRoute>} />
             <Route path="/clubs" element={<ProtectedRoute><Clubs /></ProtectedRoute>} />
             <Route path="/buy-sell" element={<ProtectedRoute><BuySell /></ProtectedRoute>} />
