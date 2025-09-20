@@ -5,7 +5,8 @@ import CommentItem from './CommentItem';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Loader2, MessageCircle } from 'lucide-react';
+import { Loader2, MessageCircle, Send } from 'lucide-react';
+import { Trash2 } from 'lucide-react'; // Import the delete icon
 
 interface InlineCommentSectionProps {
   postId: string;
@@ -43,74 +44,85 @@ export default function InlineCommentSection({ postId, initialCommentsCount = 0 
 
   return (
     <div className="border-t border-border bg-muted/5 animate-accordion-down">
-      {/* Comments List */}
-      {comments.length > 0 ? (
-        <div className="p-4 space-y-3">
-          {displayedComments.map((comment) => (
-            <CommentItem
-              key={comment.id}
-              comment={comment}
-              onDelete={deleteComment}
-              currentUserId={user?.id}
-            />
-          ))}
-          
-          {hasMoreComments && !showAllComments && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowAllComments(true)}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              View {comments.length - 3} more comments
-            </Button>
-          )}
-        </div>
-      ) : (
-        <div className="p-4 text-center text-muted-foreground">
-          <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-          <p className="text-sm">No comments yet. Be the first to comment!</p>
-        </div>
-      )}
-
-      {/* Add Comment Form */}
+      {/* Add Comment Form - Fixed at the top */}
       {user && (
-        <form onSubmit={handleSubmit} className="p-4 border-t border-border">
-          <div className="flex gap-3">
-            <Avatar className="w-8 h-8">
-              <AvatarImage src={user.user_metadata?.avatar_url} />
-              <AvatarFallback>
-                {user.user_metadata?.full_name?.[0] || user.email?.[0] || 'U'}
-              </AvatarFallback>
-            </Avatar>
-            
-            <div className="flex-1 space-y-2">
-              <Textarea
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Write a comment..."
-                className="min-h-[40px] resize-none border-muted bg-background"
-                disabled={submitting}
-              />
-              
-              <div className="flex justify-end">
-                <Button
-                  type="submit"
-                  size="sm"
-                  disabled={!newComment.trim() || submitting}
-                  className="min-w-[80px]"
-                >
-                  {submitting ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    'Comment'
-                  )}
-                </Button>
-              </div>
-            </div>
+        <form onSubmit={handleSubmit} className="p-4 border-b border-border bg-background sticky top-0 z-10 flex items-center gap-3">
+          <Avatar className="w-8 h-8">
+            <AvatarImage src={user.user_metadata?.avatar_url} />
+            <AvatarFallback>
+              {user.user_metadata?.full_name?.[0] || user.email?.[0] || 'U'}
+            </AvatarFallback>
+          </Avatar>
+          
+          <div className="flex-1 relative">
+            <Textarea
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              placeholder="Write a comment..."
+              className="min-h-[40px] resize-none border-muted bg-background pr-10"
+              disabled={submitting}
+            />
+            <Button
+              type="submit"
+              size="icon"
+              disabled={!newComment.trim() || submitting}
+              className="absolute right-1 bottom-1 h-8 w-8"
+              aria-label="Send comment"
+            >
+              {submitting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+            </Button>
           </div>
         </form>
       )}
+
+      {/* Comments List */}
+      <div className="p-4 space-y-3">
+        {comments.length > 0 ? (
+          <>
+            {displayedComments.map((comment) => (
+              <div key={comment.id} className="relative group">
+                <CommentItem
+                  comment={comment}
+                  onDelete={deleteComment}
+                  currentUserId={user?.id}
+                />
+                {/* Delete button positioned to the right */}
+                {user && user.id === comment.user_id && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => deleteComment(comment.id)}
+                    className="absolute top-1 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                    aria-label="Delete comment"
+                  >
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                )}
+              </div>
+            ))}
+            
+            {hasMoreComments && !showAllComments && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowAllComments(true)}
+                className="w-full justify-start text-muted-foreground hover:text-foreground"
+              >
+                View {comments.length - 3} more comments
+              </Button>
+            )}
+          </>
+        ) : (
+          <div className="p-4 text-center text-muted-foreground">
+            <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">No comments yet. Be the first to comment!</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
