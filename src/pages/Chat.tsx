@@ -471,14 +471,9 @@ export default function Chat() {
           <div className="p-4">
             <UserSearch onStartChat={handleUserClick} />
             <div className="mt-6 space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground flex justify-between items-center">
-                Recent Chats
-                {selectedChatsForBulk.size > 0 && (
-                  <Button variant="destructive" size="sm" onClick={() => handleDeleteChat()}>
-                    Delete Selected ({selectedChatsForBulk.size})
-                  </Button>
-                )}
-              </h3>
+               <h3 className="text-sm font-medium text-muted-foreground">
+                 Recent Chats
+               </h3>
               {loading && (
                 <div className="flex items-center justify-center">
                   <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -489,57 +484,28 @@ export default function Chat() {
               )}
               {!loading &&
                 recentChats.map((chat) => (
-                  <div
-                    key={chat.other_user_id}
-                    className={`flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors relative ${
-                      selectedChatsForBulk.has(chat.other_user_id) ? 'bg-destructive/10' : ''
-                    }`}
-                    onClick={() => handleUserClick(chat.other_user_id)}
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      toggleBulkSelect(chat.other_user_id);
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedChatsForBulk.has(chat.other_user_id)}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        toggleBulkSelect(chat.other_user_id);
-                      }}
-                      className="mr-2"
-                    />
-                     <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center relative overflow-hidden">
-                       {chat.other_user_avatar ? (
-                         <img src={chat.other_user_avatar} alt={chat.other_user_name} className="w-full h-full object-cover" />
-                       ) : (
-                         <span className="text-sm font-bold text-white">
-                           {chat.other_user_name?.charAt(0) || 'U'}
-                         </span>
-                       )}
-                       {unreadMessages.has(chat.other_user_id) && (
-                         <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
-                       )}
+                   <div
+                     key={chat.other_user_id}
+                     className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                     onClick={() => handleUserClick(chat.other_user_id)}
+                   >
+                      <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center relative overflow-hidden">
+                        {chat.other_user_avatar ? (
+                          <img src={chat.other_user_avatar} alt={chat.other_user_name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-sm font-bold text-white">
+                            {chat.other_user_name?.charAt(0) || 'U'}
+                          </span>
+                        )}
+                        {unreadMessages.has(chat.other_user_id) && (
+                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
+                        )}
+                      </div>
+                     <div className="flex-1">
+                       <p className="font-medium text-foreground">{chat.other_user_name}</p>
+                       <p className="text-sm text-muted-foreground">{chat.other_user_university}</p>
                      </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-foreground">{chat.other_user_name}</p>
-                      <p className="text-sm text-muted-foreground">{chat.other_user_university}</p>
-                    </div>
-                    {selectedChatsForBulk.size === 0 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const conv = conversations.find((c) => c.other_user_id === chat.other_user_id);
-                          if (conv) handleDeleteChat(conv.conversation_id, chat.other_user_id);
-                          else toast.error('Conversation not found');
-                        }}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    )}
-                  </div>
+                   </div>
                 ))}
             </div>
           </div>
