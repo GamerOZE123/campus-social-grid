@@ -3,6 +3,7 @@ import Layout from '@/components/layout/Layout';
 import PostCard from '@/components/post/PostCard';
 import EditProfileModal from '@/components/profile/EditProfileModal';
 import MessageButton from '@/components/profile/MessageButton';
+import FollowButton from '@/components/profile/FollowButton';
 
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -297,30 +298,37 @@ export default function Profile() {
           {profileData.bio && <p className="mt-2">{profileData.bio}</p>}
           {/* ...other info... */}
           <div className="flex justify-center gap-6 mt-4">
-            <div>
-              <span className="font-bold">{posts.length}</span>
-              <span className="text-muted-foreground text-sm ml-1">Posts</span>
+            <div className="text-center">
+              <div className="font-bold text-lg">{posts.length}</div>
+              <div className="text-muted-foreground text-sm">Posts</div>
             </div>
-            <div>
-              <span className="font-bold">{profileData.followers_count || 0}</span>
-              <span className="text-muted-foreground text-sm ml-1">Followers</span>
+            <div className="text-center">
+              <div className="font-bold text-lg">{profileData.followers_count || 0}</div>
+              <div className="text-muted-foreground text-sm">Followers</div>
             </div>
-            <div>
-              <span className="font-bold"></span>
-              <span className="text-muted-foreground text-sm ml-1">Following</span>
+            <div className="text-center">
+              <div className="font-bold text-lg">{profileData.following_count || 0}</div>
+              <div className="text-muted-foreground text-sm">Following</div>
             </div>
           </div>
-          {/* Edit Profile Button */}
-          {isOwnProfile && (
-            <Button
-              onClick={() => setIsEditModalOpen(true)}
-              variant="outline"
-              className="mt-4"
-            >
-              <Edit className="w-4 h-4 mr-2" />
-              Edit Profile
-            </Button>
-          )}
+          {/* Action Buttons */}
+          <div className="flex justify-center gap-3 mt-4">
+            {isOwnProfile ? (
+              <Button
+                onClick={() => setIsEditModalOpen(true)}
+                variant="outline"
+                size="sm"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Edit Profile
+              </Button>
+            ) : (
+              <>
+                <FollowButton userId={profileData.user_id} />
+                <MessageButton userId={profileData.user_id} />
+              </>
+            )}
+          </div>
         </div>
 
         {/* Posts */}
