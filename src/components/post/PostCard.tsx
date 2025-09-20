@@ -6,6 +6,7 @@ import PostActions from './PostActions';
 import EditPostModal from './EditPostModal';
 import ClickablePostCard from './ClickablePostCard';
 import MultipleImageDisplay from './MultipleImageDisplay';
+import InlineCommentSection from './InlineCommentSection';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLikes } from '@/hooks/useLikes';
@@ -46,6 +47,7 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
   const navigate = useNavigate();
   const { user } = useAuth();
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showComments, setShowComments] = useState(false);
   const { isLiked, likesCount, loading: likesLoading, toggleLike } = useLikes(post.id);
   const { recordPostView } = usePostViews();
   
@@ -70,7 +72,7 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
   const handleCommentClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    navigate(`/post/${post.id}`);
+    setShowComments(prev => !prev);
   };
 
   const handleShareClick = () => {
@@ -179,6 +181,14 @@ export default function PostCard({ post, onLike, onComment, onShare, onPostUpdat
             postId={post.id}
             postContent={post.content}
           />
+
+          {/* Inline Comments Section */}
+          {showComments && (
+            <InlineCommentSection 
+              postId={post.id} 
+              initialCommentsCount={post.comments_count}
+            />
+          )}
         </div>
       </ClickablePostCard>
 
