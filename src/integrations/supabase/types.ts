@@ -1611,6 +1611,10 @@ export type Database = {
       }
     }
     Functions: {
+      can_access_profile_email: {
+        Args: { target_user_id: string }
+        Returns: boolean
+      }
       company_can_access_student_contact: {
         Args: { company_user_id: string; student_user_id: string }
         Returns: boolean
@@ -1674,6 +1678,10 @@ export type Database = {
           other_user_name: string
           other_user_university: string
         }[]
+      }
+      get_safe_profile_fields: {
+        Args: Record<PropertyKey, never>
+        Returns: string[]
       }
       get_unswiped_jobs_for_student: {
         Args: { student_user_id: string }
