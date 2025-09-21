@@ -31,13 +31,20 @@ const getImageAspectRatio = (url: string): number => {
 };
 
 const shouldConstrainImage = (actualRatio: number): boolean => {
-  // Only constrain if image is taller than 9:16 (very portrait)
+  // On mobile, constrain wide images (16:9 and wider) to be more reasonable
+  if (typeof window !== 'undefined' && window.innerWidth < 768) {
+    return actualRatio >= 16/9;
+  }
+  // On desktop, only constrain very tall images
   return actualRatio < (9/16);
 };
 
 const getDisplayAspectRatio = (actualRatio: number): number => {
-  // Only constrain very tall portrait images (taller than 9:16) to 4:3
+  // On mobile, use 4:3 for wide images to save vertical space
   if (shouldConstrainImage(actualRatio)) {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      return 4/3; // More mobile-friendly ratio
+    }
     return 4/3;
   }
   // Otherwise keep original aspect ratio

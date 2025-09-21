@@ -34,11 +34,20 @@ const getImageAspectRatio = (url: string): number => {
 };
 
 const shouldConstrainImage = (actualRatio: number): boolean => {
+  // On mobile, constrain wide images (16:9 and wider) to be more reasonable
+  if (typeof window !== 'undefined' && window.innerWidth < 768) {
+    return actualRatio >= 16/9;
+  }
+  // On desktop, only constrain very tall images
   return actualRatio < (9/16);
 };
 
 const getDisplayAspectRatio = (actualRatio: number): number => {
   if (shouldConstrainImage(actualRatio)) {
+    // On mobile, use 4:3 for wide images, on desktop use 4:3 for tall images
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      return 4/3; // More mobile-friendly ratio
+    }
     return 4/3;
   }
   return actualRatio;
@@ -162,7 +171,7 @@ export default function MultipleImageDisplay({
                     <ImagePlaceholder status="loading" />
                   ) : (
                     <AspectRatio 
-                      ratio={16/9} 
+                      ratio={getDisplayAspectRatio(getImageAspectRatio(imageUrl))} 
                       className="rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
                       onClick={() => handleImageClick(index)}
                     >
