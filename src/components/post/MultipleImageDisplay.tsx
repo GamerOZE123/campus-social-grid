@@ -29,32 +29,42 @@ const isPlaceholder = (url: string) => {
   return url.startsWith('uploading-');
 };
 
-const getImageAspectRatio = (url: string): number => {
-  return 16/9; // Default aspect ratio
+const getImageAspectRatio = (url: string): Promise<number> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      resolve(img.width / img.height);
+    };
+    img.onerror = () => {
+      resolve(16/9); // Fallback ratio
+    };
+    img.src = url;
+  });
 };
 
 const shouldConstrainImage = (actualRatio: number): boolean => {
-  // On mobile, constrain extreme aspect ratios
+  // Constrain very tall images (like phone screenshots) and very wide images
   if (typeof window !== 'undefined' && window.innerWidth < 768) {
-    return actualRatio > 2 || actualRatio < 0.5; // Only very wide or very tall
+    // Mobile: constrain tall images more aggressively
+    return actualRatio > 2.5 || actualRatio < 0.6;
   }
-  // On desktop, only constrain very tall images
-  return actualRatio < 0.5;
+  // Desktop: constrain very tall images
+  return actualRatio < 0.6;
 };
 
 const getDisplayAspectRatio = (actualRatio: number): number => {
-  // On mobile, constrain extreme ratios more gently
+  // On mobile
   if (typeof window !== 'undefined' && window.innerWidth < 768) {
-    if (actualRatio > 2) {
-      return 16/9; // Less aggressive constraint for wide images
+    if (actualRatio > 2.5) {
+      return 16/9; // Constrain very wide images
     }
-    if (actualRatio < 0.5) {
-      return 9/16; // Less aggressive constraint for tall images
+    if (actualRatio < 0.6) {
+      return 3/4; // Constrain tall images (like phone screenshots)
     }
   }
-  // On desktop, only constrain very tall images
-  if (actualRatio < 0.5) {
-    return 9/16;
+  // On desktop
+  if (actualRatio < 0.6) {
+    return 9/16; // More constrained for very tall images on desktop
   }
   return actualRatio;
 };
@@ -76,6 +86,7 @@ export default function MultipleImageDisplay({
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
+  const [imageAspectRatios, setImageAspectRatios] = useState<{[key: number]: number}>({});
 
   React.useEffect(() => {
     if (!api) return;
@@ -87,6 +98,24 @@ export default function MultipleImageDisplay({
       setCurrent(api.selectedScrollSnap() + 1);
     });
   }, [api]);
+
+  // Load image dimensions for all images
+  React.useEffect(() => {
+    const loadImageDimensions = async () => {
+      const ratios: {[key: number]: number} = {};
+      for (let i = 0; i < imageUrls.length; i++) {
+        const url = imageUrls[i];
+        if (isImageUrl(url) && !isPlaceholder(url)) {
+          ratios[i] = await getImageAspectRatio(url);
+        }
+      }
+      setImageAspectRatios(ratios);
+    };
+
+    if (imageUrls.length > 0) {
+      loadImageDimensions();
+    }
+  }, [imageUrls]);
 
   const handleImageClick = (index: number) => {
     setSelectedImageIndex(index);
@@ -110,17 +139,17 @@ export default function MultipleImageDisplay({
   // Single image display
   if (imageUrls.length === 1) {
     const imageUrl = imageUrls[0];
-    const aspectRatio = getImageAspectRatio(imageUrl);
+    const aspectRatio = imageAspectRatios[0];
     
     return (
       <>
-        <div className={`w-full max-w-lg ${className}`} data-image-container>
+        <div className={`w-full max-w-md ${className}`} data-image-container>
           {isPlaceholder(imageUrl) ? (
-            <ImagePlaceholder status="loading" className="max-w-lg" />
-          ) : shouldConstrainImage(aspectRatio) ? (
+            <ImagePlaceholder status="loading" className="max-w-md" />
+          ) : aspectRatio && shouldConstrainImage(aspectRatio) ? (
             <AspectRatio 
               ratio={getDisplayAspectRatio(aspectRatio)} 
-              className="rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
+              className="rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity max-h-96"
               onClick={() => handleImageClick(0)}
             >
               <img
@@ -133,8 +162,9 @@ export default function MultipleImageDisplay({
             <img
               src={imageUrl}
               alt="Post content"
-              className="w-full h-auto object-cover rounded-xl cursor-pointer hover:opacity-95 transition-opacity"
+              className="w-full h-auto object-cover rounded-xl cursor-pointer hover:opacity-95 transition-opacity max-h-96"
               onClick={() => handleImageClick(0)}
+              style={{ maxHeight: aspectRatio && aspectRatio < 0.6 ? '400px' : undefined }}
             />
           )}
         </div>
@@ -160,7 +190,7 @@ export default function MultipleImageDisplay({
   // Multiple images carousel
   return (
     <>
-      <div className={`w-full max-w-lg ${className}`} data-image-container>
+      <div className={`w-full max-w-md ${className}`} data-image-container>
         <Carousel 
           setApi={setApi} 
           className="w-full"
@@ -177,8 +207,8 @@ export default function MultipleImageDisplay({
                     <ImagePlaceholder status="loading" />
                   ) : (
                     <AspectRatio 
-                      ratio={getDisplayAspectRatio(getImageAspectRatio(imageUrl))} 
-                      className="rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
+                      ratio={imageAspectRatios[index] ? getDisplayAspectRatio(imageAspectRatios[index]) : 16/9}
+                      className="rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity max-h-96"
                       onClick={() => handleImageClick(index)}
                     >
                       <img

@@ -24,36 +24,43 @@ const isImageUrl = (url: string) => {
   );
 };
 
-const getImageAspectRatio = (url: string): number => {
-  // This is a simplified version - in production you'd want to load the image to get actual dimensions
-  // For demo purposes, we'll use some heuristics based on URL or assume common ratios
-  return 16/9; // Default to 16:9, but this should be enhanced to detect actual image dimensions
+const getImageAspectRatio = (url: string): Promise<number> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      resolve(img.width / img.height);
+    };
+    img.onerror = () => {
+      resolve(16/9); // Fallback ratio
+    };
+    img.src = url;
+  });
 };
 
 const shouldConstrainImage = (actualRatio: number): boolean => {
-  // On mobile, constrain both very wide and very tall images
+  // Constrain very tall images (like phone screenshots) and very wide images
   if (typeof window !== 'undefined' && window.innerWidth < 768) {
-    return actualRatio >= 16/9 || actualRatio <= 9/16; // Wide or tall images
+    // Mobile: constrain tall images more aggressively
+    return actualRatio > 2.5 || actualRatio < 0.6;
   }
-  // On desktop, only constrain very tall images
-  return actualRatio < (9/16);
+  // Desktop: constrain very tall images
+  return actualRatio < 0.6;
 };
 
 const getDisplayAspectRatio = (actualRatio: number): number => {
-  // On mobile, constrain extreme ratios
+  // On mobile
   if (typeof window !== 'undefined' && window.innerWidth < 768) {
-    if (actualRatio >= 16/9) {
-      return 4/3; // Constrain wide images
+    if (actualRatio > 2.5) {
+      return 16/9; // Constrain very wide images
     }
-    if (actualRatio <= 9/16) {
-      return 3/4; // Constrain portrait images to 3:4 max
+    if (actualRatio < 0.6) {
+      return 3/4; // Constrain tall images (like phone screenshots)
     }
   }
-  // On desktop, only constrain very tall images
-  if (actualRatio < (9/16)) {
-    return 3/4;
+  // On desktop
+  if (actualRatio < 0.6) {
+    return 9/16; // More constrained for very tall images on desktop
   }
-  // Otherwise keep original aspect ratio
   return actualRatio;
 };
 
@@ -78,6 +85,7 @@ export default function PostContent({
   postContent = ''
 }: PostContentProps) {
   const [showFullImage, setShowFullImage] = useState(false);
+  const [imageAspectRatio, setImageAspectRatio] = useState<number | null>(null);
   
   const handleDownload = () => {
     if (imageUrl) {
@@ -88,6 +96,13 @@ export default function PostContent({
   const handleImageClick = () => {
     setShowFullImage(true);
   };
+
+  // Load image dimensions when imageUrl changes
+  React.useEffect(() => {
+    if (imageUrl && isImageUrl(imageUrl)) {
+      getImageAspectRatio(imageUrl).then(setImageAspectRatio);
+    }
+  }, [imageUrl]);
 
   return (
     <div className="ml-14 mt-1 space-y-3">
@@ -102,11 +117,11 @@ export default function PostContent({
       {imageUrl && (
         <div className="rounded-xl overflow-hidden" data-image-container>
           {isImageUrl(imageUrl) ? (
-            <div className="w-full max-w-lg">
-              {shouldConstrainImage(getImageAspectRatio(imageUrl)) ? (
+            <div className="w-full max-w-md">
+              {imageAspectRatio && shouldConstrainImage(imageAspectRatio) ? (
                 <AspectRatio 
-                  ratio={getDisplayAspectRatio(getImageAspectRatio(imageUrl))} 
-                  className="rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
+                  ratio={getDisplayAspectRatio(imageAspectRatio)} 
+                  className="rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity max-h-96"
                   onClick={handleImageClick}
                 >
                   <img
@@ -119,8 +134,9 @@ export default function PostContent({
                 <img
                   src={imageUrl}
                   alt="Post content"
-                  className="w-full h-auto object-cover rounded-xl cursor-pointer hover:opacity-95 transition-opacity"
+                  className="w-full h-auto object-cover rounded-xl cursor-pointer hover:opacity-95 transition-opacity max-h-96"
                   onClick={handleImageClick}
+                  style={{ maxHeight: imageAspectRatio && imageAspectRatio < 0.6 ? '400px' : undefined }}
                 />
               )}
             </div>
