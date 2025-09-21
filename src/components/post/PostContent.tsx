@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { File, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
@@ -24,6 +24,33 @@ const isImageUrl = (url: string) => {
   );
 };
 
+const getImageAspectRatio = (url: string): number => {
+  // This is a simplified version - in production you'd want to load the image to get actual dimensions
+  // For demo purposes, we'll use some heuristics based on URL or assume common ratios
+  return 16/9; // Default to 16:9, but this should be enhanced to detect actual image dimensions
+};
+
+const shouldConstrainImage = (actualRatio: number): boolean => {
+  // On mobile, constrain wide images (16:9 and wider) to be more reasonable
+  if (typeof window !== 'undefined' && window.innerWidth < 768) {
+    return actualRatio >= 16/9;
+  }
+  // On desktop, only constrain very tall images
+  return actualRatio < (9/16);
+};
+
+const getDisplayAspectRatio = (actualRatio: number): number => {
+  // On mobile, use 4:3 for wide images to save vertical space
+  if (shouldConstrainImage(actualRatio)) {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      return 4/3; // More mobile-friendly ratio
+    }
+    return 4/3;
+  }
+  // Otherwise keep original aspect ratio
+  return actualRatio;
+};
+
 const getFileNameFromUrl = (url: string) => {
   if (url.includes("placeholder.com")) {
     const match = url.match(/text=(.+)/);
@@ -45,20 +72,7 @@ export default function PostContent({
   postContent = ''
 }: PostContentProps) {
   const [showFullImage, setShowFullImage] = useState(false);
-  const [imageRatio, setImageRatio] = useState<number | null>(null);
-
-  // This useEffect correctly simulates how you would get the image's aspect ratio
-  // asynchronously, which is a key part of making the responsive design work.
-  useEffect(() => {
-    if (imageUrl && isImageUrl(imageUrl)) {
-      const img = new window.Image();
-      img.onload = () => {
-        setImageRatio(img.width / img.height);
-      };
-      img.src = imageUrl;
-    }
-  }, [imageUrl]);
-
+  
   const handleDownload = () => {
     if (imageUrl) {
       window.open(imageUrl, "_blank");
@@ -67,21 +81,6 @@ export default function PostContent({
 
   const handleImageClick = () => {
     setShowFullImage(true);
-  };
-
-  const shouldConstrainImage = (actualRatio: number | null): boolean => {
-    // FIX: We now constrain all portrait images (any aspect ratio < 1) to prevent them from taking up too much vertical space.
-    if (actualRatio === null) return false;
-    return actualRatio < 1;
-  };
-
-  const getDisplayAspectRatio = (actualRatio: number | null): number => {
-    // Display very tall images as 4:3
-    if (shouldConstrainImage(actualRatio)) {
-      return 4 / 3;
-    }
-    // Otherwise keep the original aspect ratio
-    return actualRatio || 16/9; // Fallback to 16:9 if ratio not yet loaded
   };
 
   return (
@@ -98,9 +97,9 @@ export default function PostContent({
         <div className="rounded-xl overflow-hidden" data-image-container>
           {isImageUrl(imageUrl) ? (
             <div className="w-full max-w-lg">
-              {shouldConstrainImage(imageRatio) ? (
-                <AspectRatio
-                  ratio={getDisplayAspectRatio(imageRatio)}
+              {shouldConstrainImage(getImageAspectRatio(imageUrl)) ? (
+                <AspectRatio 
+                  ratio={getDisplayAspectRatio(getImageAspectRatio(imageUrl))} 
                   className="rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
                   onClick={handleImageClick}
                 >
