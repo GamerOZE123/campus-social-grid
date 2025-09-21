@@ -27,7 +27,7 @@ export const useUsers = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, user_id, username, full_name, avatar_url, university, major, bio, user_type, followers_count, following_count, banner_url, created_at, updated_at')
         .or(`full_name.ilike.%${query}%,username.ilike.%${query}%`)
         .limit(10);
       
@@ -45,7 +45,7 @@ export const useUsers = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, user_id, username, full_name, avatar_url, university, major, bio, user_type, followers_count, following_count, banner_url, created_at, updated_at')
         .eq('user_id', userId)
         .single();
       
