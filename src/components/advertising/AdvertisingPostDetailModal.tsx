@@ -3,12 +3,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Eye, MousePointer, Heart, Calendar } from 'lucide-react';
+import ImageDisplayComponent from '@/components/post/ImageDisplayComponent';
 
 interface AdvertisingPost {
   id: string;
   title: string;
   description?: string;
   image_url: string;
+  image_thumbnail_url?: string;
+  image_medium_url?: string;
+  image_original_url?: string;
   redirect_url: string;
   click_count: number;
   likes_count: number;
@@ -74,14 +78,12 @@ export default function AdvertisingPostDetailModal({
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Post Image */}
-          <div className="w-full rounded-lg overflow-hidden bg-muted">
-            <img 
-              src={post.image_url} 
-              alt={post.title}
-              className="w-full h-auto object-cover"
-            />
-          </div>
+          {/* Post Image - Show Original in Modal */}
+          <ImageDisplayComponent
+            imageUrl={post.image_original_url || post.image_url}
+            alt={post.title}
+            className="max-w-full"
+          />
 
           {/* Post Content */}
           <div className="space-y-4">
