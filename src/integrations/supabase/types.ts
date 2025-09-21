@@ -1659,6 +1659,10 @@ export type Database = {
         Args: { user1_id: string; user2_id: string }
         Returns: string
       }
+      get_public_profile_columns: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_public_student_info: {
         Args: { target_user_id: string }
         Returns: {
@@ -1741,6 +1745,10 @@ export type Database = {
             }
           | { current_user_id: string; target_user_id: string }
         Returns: undefined
+      }
+      user_can_see_email: {
+        Args: { profile_user_id: string }
+        Returns: boolean
       }
       user_in_conversation: {
         Args: { check_user_id: string; conv_id: string }
