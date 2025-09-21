@@ -4,7 +4,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { MultipleImageUpload } from '@/components/ui/multiple-image-upload';
 import { GraduationCap, Mail, Lock, User, ArrowLeft, Building2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -28,7 +27,6 @@ export default function Auth() {
     university: '',
     companyName: ''
   });
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
 
   // Check if user is already logged in
   useEffect(() => {
@@ -103,7 +101,6 @@ export default function Auth() {
             company_name: userType === 'company' ? formData.companyName : undefined,
             username: formData.name || formData.email.split('@')[0],
             user_type: userType,
-            uploaded_images: uploadedImages.length > 0 ? uploadedImages : undefined
           }
         }
       });
@@ -271,93 +268,83 @@ export default function Auth() {
             </Alert>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {mode === 'signup' && (
               <>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <Label>I am a:</Label>
-                  <RadioGroup value={userType} onValueChange={(value: UserType) => setUserType(value)}>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="student" id="student" />
-                      <Label htmlFor="student" className="flex items-center gap-2 cursor-pointer">
-                        <GraduationCap className="w-4 h-4" />
-                        Student
+                  <RadioGroup value={userType} onValueChange={(value: UserType) => setUserType(value)} className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center p-4 border rounded-md cursor-pointer transition-colors hover:bg-muted/50 data-[state=checked]:bg-muted" data-state={userType === 'student' ? 'checked' : 'unchecked'}>
+                      <RadioGroupItem value="student" id="student" className="sr-only" />
+                      <Label htmlFor="student" className="flex flex-col items-center gap-2 w-full cursor-pointer">
+                        <GraduationCap className="w-6 h-6 text-primary" />
+                        <span className="font-medium text-center">Student</span>
                       </Label>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="company" id="company" />
-                      <Label htmlFor="company" className="flex items-center gap-2 cursor-pointer">
-                        <Building2 className="w-4 h-4" />
-                        Company
+                    <div className="flex items-center p-4 border rounded-md cursor-pointer transition-colors hover:bg-muted/50 data-[state=checked]:bg-muted" data-state={userType === 'company' ? 'checked' : 'unchecked'}>
+                      <RadioGroupItem value="company" id="company" className="sr-only" />
+                      <Label htmlFor="company" className="flex flex-col items-center gap-2 w-full cursor-pointer">
+                        <Building2 className="w-6 h-6 text-primary" />
+                        <span className="font-medium text-center">Company</span>
                       </Label>
                     </div>
                   </RadioGroup>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="name">{userType === 'student' ? 'Full Name' : 'Contact Person Name'}</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                    <Input
-                      id="name"
-                      name="name"
-                      type="text"
-                      placeholder={userType === 'student' ? 'Enter your full name' : 'Enter contact person name'}
-                      className="pl-10 bg-surface border-border"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      required
-                    />
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">{userType === 'student' ? 'Full Name' : 'Contact Person Name'}</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                      <Input
+                        id="name"
+                        name="name"
+                        type="text"
+                        placeholder={userType === 'student' ? 'Enter your full name' : 'Enter contact person name'}
+                        className="pl-10 bg-surface border-border"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
                   </div>
+
+                  {userType === 'student' ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="university">University</Label>
+                      <div className="relative">
+                        <GraduationCap className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                        <Input
+                          id="university"
+                          name="university"
+                          type="text"
+                          placeholder="Enter your university"
+                          className="pl-10 bg-surface border-border"
+                          value={formData.university}
+                          onChange={handleInputChange}
+                          required
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label htmlFor="companyName">Company Name</Label>
+                      <div className="relative">
+                        <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                        <Input
+                          id="companyName"
+                          name="companyName"
+                          type="text"
+                          placeholder="Enter your company name"
+                          className="pl-10 bg-surface border-border"
+                          value={formData.companyName}
+                          onChange={handleInputChange}
+                          required
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
-
-                {userType === 'student' ? (
-                  <div className="space-y-2">
-                    <Label htmlFor="university">University</Label>
-                    <div className="relative">
-                      <GraduationCap className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                      <Input
-                        id="university"
-                        name="university"
-                        type="text"
-                        placeholder="Enter your university"
-                        className="pl-10 bg-surface border-border"
-                        value={formData.university}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Label htmlFor="companyName">Company Name</Label>
-                    <div className="relative">
-                      <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                      <Input
-                        id="companyName"
-                        name="companyName"
-                        type="text"
-                        placeholder="Enter your company name"
-                        className="pl-10 bg-surface border-border"
-                        value={formData.companyName}
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {mode === 'signup' && (
-                  <div className="space-y-3">
-                    <Label>Upload Photos (Optional)</Label>
-                    <MultipleImageUpload
-                      onImagesUploaded={setUploadedImages}
-                      maxImages={5}
-                      bucketName="post-images"
-                      className="mt-2"
-                    />
-                  </div>
-                )}
               </>
             )}
 
