@@ -26,12 +26,7 @@ export default function ClickablePostCard({ postId, children, className = "" }: 
         cursor-pointer transition-colors 
         hover:bg-muted/5 
         ${className}
-
-        // ✅ Fullscreen post on mobile
-        sm:w-full sm:h-auto 
-
-        // ✅ Normal contained post on desktop
-        md:w-auto md:max-w-2xl md:mx-auto
+        w-full max-w-lg mx-auto
       `}
     >
       {children}
