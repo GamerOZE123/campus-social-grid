@@ -43,13 +43,13 @@ const shouldConstrainImage = (actualRatio: number): boolean => {
 };
 
 const getDisplayAspectRatio = (actualRatio: number): number => {
-  // On mobile, constrain extreme ratios more aggressively
+  // On mobile, constrain extreme ratios
   if (typeof window !== 'undefined' && window.innerWidth < 768) {
     if (actualRatio >= 16/9) {
-      return 3/2; // More constrained for wide images on mobile
+      return 4/3; // Constrain wide images
     }
     if (actualRatio <= 9/16) {
-      return 2/3; // More constrained for portrait images on mobile
+      return 3/4; // Constrain portrait images to 3:4 max
     }
   }
   // On desktop, only constrain very tall images
