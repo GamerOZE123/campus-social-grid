@@ -146,26 +146,18 @@ export default function MultipleImageDisplay({
         <div className={`w-full max-w-md ${className}`} data-image-container>
           {isPlaceholder(imageUrl) ? (
             <ImagePlaceholder status="loading" className="max-w-md" />
-          ) : aspectRatio && shouldConstrainImage(aspectRatio) ? (
-            <AspectRatio 
-              ratio={getDisplayAspectRatio(aspectRatio)} 
-              className="rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity max-h-96"
+          ) : (
+            <div 
+              className="relative w-full aspect-video bg-muted rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
               onClick={() => handleImageClick(0)}
             >
               <img
                 src={imageUrl}
                 alt="Post content"
                 className="w-full h-full object-cover"
+                loading="lazy"
               />
-            </AspectRatio>
-          ) : (
-            <img
-              src={imageUrl}
-              alt="Post content"
-              className="w-full h-auto object-cover rounded-xl cursor-pointer hover:opacity-95 transition-opacity max-h-96"
-              onClick={() => handleImageClick(0)}
-              style={{ maxHeight: aspectRatio && aspectRatio < 0.6 ? '400px' : undefined }}
-            />
+            </div>
           )}
         </div>
         
@@ -206,17 +198,17 @@ export default function MultipleImageDisplay({
                   {isPlaceholder(imageUrl) ? (
                     <ImagePlaceholder status="loading" />
                   ) : (
-                    <AspectRatio 
-                      ratio={imageAspectRatios[index] ? getDisplayAspectRatio(imageAspectRatios[index]) : 16/9}
-                      className="rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity max-h-96"
+                    <div 
+                      className="relative w-full aspect-video bg-muted rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
                       onClick={() => handleImageClick(index)}
                     >
                       <img
                         src={imageUrl}
                         alt={`Post content ${index + 1}`}
                         className="w-full h-full object-cover"
+                        loading="lazy"
                       />
-                    </AspectRatio>
+                    </div>
                   )}
                   
                   {/* Image counter */}

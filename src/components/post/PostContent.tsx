@@ -105,7 +105,7 @@ export default function PostContent({
   }, [imageUrl]);
 
   return (
-    <div className="ml-14 mt-1 space-y-3">
+    <div className="space-y-3">
       {/* Caption */}
       {content && (
         <p className="text-foreground leading-relaxed whitespace-pre-line break-words">
@@ -115,33 +115,23 @@ export default function PostContent({
 
       {/* Image or file preview */}
       {imageUrl && (
-        <div className="rounded-xl overflow-hidden" data-image-container>
+        <div className="flex justify-center" data-image-container>
           {isImageUrl(imageUrl) ? (
             <div className="w-full max-w-md">
-              {imageAspectRatio && shouldConstrainImage(imageAspectRatio) ? (
-                <AspectRatio 
-                  ratio={getDisplayAspectRatio(imageAspectRatio)} 
-                  className="rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity max-h-96"
-                  onClick={handleImageClick}
-                >
-                  <img
-                    src={imageUrl}
-                    alt="Post content"
-                    className="w-full h-full object-cover"
-                  />
-                </AspectRatio>
-              ) : (
+              <div 
+                className="relative w-full aspect-video bg-muted rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
+                onClick={handleImageClick}
+              >
                 <img
                   src={imageUrl}
                   alt="Post content"
-                  className="w-full h-auto object-cover rounded-xl cursor-pointer hover:opacity-95 transition-opacity max-h-96"
-                  onClick={handleImageClick}
-                  style={{ maxHeight: imageAspectRatio && imageAspectRatio < 0.6 ? '400px' : undefined }}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
                 />
-              )}
+              </div>
             </div>
           ) : (
-            <div className="bg-muted/20 border border-border rounded-lg p-4 flex items-center justify-between">
+            <div className="bg-muted/20 border border-border rounded-lg p-4 flex items-center justify-between w-full max-w-md">
               <div className="flex items-center gap-3">
                 <File className="w-8 h-8 text-muted-foreground" />
                 <div>
