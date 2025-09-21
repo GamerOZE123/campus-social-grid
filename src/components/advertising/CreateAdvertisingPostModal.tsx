@@ -28,7 +28,6 @@ export default function CreateAdvertisingPostModal({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [processingStatus, setProcessingStatus] = useState<string | null>(null);
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -54,42 +53,28 @@ export default function CreateAdvertisingPostModal({
     }
 
     setIsUploading(true);
-    setProcessingStatus("Processing image...");
-    
     try {
-      // Process image using the new edge function
-      const formData = new FormData();
-      formData.append('file', imageFile);
-      formData.append('userId', user.id);
-      formData.append('type', 'advertising');
+      // Upload image to storage
+      const fileExt = imageFile.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('post-images')
+        .upload(fileName, imageFile);
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('No auth session');
+      if (uploadError) throw uploadError;
 
-      const response = await supabase.functions.invoke('process-image', {
-        body: formData,
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-      });
+      const { data: { publicUrl } } = supabase.storage
+        .from('post-images')
+        .getPublicUrl(fileName);
 
-      if (response.error) throw response.error;
-      
-      const { imageUrls } = response.data;
-      
-      setProcessingStatus("Saving post...");
-
-      // Create advertising post with all image URLs
+      // Create advertising post
       const { error: insertError } = await supabase
         .from('advertising_posts')
         .insert({
           company_id: user.id,
           title: title.trim(),
           description: description.trim(),
-          image_url: imageUrls.original, // Keep for backwards compatibility
-          image_thumbnail_url: imageUrls.thumbnail,
-          image_medium_url: imageUrls.medium,
-          image_original_url: imageUrls.original,
+          image_url: publicUrl,
           redirect_url: redirectUrl.trim()
         });
 
@@ -117,7 +102,6 @@ export default function CreateAdvertisingPostModal({
       });
     } finally {
       setIsUploading(false);
-      setProcessingStatus(null);
     }
   };
 
@@ -226,7 +210,7 @@ export default function CreateAdvertisingPostModal({
               Cancel
             </Button>
             <Button type="submit" disabled={isUploading}>
-              {isUploading ? (processingStatus || "Creating...") : "Create Post"}
+              {isUploading ? "Creating..." : "Create Post"}
             </Button>
           </div>
         </form>

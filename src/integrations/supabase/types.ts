@@ -93,9 +93,6 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
-          image_medium_url: string | null
-          image_original_url: string | null
-          image_thumbnail_url: string | null
           image_url: string
           is_active: boolean
           likes_count: number
@@ -110,9 +107,6 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
-          image_medium_url?: string | null
-          image_original_url?: string | null
-          image_thumbnail_url?: string | null
           image_url: string
           is_active?: boolean
           likes_count?: number
@@ -127,9 +121,6 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
-          image_medium_url?: string | null
-          image_original_url?: string | null
-          image_thumbnail_url?: string | null
           image_url?: string
           is_active?: boolean
           likes_count?: number
@@ -1179,9 +1170,6 @@ export type Database = {
           created_at: string | null
           hashtags: string[] | null
           id: string
-          image_medium_url: string | null
-          image_original_url: string | null
-          image_thumbnail_url: string | null
           image_url: string | null
           image_urls: string[] | null
           likes_count: number | null
@@ -1195,9 +1183,6 @@ export type Database = {
           created_at?: string | null
           hashtags?: string[] | null
           id?: string
-          image_medium_url?: string | null
-          image_original_url?: string | null
-          image_thumbnail_url?: string | null
           image_url?: string | null
           image_urls?: string[] | null
           likes_count?: number | null
@@ -1211,9 +1196,6 @@ export type Database = {
           created_at?: string | null
           hashtags?: string[] | null
           id?: string
-          image_medium_url?: string | null
-          image_original_url?: string | null
-          image_thumbnail_url?: string | null
           image_url?: string | null
           image_urls?: string[] | null
           likes_count?: number | null

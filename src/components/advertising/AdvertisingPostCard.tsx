@@ -6,7 +6,7 @@ import { Heart, ExternalLink, TrendingUp, MoreHorizontal, Eye, Info } from 'luci
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import ImageDisplayComponent from '@/components/post/ImageDisplayComponent';
+import PostContent from '@/components/post/PostContent';
 import { useAdvertisingPostViews } from '@/hooks/useAdvertisingPostViews';
 import { useViewportTracker } from '@/hooks/useViewportTracker';
 import AdvertisingPostDetailModal from './AdvertisingPostDetailModal';
@@ -22,9 +22,6 @@ interface AdvertisingPost {
   title: string;
   description?: string;
   image_url: string;
-  image_thumbnail_url?: string;
-  image_medium_url?: string;
-  image_original_url?: string;
   redirect_url: string;
   click_count: number;
   likes_count: number;
@@ -277,11 +274,11 @@ export default function AdvertisingPostCard({
         </div>
       </div>
 
-      {/* Image - Progressive Loading */}
+      {/* Image - Similar to PostContent */}
       <div className="flex justify-center">
-        <ImageDisplayComponent 
-          imageUrl={post.image_medium_url || post.image_url}
-          alt={post.title}
+        <PostContent
+          content=""
+          imageUrl={post.image_url}
         />
       </div>
 
