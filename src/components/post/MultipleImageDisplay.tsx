@@ -147,33 +147,17 @@ export default function MultipleImageDisplay({
           {isPlaceholder(imageUrl) ? (
             <ImagePlaceholder status="loading" className="max-w-md" />
           ) : (
-            aspectRatio ? (
-              <AspectRatio ratio={getDisplayAspectRatio(aspectRatio)}>
-                <div 
-                  className="relative w-full h-full bg-muted rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
-                  onClick={() => handleImageClick(0)}
-                >
-                  <img
-                    src={imageUrl}
-                    alt="Post content"
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                </div>
-              </AspectRatio>
-            ) : (
-              <div 
-                className="relative w-full aspect-video bg-muted rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
-                onClick={() => handleImageClick(0)}
-              >
-                <img
-                  src={imageUrl}
-                  alt="Post content"
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              </div>
-            )
+            <div 
+              className="relative w-full aspect-video bg-muted rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
+              onClick={() => handleImageClick(0)}
+            >
+              <img
+                src={imageUrl}
+                alt="Post content"
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+            </div>
           )}
         </div>
         
@@ -214,42 +198,23 @@ export default function MultipleImageDisplay({
                   {isPlaceholder(imageUrl) ? (
                     <ImagePlaceholder status="loading" />
                   ) : (
-                    imageAspectRatios[index] ? (
-                      <AspectRatio ratio={getDisplayAspectRatio(imageAspectRatios[index])}>
-                        <div 
-                          className="relative w-full h-full bg-muted rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
-                          onClick={() => handleImageClick(index)}
-                        >
-                          <img
-                            src={imageUrl}
-                            alt={`Post content ${index + 1}`}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                          />
-                          {/* Image counter */}
-                          <div className="absolute top-3 right-3 bg-black/60 text-white px-2 py-1 rounded-full text-xs">
-                            {index + 1}/{imageUrls.length}
-                          </div>
-                        </div>
-                      </AspectRatio>
-                    ) : (
-                      <div 
-                        className="relative w-full aspect-video bg-muted rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
-                        onClick={() => handleImageClick(index)}
-                      >
-                        <img
-                          src={imageUrl}
-                          alt={`Post content ${index + 1}`}
-                          className="w-full h-full object-cover"
-                          loading="lazy"
-                        />
-                        {/* Image counter */}
-                        <div className="absolute top-3 right-3 bg-black/60 text-white px-2 py-1 rounded-full text-xs">
-                          {index + 1}/{imageUrls.length}
-                        </div>
-                      </div>
-                    )
+                    <div 
+                      className="relative w-full aspect-video bg-muted rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
+                      onClick={() => handleImageClick(index)}
+                    >
+                      <img
+                        src={imageUrl}
+                        alt={`Post content ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    </div>
                   )}
+                  
+                  {/* Image counter */}
+                  <div className="absolute top-3 right-3 bg-black/60 text-white px-2 py-1 rounded-full text-xs">
+                    {index + 1}/{imageUrls.length}
+                  </div>
                 </div>
               </CarouselItem>
             ))}
