@@ -17,7 +17,7 @@ export default function InlineCommentSection({ postId, initialCommentsCount = 0 
   const { user } = useAuth();
   const { comments, loading, submitting, addComment, deleteComment, commentsCount } = useComments(postId);
   const [newComment, setNewComment] = useState('');
-  const [showAllComments, setShowAllComments] = useState(false);
+  const [loadedCount, setLoadedCount] = useState(5); // Initially show 5 comments
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,8 +29,12 @@ export default function InlineCommentSection({ postId, initialCommentsCount = 0 
     }
   };
 
-  const displayedComments = showAllComments ? comments : comments.slice(0, 3);
-  const hasMoreComments = comments.length > 3;
+  const handleLoadMore = () => {
+    setLoadedCount(prev => Math.min(prev + 5, comments.length));
+  };
+
+  const displayedComments = comments.slice(0, loadedCount);
+  const hasMoreComments = loadedCount < comments.length;
 
   if (loading) {
     return (
@@ -79,47 +83,51 @@ export default function InlineCommentSection({ postId, initialCommentsCount = 0 
         </form>
       )}
 
-      {/* Comments List */}
-      <div className="p-4 space-y-3">
-        {comments.length > 0 ? (
-          <>
-            {displayedComments.map((comment) => (
-              <div key={comment.id} className="relative group">
-                <CommentItem
-                  comment={comment}
-                />
-                {/* Delete button positioned to the right */}
-                {user && user.id === comment.user_id && (
+      {/* Comments List with Scrolling */}
+      <div className="max-h-[400px] overflow-y-auto">
+        <div className="p-4 space-y-3">
+          {comments.length > 0 ? (
+            <>
+              {displayedComments.map((comment) => (
+                <div key={comment.id} className="relative group">
+                  <CommentItem
+                    comment={comment}
+                  />
+                  {/* Delete button positioned to the right */}
+                  {user && user.id === comment.user_id && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => deleteComment(comment.id)}
+                      className="absolute top-1 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                      aria-label="Delete comment"
+                    >
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              
+              {hasMoreComments && (
+                <div className="pt-2 border-t border-border/50">
                   <Button
                     variant="ghost"
-                    size="icon"
-                    onClick={() => deleteComment(comment.id)}
-                    className="absolute top-1 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                    aria-label="Delete comment"
+                    size="sm"
+                    onClick={handleLoadMore}
+                    className="w-full justify-center text-muted-foreground hover:text-foreground"
                   >
-                    <Trash2 className="w-4 h-4 text-destructive" />
+                    Load {Math.min(5, comments.length - loadedCount)} more comments
                   </Button>
-                )}
-              </div>
-            ))}
-            
-            {hasMoreComments && !showAllComments && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowAllComments(true)}
-                className="w-full justify-start text-muted-foreground hover:text-foreground"
-              >
-                View {comments.length - 3} more comments
-              </Button>
-            )}
-          </>
-        ) : (
-          <div className="p-4 text-center text-muted-foreground">
-            <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No comments yet. Be the first to comment!</p>
-          </div>
-        )}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="p-4 text-center text-muted-foreground">
+              <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">No comments yet. Be the first to comment!</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
