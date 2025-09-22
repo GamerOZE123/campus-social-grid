@@ -52,19 +52,21 @@ const shouldConstrainImage = (actualRatio: number): boolean => {
   return actualRatio < 0.6;
 };
 
-const getOptimalDisplayRatio = (actualRatio: number): number => {
-  // Landscape images (width >= height): use 16:9
-  if (actualRatio >= 1.0) {
-    return 16/9;
+const getDisplayAspectRatio = (actualRatio: number): number => {
+  // On mobile
+  if (typeof window !== 'undefined' && window.innerWidth < 768) {
+    if (actualRatio > 2.5) {
+      return 16/9; // Constrain very wide images
+    }
+    if (actualRatio < 0.6) {
+      return 3/4; // Constrain tall images (like phone screenshots)
+    }
   }
-  
-  // Portrait images: cap at 4:3 but use actual ratio if between 0.75-1.0
-  if (actualRatio >= 0.75) {
-    return actualRatio;
+  // On desktop
+  if (actualRatio < 0.6) {
+    return 9/16; // More constrained for very tall images on desktop
   }
-  
-  // Very tall images: cap at 4:3
-  return 4/3;
+  return actualRatio;
 };
 
 export default function MultipleImageDisplay({ 
@@ -138,7 +140,6 @@ export default function MultipleImageDisplay({
   if (imageUrls.length === 1) {
     const imageUrl = imageUrls[0];
     const aspectRatio = imageAspectRatios[0];
-    const displayRatio = aspectRatio ? getOptimalDisplayRatio(aspectRatio) : 16/9;
     
     return (
       <>
@@ -147,14 +148,13 @@ export default function MultipleImageDisplay({
             <ImagePlaceholder status="loading" className="max-w-md" />
           ) : (
             <div 
-              className="relative w-full bg-muted rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
-              style={{ paddingBottom: `${(1 / displayRatio) * 100}%` }}
+              className="relative w-full aspect-video bg-muted rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
               onClick={() => handleImageClick(0)}
             >
               <img
                 src={imageUrl}
                 alt="Post content"
-                className="absolute inset-0 w-full h-full object-cover"
+                className="w-full h-full object-cover"
                 loading="lazy"
               />
             </div>
@@ -192,38 +192,32 @@ export default function MultipleImageDisplay({
           }}
         >
           <CarouselContent>
-            {imageUrls.map((imageUrl, index) => {
-              const aspectRatio = imageAspectRatios[index];
-              const displayRatio = aspectRatio ? getOptimalDisplayRatio(aspectRatio) : 16/9;
-              
-              return (
-                <CarouselItem key={index}>
-                  <div className="relative">
-                    {isPlaceholder(imageUrl) ? (
-                      <ImagePlaceholder status="loading" />
-                    ) : (
-                      <div 
-                        className="relative w-full bg-muted rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
-                        style={{ paddingBottom: `${(1 / displayRatio) * 100}%` }}
-                        onClick={() => handleImageClick(index)}
-                      >
-                        <img
-                          src={imageUrl}
-                          alt={`Post content ${index + 1}`}
-                          className="absolute inset-0 w-full h-full object-cover"
-                          loading="lazy"
-                        />
-                      </div>
-                    )}
-                    
-                    {/* Image counter */}
-                    <div className="absolute top-3 right-3 bg-black/60 text-white px-2 py-1 rounded-full text-xs">
-                      {index + 1}/{imageUrls.length}
+            {imageUrls.map((imageUrl, index) => (
+              <CarouselItem key={index}>
+                <div className="relative">
+                  {isPlaceholder(imageUrl) ? (
+                    <ImagePlaceholder status="loading" />
+                  ) : (
+                    <div 
+                      className="relative w-full aspect-video bg-muted rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
+                      onClick={() => handleImageClick(index)}
+                    >
+                      <img
+                        src={imageUrl}
+                        alt={`Post content ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
                     </div>
+                  )}
+                  
+                  {/* Image counter */}
+                  <div className="absolute top-3 right-3 bg-black/60 text-white px-2 py-1 rounded-full text-xs">
+                    {index + 1}/{imageUrls.length}
                   </div>
-                </CarouselItem>
-              );
-            })}
+                </div>
+              </CarouselItem>
+            ))}
           </CarouselContent>
           
           {/* Navigation arrows */}
