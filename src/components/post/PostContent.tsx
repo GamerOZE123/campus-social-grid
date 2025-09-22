@@ -47,21 +47,19 @@ const shouldConstrainImage = (actualRatio: number): boolean => {
   return actualRatio < 0.6;
 };
 
-const getDisplayAspectRatio = (actualRatio: number): number => {
-  // On mobile
-  if (typeof window !== 'undefined' && window.innerWidth < 768) {
-    if (actualRatio > 2.5) {
-      return 16/9; // Constrain very wide images
-    }
-    if (actualRatio < 0.6) {
-      return 3/4; // Constrain tall images (like phone screenshots)
-    }
+const getOptimalDisplayRatio = (actualRatio: number): number => {
+  // Landscape images (width >= height): use 16:9
+  if (actualRatio >= 1.0) {
+    return 16/9;
   }
-  // On desktop
-  if (actualRatio < 0.6) {
-    return 9/16; // More constrained for very tall images on desktop
+  
+  // Portrait images: cap at 4:3 but use actual ratio if between 0.75-1.0
+  if (actualRatio >= 0.75) {
+    return actualRatio;
   }
-  return actualRatio;
+  
+  // Very tall images: cap at 4:3
+  return 4/3;
 };
 
 const getFileNameFromUrl = (url: string) => {
@@ -86,6 +84,9 @@ export default function PostContent({
 }: PostContentProps) {
   const [showFullImage, setShowFullImage] = useState(false);
   const [imageAspectRatio, setImageAspectRatio] = useState<number | null>(null);
+  
+  // Calculate optimal display ratio for the container
+  const displayRatio = imageAspectRatio ? getOptimalDisplayRatio(imageAspectRatio) : 16/9;
   
   const handleDownload = () => {
     if (imageUrl) {
@@ -119,13 +120,14 @@ export default function PostContent({
           {isImageUrl(imageUrl) ? (
             <div className="w-full max-w-md">
               <div 
-                className="relative w-full aspect-video bg-muted rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
+                className="relative w-full bg-muted rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
+                style={{ paddingBottom: `${(1 / displayRatio) * 100}%` }}
                 onClick={handleImageClick}
               >
                 <img
                   src={imageUrl}
                   alt="Post content"
-                  className="w-full h-full object-cover"
+                  className="absolute inset-0 w-full h-full object-cover"
                   loading="lazy"
                 />
               </div>
