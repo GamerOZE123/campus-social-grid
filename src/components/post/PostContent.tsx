@@ -118,17 +118,33 @@ export default function PostContent({
         <div className="flex justify-center" data-image-container>
           {isImageUrl(imageUrl) ? (
             <div className="w-full max-w-md">
-              <div 
-                className="relative w-full aspect-video bg-muted rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
-                onClick={handleImageClick}
-              >
-                <img
-                  src={imageUrl}
-                  alt="Post content"
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              </div>
+              {imageAspectRatio ? (
+                <AspectRatio ratio={getDisplayAspectRatio(imageAspectRatio)}>
+                  <div 
+                    className="relative w-full h-full bg-muted rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
+                    onClick={handleImageClick}
+                  >
+                    <img
+                      src={imageUrl}
+                      alt="Post content"
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                </AspectRatio>
+              ) : (
+                <div 
+                  className="relative w-full aspect-video bg-muted rounded-xl overflow-hidden cursor-pointer hover:opacity-95 transition-opacity"
+                  onClick={handleImageClick}
+                >
+                  <img
+                    src={imageUrl}
+                    alt="Post content"
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
+              )}
             </div>
           ) : (
             <div className="bg-muted/20 border border-border rounded-lg p-4 flex items-center justify-between w-full max-w-md">
