@@ -87,8 +87,6 @@ export default function InlineCommentSection({ postId, initialCommentsCount = 0 
               <div key={comment.id} className="relative group">
                 <CommentItem
                   comment={comment}
-                  onDelete={deleteComment}
-                  currentUserId={user?.id}
                 />
                 {/* Delete button positioned to the right */}
                 {user && user.id === comment.user_id && (

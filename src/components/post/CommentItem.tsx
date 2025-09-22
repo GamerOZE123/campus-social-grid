@@ -1,7 +1,5 @@
 import React from 'react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface Comment {
@@ -18,18 +16,9 @@ interface Comment {
 
 interface CommentItemProps {
   comment: Comment;
-  onDelete?: (commentId: string) => Promise<boolean>;
-  currentUserId?: string;
 }
 
-export default function CommentItem({ comment, onDelete, currentUserId }: CommentItemProps) {
-  const isOwnComment = currentUserId === comment.user_id;
-  
-  const handleDelete = async () => {
-    if (onDelete && window.confirm('Delete this comment?')) {
-      await onDelete(comment.id);
-    }
-  };
+export default function CommentItem({ comment }: CommentItemProps) {
 
   const formatTimeAgo = (dateString: string) => {
     try {
@@ -63,18 +52,6 @@ export default function CommentItem({ comment, onDelete, currentUserId }: Commen
             {comment.content}
           </p>
         </div>
-        
-        {isOwnComment && onDelete && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleDelete}
-            className="mt-1 h-6 px-2 text-xs text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-          >
-            <Trash2 className="w-3 h-3 mr-1" />
-            Delete
-          </Button>
-        )}
       </div>
     </div>
   );
