@@ -299,6 +299,14 @@ export default function Home() {
       
       <div className="max-w-xl mx-auto pt-6 -mt-4 md:pt-2 md:-mt-6">
         <div className="space-y-4">
+          {/* Homepage Banner */}
+          {showBanner && (
+            <HomepageBanner 
+              onClose={() => setShowBanner(false)}
+              className="mb-4"
+            />
+          )}
+          
           {(() => {
             console.log('mixedPosts:', mixedPosts);
             return null;
