@@ -164,10 +164,21 @@ export default function Advertising() {
           <Button
             onClick={() => setShowCreateModal(true)}
             className="shadow-lg hover:shadow-xl transition-shadow"
+            disabled={companyProfile && companyProfile.monthly_posts_used >= companyProfile.monthly_posts_limit}
           >
             <Plus className="w-5 h-5 mr-2" />
             Create Ad
           </Button>
+          {companyProfile?.subscription_tier === 'premium' && (
+            <Button
+              onClick={() => setShowBannerModal(true)}
+              variant="outline"
+              className="shadow-lg hover:shadow-xl transition-shadow"
+            >
+              <Upload className="w-5 h-5 mr-2" />
+              Create Banner
+            </Button>
+          )}
         </div>
       </div>
 

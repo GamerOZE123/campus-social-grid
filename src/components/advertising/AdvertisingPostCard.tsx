@@ -228,7 +228,7 @@ export default function AdvertisingPostCard({
               </p>
               <Badge 
                 variant="secondary" 
-                className="bg-primary/90 text-primary-foreground text-xs"
+                className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-0.5 rounded text-xs font-medium"
               >
                 Sponsored
               </Badge>

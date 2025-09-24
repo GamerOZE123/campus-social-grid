@@ -2,14 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Upload, X, Target, Crown, AlertCircle } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Upload, X, Target } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CreateAdvertisingPostModalProps {
   open: boolean;
@@ -22,15 +21,14 @@ export default function CreateAdvertisingPostModal({
   onOpenChange,
   onPostCreated
 }: CreateAdvertisingPostModalProps) {
-  const { user } = useAuth();
   const { toast } = useToast();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [redirectUrl, setRedirectUrl] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [processingStatus, setProcessingStatus] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [companyProfile, setCompanyProfile] = useState<any>(null);
   
   // Targeting options
   const [targetUniversities, setTargetUniversities] = useState<string[]>([]);
@@ -39,137 +37,152 @@ export default function CreateAdvertisingPostModal({
   const [targetLocations, setTargetLocations] = useState<string[]>([]);
   const [priorityPlacement, setPriorityPlacement] = useState(false);
 
-  // Company profile data
-  const [companyProfile, setCompanyProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  // University options
+  const universityOptions = [
+    'Indian Institute of Technology Delhi',
+    'Indian Institute of Technology Bombay', 
+    'Indian Institute of Technology Madras',
+    'Indian Institute of Technology Kanpur',
+    'Indian Institute of Technology Kharagpur',
+    'Indian Institute of Science Bangalore',
+    'Delhi University',
+    'Jawaharlal Nehru University',
+    'University of Mumbai',
+    'Anna University'
+  ];
 
+  // Major options
+  const majorOptions = [
+    'Computer Science',
+    'Electrical Engineering',
+    'Mechanical Engineering', 
+    'Civil Engineering',
+    'Chemical Engineering',
+    'Electronics and Communication',
+    'Biotechnology',
+    'Management Studies',
+    'Economics',
+    'Physics',
+    'Mathematics',
+    'Chemistry'
+  ];
+
+  // Year options
+  const yearOptions = ['1st Year', '2nd Year', '3rd Year', '4th Year', 'PhD'];
+
+  // Location options
+  const locationOptions = [
+    'Delhi NCR',
+    'Mumbai',
+    'Bangalore',
+    'Chennai', 
+    'Kolkata',
+    'Hyderabad',
+    'Pune',
+    'Ahmedabad',
+    'Kochi',
+    'Chandigarh'
+  ];
+
+  // Fetch company profile
   useEffect(() => {
-    if (user && open) {
-      fetchCompanyProfile();
+    const fetchProfile = async () => {
+      try {
+        const user = (await supabase.auth.getUser()).data.user;
+        if (!user) return;
+
+        const { data, error } = await supabase
+          .from('company_profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (error) throw error;
+        setCompanyProfile(data);
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      }
+    };
+
+    if (open) {
+      fetchProfile();
     }
-  }, [user, open]);
+  }, [open]);
 
-  const fetchCompanyProfile = async () => {
-    if (!user) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('company_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error) throw error;
-      setCompanyProfile(data);
-    } catch (error) {
-      console.error('Error fetching company profile:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file) {
       setImageFile(file);
       const reader = new FileReader();
-      reader.onload = () => {
-        setImagePreview(reader.result as string);
-      };
+      reader.onload = (e) => setImagePreview(e.target?.result as string);
       reader.readAsDataURL(file);
     }
   };
 
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !imageFile || !title.trim() || !redirectUrl.trim()) {
+    if (!title || !description || !redirectUrl || !imageFile) return;
+
+    // Check post limits
+    if (companyProfile && companyProfile.monthly_posts_used >= companyProfile.monthly_posts_limit) {
       toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields and select an image.",
-        variant: "destructive"
+        title: "Post Limit Reached",
+        description: "You've reached your monthly post limit. Upgrade your plan to create more posts.",
+        variant: "destructive",
       });
       return;
     }
 
-    if (!companyProfile) {
-      toast({
-        title: "Profile Required",
-        description: "Please complete your company profile first.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Check monthly post limit
-    if (companyProfile.monthly_posts_used >= companyProfile.monthly_posts_limit) {
-      toast({
-        title: "Monthly Limit Reached",
-        description: `You've reached your monthly limit of ${companyProfile.monthly_posts_limit} posts. Upgrade your plan for more posts.`,
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsUploading(true);
-    setProcessingStatus("Processing image...");
-    
+    setUploading(true);
     try {
-      // Process image using the new edge function
+      const user = (await supabase.auth.getUser()).data.user;
+      if (!user) throw new Error('User not authenticated');
+
+      // Process image using edge function
       const formData = new FormData();
-      formData.append('file', imageFile);
-      formData.append('userId', user.id);
-      formData.append('type', 'advertising');
+      formData.append('image', imageFile);
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('No auth session');
-
-      const response = await supabase.functions.invoke('process-image', {
+      const { data: processedData, error: processError } = await supabase.functions.invoke('process-image', {
         body: formData,
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
       });
 
-      if (response.error) throw response.error;
-      
-      const { imageUrls } = response.data;
-      
-      setProcessingStatus("Saving post...");
+      if (processError) throw processError;
 
-      // Create advertising post with all image URLs and targeting
-      const { error: insertError } = await supabase
+      // Create advertising post with targeting options
+      const { error: postError } = await supabase
         .from('advertising_posts')
         .insert({
           company_id: user.id,
-          title: title.trim(),
-          description: description.trim(),
-          image_url: imageUrls.original, // Keep for backwards compatibility
-          image_thumbnail_url: imageUrls.thumbnail,
-          image_medium_url: imageUrls.medium,
-          image_original_url: imageUrls.original,
-          redirect_url: redirectUrl.trim(),
+          title,
+          description,
+          redirect_url: redirectUrl,
+          image_url: processedData.original_url,
+          image_thumbnail_url: processedData.thumbnail_url,
+          image_medium_url: processedData.medium_url,
+          image_original_url: processedData.original_url,
           target_universities: targetUniversities.length > 0 ? targetUniversities : null,
           target_majors: targetMajors.length > 0 ? targetMajors : null,
           target_years: targetYears.length > 0 ? targetYears : null,
           target_locations: targetLocations.length > 0 ? targetLocations : null,
-          priority_placement: priorityPlacement && companyProfile.subscription_tier === 'premium'
+          priority_placement: priorityPlacement && companyProfile?.subscription_tier === 'premium'
         });
 
-      if (insertError) throw insertError;
+      if (postError) throw postError;
 
-      // Update monthly posts used count
+      // Update monthly posts used
       await supabase
         .from('company_profiles')
-        .update({ 
-          monthly_posts_used: companyProfile.monthly_posts_used + 1 
-        })
+        .update({ monthly_posts_used: (companyProfile?.monthly_posts_used || 0) + 1 })
         .eq('user_id', user.id);
 
-      if (insertError) throw insertError;
-
       toast({
-        title: "Success",
-        description: "Advertising post created successfully!"
+        title: "Post Created",
+        description: "Your advertising post has been created successfully!",
       });
 
       // Reset form
@@ -183,340 +196,231 @@ export default function CreateAdvertisingPostModal({
       setTargetYears([]);
       setTargetLocations([]);
       setPriorityPlacement(false);
-      onOpenChange(false);
+      
       onPostCreated();
+      onOpenChange(false);
     } catch (error) {
-      console.error('Error creating advertising post:', error);
+      console.error('Error creating post:', error);
       toast({
         title: "Error",
-        description: "Failed to create advertising post. Please try again.",
-        variant: "destructive"
+        description: "Failed to create post. Please try again.",
+        variant: "destructive",
       });
     } finally {
-      setIsUploading(false);
-      setProcessingStatus(null);
+      setUploading(false);
     }
   };
 
-  const removeImage = () => {
-    setImageFile(null);
-    setImagePreview(null);
-  };
-
-  const addTargetTag = (type: 'universities' | 'majors' | 'years' | 'locations', value: string) => {
-    if (!value.trim()) return;
-    
-    switch (type) {
-      case 'universities':
-        if (!targetUniversities.includes(value)) {
-          setTargetUniversities([...targetUniversities, value]);
-        }
-        break;
-      case 'majors':
-        if (!targetMajors.includes(value)) {
-          setTargetMajors([...targetMajors, value]);
-        }
-        break;
-      case 'years':
-        if (!targetYears.includes(value)) {
-          setTargetYears([...targetYears, value]);
-        }
-        break;
-      case 'locations':
-        if (!targetLocations.includes(value)) {
-          setTargetLocations([...targetLocations, value]);
-        }
-        break;
+  const toggleArrayValue = (array: string[], value: string, setter: (arr: string[]) => void) => {
+    if (array.includes(value)) {
+      setter(array.filter(item => item !== value));
+    } else {
+      setter([...array, value]);
     }
   };
 
-  const removeTargetTag = (type: 'universities' | 'majors' | 'years' | 'locations', value: string) => {
-    switch (type) {
-      case 'universities':
-        setTargetUniversities(targetUniversities.filter(u => u !== value));
-        break;
-      case 'majors':
-        setTargetMajors(targetMajors.filter(m => m !== value));
-        break;
-      case 'years':
-        setTargetYears(targetYears.filter(y => y !== value));
-        break;
-      case 'locations':
-        setTargetLocations(targetLocations.filter(l => l !== value));
-        break;
-    }
-  };
-
-  if (loading) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md">
-          <div className="flex items-center justify-center p-6">
-            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  const canUseTargeting = companyProfile?.targeting_enabled;
+  const canUseTargeting = companyProfile?.subscription_tier !== 'starter';
   const canUsePriorityPlacement = companyProfile?.subscription_tier === 'premium';
-  const remainingPosts = companyProfile?.monthly_posts_limit - companyProfile?.monthly_posts_used;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center gap-2">
-            <DialogTitle>Create Advertising Post</DialogTitle>
-            <Badge variant="outline" className="text-xs">
-              {companyProfile?.subscription_tier || 'starter'}
-            </Badge>
-          </div>
+          <DialogTitle className="flex items-center gap-2">
+            <Target className="w-5 h-5" />
+            Create Advertising Post
+          </DialogTitle>
           {companyProfile && (
-            <div className="text-sm text-muted-foreground">
-              {remainingPosts} of {companyProfile.monthly_posts_limit} posts remaining this month
-            </div>
+            <p className="text-sm text-muted-foreground">
+              {companyProfile.monthly_posts_used}/{companyProfile.monthly_posts_limit} posts used this month
+            </p>
           )}
         </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-4">
+            {/* Image Upload */}
+            <div className="space-y-2">
+              <Label>Post Image</Label>
+              {imagePreview ? (
+                <div className="relative">
+                  <img 
+                    src={imagePreview} 
+                    alt="Post preview" 
+                    className="w-full h-48 object-cover rounded-lg border"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    className="absolute top-2 right-2"
+                    onClick={removeImage}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <Upload className="w-8 h-8 mb-4 text-gray-500" />
+                    <p className="mb-2 text-sm text-gray-500">
+                      <span className="font-semibold">Click to upload image</span>
+                    </p>
+                    <p className="text-xs text-gray-500">PNG, JPG (MAX. 10MB)</p>
+                  </div>
+                  <input 
+                    type="file" 
+                    className="hidden" 
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                  />
+                </label>
+              )}
+            </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Image Upload */}
-          <div className="space-y-2">
-            <Label htmlFor="image">Image *</Label>
-            {imagePreview ? (
-              <div className="relative">
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  className="w-full h-48 object-cover rounded-lg"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="absolute top-2 right-2"
-                  onClick={removeImage}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            ) : (
-              <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                <Upload className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground mb-2">
-                  Click to upload an image
-                </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">Post Title</Label>
                 <Input
-                  id="image"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageSelect}
-                  className="hidden"
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Enter post title"
+                  required
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => document.getElementById('image')?.click()}
-                >
-                  Choose Image
-                </Button>
               </div>
-            )}
-          </div>
 
-          {/* Title */}
-          <div className="space-y-2">
-            <Label htmlFor="title">Title *</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter advertising post title"
-              maxLength={100}
-            />
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="redirectUrl">Website URL</Label>
+                <Input
+                  id="redirectUrl"
+                  type="url"
+                  value={redirectUrl}
+                  onChange={(e) => setRedirectUrl(e.target.value)}
+                  placeholder="https://example.com"
+                  required
+                />
+              </div>
+            </div>
 
-          {/* Description */}
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Enter post description (optional)"
-              rows={3}
-              maxLength={500}
-            />
-          </div>
-
-          {/* Redirect URL */}
-          <div className="space-y-2">
-            <Label htmlFor="url">Website URL *</Label>
-            <Input
-              id="url"
-              type="url"
-              value={redirectUrl}
-              onChange={(e) => setRedirectUrl(e.target.value)}
-              placeholder="https://yourwebsite.com"
-            />
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Enter post description"
+                rows={3}
+                required
+              />
+            </div>
           </div>
 
           {/* Targeting Options */}
           {canUseTargeting && (
             <div className="space-y-4 border-t pt-4">
               <div className="flex items-center gap-2">
-                <Target className="w-4 h-4 text-primary" />
-                <Label className="text-sm font-medium">Targeting Options</Label>
-                <Badge variant="secondary" className="text-xs">
-                  {companyProfile?.subscription_tier === 'growth' ? 'Basic' : 'Advanced'}
-                </Badge>
+                <Target className="w-4 h-4" />
+                <h3 className="font-semibold">Targeting Options</h3>
+                <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                  {companyProfile?.subscription_tier === 'growth' ? 'Growth' : 'Premium'} Feature
+                </span>
               </div>
 
-              {/* Universities */}
-              <div className="space-y-2">
-                <Label className="text-sm">Target Universities</Label>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {targetUniversities.map((uni) => (
-                    <Badge key={uni} variant="secondary" className="text-xs">
-                      {uni}
-                      <X 
-                        className="w-3 h-3 ml-1 cursor-pointer" 
-                        onClick={() => removeTargetTag('universities', uni)}
-                      />
-                    </Badge>
-                  ))}
-                </div>
-                <Select onValueChange={(value) => addTargetTag('universities', value)}>
-                  <SelectTrigger className="h-9 text-sm">
-                    <SelectValue placeholder="Add university" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="IIT Delhi">IIT Delhi</SelectItem>
-                    <SelectItem value="IIT Bombay">IIT Bombay</SelectItem>
-                    <SelectItem value="IIT Madras">IIT Madras</SelectItem>
-                    <SelectItem value="IIT Kanpur">IIT Kanpur</SelectItem>
-                    <SelectItem value="IIT Kharagpur">IIT Kharagpur</SelectItem>
-                    <SelectItem value="BITS Pilani">BITS Pilani</SelectItem>
-                    <SelectItem value="NIT Trichy">NIT Trichy</SelectItem>
-                    <SelectItem value="Delhi University">Delhi University</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Majors */}
-              <div className="space-y-2">
-                <Label className="text-sm">Target Majors</Label>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {targetMajors.map((major) => (
-                    <Badge key={major} variant="secondary" className="text-xs">
-                      {major}
-                      <X 
-                        className="w-3 h-3 ml-1 cursor-pointer" 
-                        onClick={() => removeTargetTag('majors', major)}
-                      />
-                    </Badge>
-                  ))}
-                </div>
-                <Select onValueChange={(value) => addTargetTag('majors', value)}>
-                  <SelectTrigger className="h-9 text-sm">
-                    <SelectValue placeholder="Add major" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Computer Science">Computer Science</SelectItem>
-                    <SelectItem value="Engineering">Engineering</SelectItem>
-                    <SelectItem value="Business">Business</SelectItem>
-                    <SelectItem value="Mathematics">Mathematics</SelectItem>
-                    <SelectItem value="Physics">Physics</SelectItem>
-                    <SelectItem value="Economics">Economics</SelectItem>
-                    <SelectItem value="Medicine">Medicine</SelectItem>
-                    <SelectItem value="Law">Law</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Years (Advanced targeting only) */}
-              {companyProfile?.subscription_tier === 'premium' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Universities */}
                 <div className="space-y-2">
-                  <Label className="text-sm">Target Academic Years</Label>
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {targetYears.map((year) => (
-                      <Badge key={year} variant="secondary" className="text-xs">
-                        {year}
-                        <X 
-                          className="w-3 h-3 ml-1 cursor-pointer" 
-                          onClick={() => removeTargetTag('years', year)}
+                  <Label>Target Universities</Label>
+                  <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-1">
+                    {universityOptions.map((university) => (
+                      <div key={university} className="flex items-center space-x-2">
+                        <Checkbox
+                          checked={targetUniversities.includes(university)}
+                          onCheckedChange={() => toggleArrayValue(targetUniversities, university, setTargetUniversities)}
                         />
-                      </Badge>
+                        <label className="text-sm">{university}</label>
+                      </div>
                     ))}
                   </div>
-                  <Select onValueChange={(value) => addTargetTag('years', value)}>
-                    <SelectTrigger className="h-9 text-sm">
-                      <SelectValue placeholder="Add year" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1st Year">1st Year</SelectItem>
-                      <SelectItem value="2nd Year">2nd Year</SelectItem>
-                      <SelectItem value="3rd Year">3rd Year</SelectItem>
-                      <SelectItem value="4th Year">4th Year</SelectItem>
-                      <SelectItem value="Graduate">Graduate</SelectItem>
-                      <SelectItem value="PhD">PhD</SelectItem>
-                    </SelectContent>
-                  </Select>
+                </div>
+
+                {/* Majors */}
+                <div className="space-y-2">
+                  <Label>Target Majors</Label>
+                  <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-1">
+                    {majorOptions.map((major) => (
+                      <div key={major} className="flex items-center space-x-2">
+                        <Checkbox
+                          checked={targetMajors.includes(major)}
+                          onCheckedChange={() => toggleArrayValue(targetMajors, major, setTargetMajors)}
+                        />
+                        <label className="text-sm">{major}</label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Years */}
+                <div className="space-y-2">
+                  <Label>Target Years</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {yearOptions.map((year) => (
+                      <div key={year} className="flex items-center space-x-2">
+                        <Checkbox
+                          checked={targetYears.includes(year)}
+                          onCheckedChange={() => toggleArrayValue(targetYears, year, setTargetYears)}
+                        />
+                        <label className="text-sm">{year}</label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Locations */}
+                <div className="space-y-2">
+                  <Label>Target Locations</Label>
+                  <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-1">
+                    {locationOptions.map((location) => (
+                      <div key={location} className="flex items-center space-x-2">
+                        <Checkbox
+                          checked={targetLocations.includes(location)}
+                          onCheckedChange={() => toggleArrayValue(targetLocations, location, setTargetLocations)}
+                        />
+                        <label className="text-sm">{location}</label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Priority Placement */}
+              {canUsePriorityPlacement && (
+                <div className="flex items-center space-x-2">
+                        <Checkbox
+                          checked={priorityPlacement}
+                          onCheckedChange={(checked) => setPriorityPlacement(checked === true)}
+                        />
+                  <Label>Priority Placement (Premium feature)</Label>
                 </div>
               )}
             </div>
           )}
 
-          {/* Priority Placement */}
-          {canUsePriorityPlacement && (
-            <div className="space-y-2 border-t pt-4">
-              <div className="flex items-center gap-2">
-                <Crown className="w-4 h-4 text-amber-500" />
-                <Label className="text-sm font-medium">Premium Features</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="priority"
-                  checked={priorityPlacement}
-                  onChange={(e) => setPriorityPlacement(e.target.checked)}
-                  className="rounded border-gray-300"
-                />
-                <Label htmlFor="priority" className="text-sm">
-                  Priority placement in feed
-                </Label>
-              </div>
-            </div>
-          )}
-
-          {/* Upgrade Prompt */}
-          {!canUseTargeting && (
-            <div className="bg-muted/50 p-3 rounded-lg border">
-              <div className="flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-amber-500 mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-medium">Want to target specific audiences?</p>
-                  <p className="text-muted-foreground">
-                    Upgrade to Growth plan for basic targeting or Premium for advanced targeting options.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="flex gap-2 pt-4">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              disabled={isUploading}
+              className="flex-1"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isUploading}>
-              {isUploading ? (processingStatus || "Creating...") : "Create Post"}
+            <Button
+              type="submit"
+              disabled={!title || !description || !redirectUrl || !imageFile || uploading}
+              className="flex-1"
+            >
+              {uploading ? 'Creating...' : 'Create Post'}
             </Button>
           </div>
         </form>

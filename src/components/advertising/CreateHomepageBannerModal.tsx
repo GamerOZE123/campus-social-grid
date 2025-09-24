@@ -3,10 +3,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Upload, X, Calendar } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { Upload, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CreateHomepageBannerModalProps {
   open: boolean;
@@ -19,7 +18,6 @@ export default function CreateHomepageBannerModal({
   onOpenChange,
   onBannerCreated
 }: CreateHomepageBannerModalProps) {
-  const { user } = useAuth();
   const { toast } = useToast();
   const [title, setTitle] = useState('');
   const [redirectUrl, setRedirectUrl] = useState('');
@@ -28,79 +26,63 @@ export default function CreateHomepageBannerModal({
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [priority, setPriority] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
-  const [processingStatus, setProcessingStatus] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
-  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file) {
       setImageFile(file);
       const reader = new FileReader();
-      reader.onload = () => {
-        setImagePreview(reader.result as string);
-      };
+      reader.onload = (e) => setImagePreview(e.target?.result as string);
       reader.readAsDataURL(file);
     }
   };
 
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !imageFile || !title.trim() || !redirectUrl.trim()) {
-      toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields and select an image.",
-        variant: "destructive"
-      });
-      return;
-    }
+    if (!title || !redirectUrl || !imageFile) return;
 
-    setIsUploading(true);
-    setProcessingStatus("Processing banner image...");
-    
+    setUploading(true);
     try {
-      // Process image using the edge function
+      const user = (await supabase.auth.getUser()).data.user;
+      if (!user) throw new Error('User not authenticated');
+
+      // Process image using edge function
       const formData = new FormData();
-      formData.append('file', imageFile);
-      formData.append('userId', user.id);
-      formData.append('type', 'banner');
+      formData.append('image', imageFile);
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('No auth session');
-
-      const response = await supabase.functions.invoke('process-image', {
+      const { data: processedData, error: processError } = await supabase.functions.invoke('process-image', {
         body: formData,
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
       });
 
-      if (response.error) throw response.error;
-      
-      const { imageUrls } = response.data;
-      
-      setProcessingStatus("Saving banner...");
+      if (processError) throw processError;
 
-      // Create homepage banner
-      const { error: insertError } = await supabase
+      // Create banner
+      const { error: bannerError } = await supabase
         .from('homepage_banners')
         .insert({
           company_id: user.id,
-          title: title.trim(),
-          image_url: imageUrls.original,
-          image_thumbnail_url: imageUrls.thumbnail,
-          image_medium_url: imageUrls.medium,
-          image_original_url: imageUrls.original,
-          redirect_url: redirectUrl.trim(),
+          title,
+          redirect_url: redirectUrl,
+          image_url: processedData.original_url,
+          image_thumbnail_url: processedData.thumbnail_url,
+          image_medium_url: processedData.medium_url,
+          image_original_url: processedData.original_url,
           start_date: startDate || null,
           end_date: endDate || null,
-          priority: priority
+          priority
         });
 
-      if (insertError) throw insertError;
+      if (bannerError) throw bannerError;
 
       toast({
-        title: "Success",
-        description: "Homepage banner created successfully!"
+        title: "Banner Created",
+        description: "Homepage banner created successfully!",
       });
 
       // Reset form
@@ -111,24 +93,19 @@ export default function CreateHomepageBannerModal({
       setStartDate('');
       setEndDate('');
       setPriority(0);
-      onOpenChange(false);
+      
       onBannerCreated();
+      onOpenChange(false);
     } catch (error) {
       console.error('Error creating banner:', error);
       toast({
         title: "Error",
-        description: "Failed to create homepage banner. Please try again.",
-        variant: "destructive"
+        description: "Failed to create banner. Please try again.",
+        variant: "destructive",
       });
     } finally {
-      setIsUploading(false);
-      setProcessingStatus(null);
+      setUploading(false);
     }
-  };
-
-  const removeImage = () => {
-    setImageFile(null);
-    setImagePreview(null);
   };
 
   return (
@@ -137,126 +114,121 @@ export default function CreateHomepageBannerModal({
         <DialogHeader>
           <DialogTitle>Create Homepage Banner</DialogTitle>
         </DialogHeader>
-
+        
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Image Upload */}
-          <div className="space-y-2">
-            <Label htmlFor="image">Banner Image * (Recommended: 320x50px)</Label>
-            {imagePreview ? (
-              <div className="relative">
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  className="w-full h-24 object-cover rounded-lg border"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="absolute top-2 right-2"
-                  onClick={removeImage}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            ) : (
-              <div className="border-2 border-dashed border-border rounded-lg p-4 text-center">
-                <Upload className="w-6 h-6 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground mb-2">
-                  Upload banner image
-                </p>
+          <div className="space-y-4">
+            {/* Image Upload */}
+            <div className="space-y-2">
+              <Label>Banner Image</Label>
+              {imagePreview ? (
+                <div className="relative">
+                  <img 
+                    src={imagePreview} 
+                    alt="Banner preview" 
+                    className="w-full h-32 object-cover rounded-lg border"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    className="absolute top-2 right-2"
+                    onClick={removeImage}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <Upload className="w-8 h-8 mb-4 text-gray-500" />
+                    <p className="mb-2 text-sm text-gray-500">
+                      <span className="font-semibold">Click to upload banner</span>
+                    </p>
+                    <p className="text-xs text-gray-500">PNG, JPG (MAX. 10MB)</p>
+                  </div>
+                  <input 
+                    type="file" 
+                    className="hidden" 
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                  />
+                </label>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="title">Banner Title</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Enter banner title"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="redirectUrl">Redirect URL</Label>
+              <Input
+                id="redirectUrl"
+                type="url"
+                value={redirectUrl}
+                onChange={(e) => setRedirectUrl(e.target.value)}
+                placeholder="https://example.com"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="priority">Priority (0-10)</Label>
+              <Input
+                id="priority"
+                type="number"
+                min="0"
+                max="10"
+                value={priority}
+                onChange={(e) => setPriority(parseInt(e.target.value))}
+                placeholder="0"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="startDate">Start Date</Label>
                 <Input
-                  id="image"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageSelect}
-                  className="hidden"
+                  id="startDate"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => document.getElementById('image')?.click()}
-                >
-                  Choose Image
-                </Button>
               </div>
-            )}
-          </div>
-
-          {/* Title */}
-          <div className="space-y-2">
-            <Label htmlFor="title">Banner Title *</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter banner title"
-              maxLength={100}
-            />
-          </div>
-
-          {/* Redirect URL */}
-          <div className="space-y-2">
-            <Label htmlFor="url">Website URL *</Label>
-            <Input
-              id="url"
-              type="url"
-              value={redirectUrl}
-              onChange={(e) => setRedirectUrl(e.target.value)}
-              placeholder="https://yourwebsite.com"
-            />
-          </div>
-
-          {/* Priority */}
-          <div className="space-y-2">
-            <Label htmlFor="priority">Priority (0-10)</Label>
-            <Input
-              id="priority"
-              type="number"
-              min="0"
-              max="10"
-              value={priority}
-              onChange={(e) => setPriority(parseInt(e.target.value) || 0)}
-              placeholder="0"
-            />
-            <p className="text-xs text-muted-foreground">Higher priority banners appear first</p>
-          </div>
-
-          {/* Date Range */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="startDate">Start Date</Label>
-              <Input
-                id="startDate"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="endDate">End Date</Label>
-              <Input
-                id="endDate"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-              />
+              <div className="space-y-2">
+                <Label htmlFor="endDate">End Date</Label>
+                <Input
+                  id="endDate"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
+              </div>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="flex gap-2 pt-4">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              disabled={isUploading}
+              className="flex-1"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isUploading}>
-              {isUploading ? (processingStatus || "Creating...") : "Create Banner"}
+            <Button
+              type="submit"
+              disabled={!title || !redirectUrl || !imageFile || uploading}
+              className="flex-1"
+            >
+              {uploading ? 'Creating...' : 'Create Banner'}
             </Button>
           </div>
         </form>
