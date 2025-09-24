@@ -99,12 +99,7 @@ export type Database = {
           image_url: string
           is_active: boolean
           likes_count: number
-          priority_placement: boolean | null
           redirect_url: string
-          target_locations: string[] | null
-          target_majors: string[] | null
-          target_universities: string[] | null
-          target_years: string[] | null
           title: string
           updated_at: string
           views_count: number
@@ -121,12 +116,7 @@ export type Database = {
           image_url: string
           is_active?: boolean
           likes_count?: number
-          priority_placement?: boolean | null
           redirect_url: string
-          target_locations?: string[] | null
-          target_majors?: string[] | null
-          target_universities?: string[] | null
-          target_years?: string[] | null
           title: string
           updated_at?: string
           views_count?: number
@@ -143,12 +133,7 @@ export type Database = {
           image_url?: string
           is_active?: boolean
           likes_count?: number
-          priority_placement?: boolean | null
           redirect_url?: string
-          target_locations?: string[] | null
-          target_majors?: string[] | null
-          target_universities?: string[] | null
-          target_years?: string[] | null
           title?: string
           updated_at?: string
           views_count?: number
@@ -443,7 +428,6 @@ export type Database = {
       }
       company_profiles: {
         Row: {
-          analytics_tier: string | null
           company_description: string | null
           company_name: string
           company_size: string | null
@@ -452,17 +436,11 @@ export type Database = {
           id: string
           industry: string | null
           logo_url: string | null
-          monthly_posts_limit: number | null
-          monthly_posts_used: number | null
-          subscription_expires_at: string | null
-          subscription_tier: string | null
-          targeting_enabled: boolean | null
           updated_at: string
           user_id: string
           website_url: string | null
         }
         Insert: {
-          analytics_tier?: string | null
           company_description?: string | null
           company_name: string
           company_size?: string | null
@@ -471,17 +449,11 @@ export type Database = {
           id?: string
           industry?: string | null
           logo_url?: string | null
-          monthly_posts_limit?: number | null
-          monthly_posts_used?: number | null
-          subscription_expires_at?: string | null
-          subscription_tier?: string | null
-          targeting_enabled?: boolean | null
           updated_at?: string
           user_id: string
           website_url?: string | null
         }
         Update: {
-          analytics_tier?: string | null
           company_description?: string | null
           company_name?: string
           company_size?: string | null
@@ -490,11 +462,6 @@ export type Database = {
           id?: string
           industry?: string | null
           logo_url?: string | null
-          monthly_posts_limit?: number | null
-          monthly_posts_used?: number | null
-          subscription_expires_at?: string | null
-          subscription_tier?: string | null
-          targeting_enabled?: boolean | null
           updated_at?: string
           user_id?: string
           website_url?: string | null
@@ -740,130 +707,6 @@ export type Database = {
           max_attendees?: number | null
           organizer_id?: string
           title?: string
-        }
-        Relationships: []
-      }
-      homepage_banner_clicks: {
-        Row: {
-          banner_id: string
-          clicked_at: string | null
-          id: string
-          ip_address: string | null
-          user_agent: string | null
-          user_id: string | null
-        }
-        Insert: {
-          banner_id: string
-          clicked_at?: string | null
-          id?: string
-          ip_address?: string | null
-          user_agent?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          banner_id?: string
-          clicked_at?: string | null
-          id?: string
-          ip_address?: string | null
-          user_agent?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "homepage_banner_clicks_banner_id_fkey"
-            columns: ["banner_id"]
-            isOneToOne: false
-            referencedRelation: "homepage_banners"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      homepage_banner_views: {
-        Row: {
-          banner_id: string
-          id: string
-          session_id: string
-          user_id: string | null
-          viewed_at: string | null
-        }
-        Insert: {
-          banner_id: string
-          id?: string
-          session_id: string
-          user_id?: string | null
-          viewed_at?: string | null
-        }
-        Update: {
-          banner_id?: string
-          id?: string
-          session_id?: string
-          user_id?: string | null
-          viewed_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "homepage_banner_views_banner_id_fkey"
-            columns: ["banner_id"]
-            isOneToOne: false
-            referencedRelation: "homepage_banners"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      homepage_banners: {
-        Row: {
-          click_count: number | null
-          company_id: string
-          created_at: string | null
-          end_date: string | null
-          id: string
-          image_medium_url: string | null
-          image_original_url: string | null
-          image_thumbnail_url: string | null
-          image_url: string
-          is_active: boolean | null
-          priority: number | null
-          redirect_url: string
-          start_date: string | null
-          title: string
-          updated_at: string | null
-          views_count: number | null
-        }
-        Insert: {
-          click_count?: number | null
-          company_id: string
-          created_at?: string | null
-          end_date?: string | null
-          id?: string
-          image_medium_url?: string | null
-          image_original_url?: string | null
-          image_thumbnail_url?: string | null
-          image_url: string
-          is_active?: boolean | null
-          priority?: number | null
-          redirect_url: string
-          start_date?: string | null
-          title: string
-          updated_at?: string | null
-          views_count?: number | null
-        }
-        Update: {
-          click_count?: number | null
-          company_id?: string
-          created_at?: string | null
-          end_date?: string | null
-          id?: string
-          image_medium_url?: string | null
-          image_original_url?: string | null
-          image_thumbnail_url?: string | null
-          image_url?: string
-          is_active?: boolean | null
-          priority?: number | null
-          redirect_url?: string
-          start_date?: string | null
-          title?: string
-          updated_at?: string | null
-          views_count?: number | null
         }
         Relationships: []
       }
@@ -1891,10 +1734,6 @@ export type Database = {
       }
       mark_messages_as_read: {
         Args: { conversation_uuid: string; reader_user_id: string }
-        Returns: undefined
-      }
-      reset_monthly_post_usage: {
-        Args: Record<PropertyKey, never>
         Returns: undefined
       }
       update_typing_status: {

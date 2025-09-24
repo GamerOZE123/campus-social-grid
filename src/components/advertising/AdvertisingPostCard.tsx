@@ -230,7 +230,7 @@ export default function AdvertisingPostCard({
                 variant="secondary" 
                 className="bg-primary/90 text-primary-foreground text-xs"
               >
-                Sponsored
+                Ad
               </Badge>
               <span className="text-sm text-muted-foreground">· {formatDate(post.created_at)}</span>
             </div>

@@ -1,15 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
 import MobileLayout from '@/components/layout/MobileLayout';
-import { Plus, BarChart3, Eye, MousePointer, Heart, TrendingUp, Settings, Crown, Upload, Zap, Star } from 'lucide-react';
+import { Plus, BarChart3, Eye, MousePointer, Heart, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
 import AdvertisingPostCard from '@/components/advertising/AdvertisingPostCard';
 import CreateAdvertisingPostModal from '@/components/advertising/CreateAdvertisingPostModal';
-import CreateHomepageBannerModal from '@/components/advertising/CreateHomepageBannerModal';
-import SubscriptionTierCard from '@/components/advertising/SubscriptionTierCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -19,19 +15,13 @@ export default function Advertising() {
   const isMobile = useIsMobile();
   const [loading, setLoading] = useState(true);
   const [advertisingPosts, setAdvertisingPosts] = useState([]);
-  const [homepageBanners, setHomepageBanners] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showBannerModal, setShowBannerModal] = useState(false);
-  const [companyProfile, setCompanyProfile] = useState<any>(null);
   const [analytics, setAnalytics] = useState({
     totalViews: 0,
     totalClicks: 0,
     totalLikes: 0,
     totalPosts: 0,
-    ctr: 0,
-    bannerViews: 0,
-    bannerClicks: 0,
-    bannerCtr: 0
+    ctr: 0 // Click-through rate
   });
 
   const fetchAdvertisingPosts = async () => {
@@ -47,29 +37,27 @@ export default function Advertising() {
 
       if (error) throw error;
       
-      const { data: companyProfile, error: profileError } = await supabase
+      // Fetch company profile for the current user
+      const { data: companyProfile } = await supabase
         .from('company_profiles')
-        .select('*')
+        .select('user_id, company_name, logo_url')
         .eq('user_id', user.id)
         .single();
-
-      if (profileError) throw profileError;
-      setCompanyProfile(companyProfile);
       
+      // Map company profile to advertising posts
       const postsWithProfiles = (data || []).map(post => ({
         ...post,
-        company_profiles: {
-          company_name: companyProfile?.company_name || 'Company',
-          logo_url: companyProfile?.logo_url
-        }
+        company_profiles: companyProfile || null
       }));
       
+      const posts = postsWithProfiles;
       setAdvertisingPosts(postsWithProfiles);
       
-      const totalViews = postsWithProfiles.reduce((sum, post) => sum + (post.views_count || 0), 0);
-      const totalClicks = postsWithProfiles.reduce((sum, post) => sum + (post.click_count || 0), 0);
-      const totalLikes = postsWithProfiles.reduce((sum, post) => sum + (post.likes_count || 0), 0);
-      const totalPosts = postsWithProfiles.length;
+      // Calculate analytics
+      const totalViews = posts.reduce((sum, post) => sum + (post.views_count || 0), 0);
+      const totalClicks = posts.reduce((sum, post) => sum + (post.click_count || 0), 0);
+      const totalLikes = posts.reduce((sum, post) => sum + (post.likes_count || 0), 0);
+      const totalPosts = posts.length;
       const ctr = totalViews > 0 ? ((totalClicks / totalViews) * 100) : 0;
       
       setAnalytics({
@@ -77,13 +65,10 @@ export default function Advertising() {
         totalClicks,
         totalLikes,
         totalPosts,
-        ctr,
-        bannerViews: 0,
-        bannerClicks: 0,
-        bannerCtr: 0
+        ctr
       });
     } catch (error) {
-      console.error('Error fetching advertising data:', error);
+      console.error('Error fetching advertising posts:', error);
     } finally {
       setLoading(false);
     }
@@ -95,214 +80,292 @@ export default function Advertising() {
     }
   }, [user]);
 
-  const subscriptionTiers = [
-    {
-      tier: 'starter' as const,
-      title: 'Starter',
-      price: 'Free',
-      description: 'Perfect for small businesses getting started',
-      features: {
-        postsPerMonth: 5,
-        targeting: 'None',
-        analytics: 'Basic',
-        bannerAds: false,
-        priorityPlacement: false,
-        support: 'Community'
-      }
-    },
-    {
-      tier: 'growth' as const,
-      title: 'Growth',
-      price: '$29',
-      description: 'Ideal for growing businesses',
-      features: {
-        postsPerMonth: 15,
-        targeting: 'Basic (University, Location)',
-        analytics: 'Standard',
-        bannerAds: false,
-        priorityPlacement: false,
-        support: 'Email'
-      },
-      popular: true
-    },
-    {
-      tier: 'premium' as const,
-      title: 'Premium',
-      price: '$99',
-      description: 'For established businesses seeking maximum reach',
-      features: {
-        postsPerMonth: 25,
-        targeting: 'Advanced (All filters)',
-        analytics: 'Advanced with insights',
-        bannerAds: true,
-        priorityPlacement: true,
-        support: 'Priority'
-      }
-    }
-  ];
-
-  const renderContent = () => (
-    <div className="max-w-6xl mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <BarChart3 className="w-8 h-8 text-primary" />
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Advertising Dashboard</h1>
-            {companyProfile && (
-              <div className="flex items-center gap-2 mt-1">
-                <Badge variant="outline" className="capitalize">
-                  {companyProfile.subscription_tier} Plan
-                </Badge>
-                <span className="text-sm text-muted-foreground">
-                  {companyProfile.monthly_posts_used}/{companyProfile.monthly_posts_limit} posts used
-                </span>
-              </div>
-            )}
+  if (isMobile) {
+    return (
+      <MobileLayout>
+        <div className="container mx-auto px-4 py-6">
+          <div className="max-w-6xl mx-auto space-y-6">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <BarChart3 className="w-8 h-8 text-primary" />
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Advertising Dashboard</h1>
+            </div>
+            <Button
+              size={isMobile ? "default" : "lg"}
+              className="w-full sm:w-auto shadow-lg hover:shadow-xl transition-shadow"
+              onClick={() => setShowCreateModal(true)}
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Create Ad
+            </Button>
           </div>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            onClick={() => setShowCreateModal(true)}
-            className="shadow-lg hover:shadow-xl transition-shadow"
-          >
-            <Plus className="w-5 h-5 mr-2" />
-            Create Ad
-          </Button>
-        </div>
-      </div>
 
-      <Tabs defaultValue="analytics" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="posts">Posts</TabsTrigger>
-          <TabsTrigger value="subscription">Subscription</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="analytics">
+          {/* Analytics Cards */}
           {!loading && advertisingPosts.length > 0 && (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card>
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+              <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 border-blue-200 dark:border-blue-800">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300 flex items-center gap-2">
                     <BarChart3 className="w-4 h-4" />
-                    Posts
+                    Total Posts
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{analytics.totalPosts}</div>
+                  <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                    {analytics.totalPosts}
+                  </div>
                 </CardContent>
               </Card>
-              <Card>
+
+              <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/50 border-green-200 dark:border-green-800">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <CardTitle className="text-sm font-medium text-green-700 dark:text-green-300 flex items-center gap-2">
                     <Eye className="w-4 h-4" />
                     Views
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{analytics.totalViews.toLocaleString()}</div>
+                  <div className="text-2xl font-bold text-green-900 dark:text-green-100">
+                    {analytics.totalViews.toLocaleString()}
+                  </div>
                 </CardContent>
               </Card>
-              <Card>
+
+              <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/50 dark:to-orange-900/50 border-orange-200 dark:border-orange-800">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <CardTitle className="text-sm font-medium text-orange-700 dark:text-orange-300 flex items-center gap-2">
                     <MousePointer className="w-4 h-4" />
                     Clicks
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{analytics.totalClicks.toLocaleString()}</div>
+                  <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">
+                    {analytics.totalClicks.toLocaleString()}
+                  </div>
                 </CardContent>
               </Card>
-              <Card>
+
+              <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/50 dark:to-red-900/50 border-red-200 dark:border-red-800">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <CardTitle className="text-sm font-medium text-red-700 dark:text-red-300 flex items-center gap-2">
+                    <Heart className="w-4 h-4" />
+                    Likes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-900 dark:text-red-100">
+                    {analytics.totalLikes.toLocaleString()}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/50 border-purple-200 dark:border-purple-800">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300 flex items-center gap-2">
                     <TrendingUp className="w-4 h-4" />
                     CTR
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{analytics.ctr.toFixed(1)}%</div>
+                  <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+                    {analytics.ctr.toFixed(1)}%
+                  </div>
                 </CardContent>
               </Card>
             </div>
           )}
-        </TabsContent>
 
-        <TabsContent value="posts">
+          {/* Posts List */}
           {loading ? (
             <div className="flex items-center justify-center h-64">
               <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
             </div>
           ) : advertisingPosts.length > 0 ? (
-            <div className="space-y-4">
-              {advertisingPosts.map((post: any) => (
-                <AdvertisingPostCard key={post.id} post={post} showDetailModal={true} />
-              ))}
+            <div className="space-y-1">
+              <h2 className="text-xl font-semibold text-foreground mb-4">Your Advertising Posts</h2>
+              <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
+                {advertisingPosts.map((post: any, index) => (
+                  <div key={post.id} className={index !== advertisingPosts.length - 1 ? "border-b border-border" : ""}>
+                    <AdvertisingPostCard
+                      post={post}
+                      showDetailModal={true}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           ) : (
             <Card className="text-center py-12">
-              <CardContent>
-                <BarChart3 className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No ads yet</h3>
-                <p className="text-muted-foreground mb-4">Create your first ad to start reaching students!</p>
-                <Button onClick={() => setShowCreateModal(true)}>
+              <CardContent className="space-y-4">
+                <BarChart3 className="w-16 h-16 text-muted-foreground mx-auto" />
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">No advertising posts yet</h3>
+                  <p className="text-muted-foreground">Create your first ad to start reaching your audience!</p>
+                </div>
+                <Button 
+                  onClick={() => setShowCreateModal(true)}
+                  className="w-full sm:w-auto"
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   Create Your First Ad
                 </Button>
               </CardContent>
             </Card>
           )}
-        </TabsContent>
 
-        <TabsContent value="subscription">
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold mb-2">Subscription Plans</h2>
-              <p className="text-muted-foreground">Choose the plan that fits your advertising needs</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {subscriptionTiers.map((tierData) => (
-                <SubscriptionTierCard
-                  key={tierData.tier}
-                  {...tierData}
-                  currentTier={companyProfile?.subscription_tier || 'starter'}
-                  onUpgrade={fetchAdvertisingPosts}
-                />
-              ))}
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
-
-      <CreateAdvertisingPostModal
-        open={showCreateModal}
-        onOpenChange={setShowCreateModal}
-        onPostCreated={fetchAdvertisingPosts}
-      />
-
-      <CreateHomepageBannerModal
-        open={showBannerModal}
-        onOpenChange={setShowBannerModal}
-        onBannerCreated={fetchAdvertisingPosts}
-      />
-    </div>
-  );
-
-  if (isMobile) {
-    return (
-      <MobileLayout>
-        <div className="container mx-auto px-4 py-6">
-          {renderContent()}
+          {/* Create Advertising Post Modal */}
+          <CreateAdvertisingPostModal
+            open={showCreateModal}
+            onOpenChange={setShowCreateModal}
+            onPostCreated={fetchAdvertisingPosts}
+          />
         </div>
-      </MobileLayout>
-    );
+      </div>
+    </MobileLayout>
+  );
   }
 
   return (
     <Layout>
       <div className="container mx-auto px-4 py-6">
-        {renderContent()}
+        <div className="max-w-6xl mx-auto space-y-6">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <BarChart3 className="w-8 h-8 text-primary" />
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Advertising Dashboard</h1>
+            </div>
+            <Button
+              size={isMobile ? "default" : "lg"}
+              className="w-full sm:w-auto shadow-lg hover:shadow-xl transition-shadow"
+              onClick={() => setShowCreateModal(true)}
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Create Ad
+            </Button>
+          </div>
+
+          {/* Analytics Cards */}
+          {!loading && advertisingPosts.length > 0 && (
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+              <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 border-blue-200 dark:border-blue-800">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4" />
+                    Total Posts
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                    {analytics.totalPosts}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/50 border-green-200 dark:border-green-800">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-green-700 dark:text-green-300 flex items-center gap-2">
+                    <Eye className="w-4 h-4" />
+                    Views
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-900 dark:text-green-100">
+                    {analytics.totalViews.toLocaleString()}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/50 dark:to-orange-900/50 border-orange-200 dark:border-orange-800">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-orange-700 dark:text-orange-300 flex items-center gap-2">
+                    <MousePointer className="w-4 h-4" />
+                    Clicks
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">
+                    {analytics.totalClicks.toLocaleString()}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950/50 dark:to-red-900/50 border-red-200 dark:border-red-800">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-red-700 dark:text-red-300 flex items-center gap-2">
+                    <Heart className="w-4 h-4" />
+                    Likes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-red-900 dark:text-red-100">
+                    {analytics.totalLikes.toLocaleString()}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/50 border-purple-200 dark:border-purple-800">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4" />
+                    CTR
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+                    {analytics.ctr.toFixed(1)}%
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Posts List */}
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : advertisingPosts.length > 0 ? (
+            <div className="space-y-1">
+              <h2 className="text-xl font-semibold text-foreground mb-4">Your Advertising Posts</h2>
+              <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
+                {advertisingPosts.map((post: any, index) => (
+                  <div key={post.id} className={index !== advertisingPosts.length - 1 ? "border-b border-border" : ""}>
+                    <AdvertisingPostCard
+                      post={post}
+                      showDetailModal={true}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <Card className="text-center py-12">
+              <CardContent className="space-y-4">
+                <BarChart3 className="w-16 h-16 text-muted-foreground mx-auto" />
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground mb-2">No advertising posts yet</h3>
+                  <p className="text-muted-foreground">Create your first ad to start reaching your audience!</p>
+                </div>
+                <Button 
+                  onClick={() => setShowCreateModal(true)}
+                  className="w-full sm:w-auto"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Your First Ad
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Create Advertising Post Modal */}
+          <CreateAdvertisingPostModal
+            open={showCreateModal}
+            onOpenChange={setShowCreateModal}
+            onPostCreated={fetchAdvertisingPosts}
+          />
+        </div>
       </div>
     </Layout>
   );

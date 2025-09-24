@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
 import PostCard from '@/components/post/PostCard';
 import AdvertisingPostCard from '@/components/advertising/AdvertisingPostCard';
-import HomepageBanner from '@/components/advertising/HomepageBanner';
 import ImageUploadButton from '@/components/post/ImageUploadButton';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -79,7 +78,6 @@ export default function Home() {
   const [mixedPosts, setMixedPosts] = useState<MixedPost[]>([]);
   const [seenPostIds, setSeenPostIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
-  const [showBanner, setShowBanner] = useState(true);
   const isMobile = useIsMobile();
 
   const fetchPosts = async () => {
@@ -301,14 +299,6 @@ export default function Home() {
       
       <div className="max-w-xl mx-auto pt-6 -mt-4 md:pt-2 md:-mt-6">
         <div className="space-y-4">
-          {/* Homepage Banner */}
-          {showBanner && (
-            <HomepageBanner 
-              onClose={() => setShowBanner(false)}
-              className="mb-4"
-            />
-          )}
-          
           {(() => {
             console.log('mixedPosts:', mixedPosts);
             return null;
