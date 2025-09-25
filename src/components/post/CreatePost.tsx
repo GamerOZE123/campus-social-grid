@@ -8,7 +8,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
-export default function CreatePost() {
+interface CreatePostProps {
+  onPostCreated?: () => void | Promise<void>;
+}
+
+export default function CreatePost({ onPostCreated }: CreatePostProps) {
   const { user } = useAuth();
   const [content, setContent] = useState('');
   const [hashtags, setHashtags] = useState<string[]>([]);
@@ -33,6 +37,11 @@ export default function CreatePost() {
       setContent('');
       setHashtags([]);
       toast.success('Post created successfully!');
+      
+      // Call the callback to refresh posts
+      if (onPostCreated) {
+        await onPostCreated();
+      }
     } catch (error) {
       console.error('Error creating post:', error);
       toast.error('Failed to create post');
