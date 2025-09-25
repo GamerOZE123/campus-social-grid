@@ -3,6 +3,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import { ChatProvider } from './contexts/ChatContext';
 
 const container = document.getElementById("root");
 if (!container) {
@@ -12,6 +13,8 @@ if (!container) {
 const root = createRoot(container);
 root.render(
   <React.StrictMode>
-    <App />
+    <ChatProvider>
+      <App />
+    </ChatProvider>
   </React.StrictMode>
 );

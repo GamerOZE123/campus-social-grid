@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Send, MoreVertical, Trash2, MessageSquareX, UserX, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useChatContext } from '@/contexts/ChatContext';
 import { useChat } from '@/hooks/useChat';
 import { useRecentChats } from '@/hooks/useRecentChats';
 import { useUsers } from '@/hooks/useUsers';
@@ -18,6 +19,7 @@ import { toast } from 'sonner';
 
 export default function Chat() {
   const { user } = useAuth();
+  const { markChatAsRead, chatMovedIndicator } = useChatContext();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
@@ -120,6 +122,9 @@ export default function Chat() {
 
   const handleUserClick = async (userId: string) => {
   try {
+    // Mark chat as read when user clicks on it
+    markChatAsRead(userId);
+    
     // Ensure the current user is authenticated before proceeding
     if (!user || !user.id) {
       toast.error('You must be logged in to start a chat.');
@@ -292,22 +297,24 @@ export default function Chat() {
               {!loading &&
                 recentChats.map((chat) => (
                    <div
-                     key={chat.other_user_id}
-                     className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                     onClick={() => handleUserClick(chat.other_user_id)}
-                   >
-                     <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center relative overflow-hidden">
-                       {chat.other_user_avatar ? (
-                         <img src={chat.other_user_avatar} alt={chat.other_user_name} className="w-full h-full object-cover" />
-                       ) : (
-                         <span className="text-sm font-bold text-white">
-                           {chat.other_user_name?.charAt(0) || 'U'}
-                         </span>
-                       )}
-                       {unreadMessages.has(chat.other_user_id) && (
-                         <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
-                       )}
-                     </div>
+                      key={chat.other_user_id}
+                      className={`flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-all duration-300 ${
+                        chatMovedIndicator === chat.other_user_id ? 'bg-primary/10 border-l-4 border-primary animate-pulse' : ''
+                      }`}
+                      onClick={() => handleUserClick(chat.other_user_id)}
+                    >
+                      <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center relative overflow-hidden">
+                        {chat.other_user_avatar ? (
+                          <img src={chat.other_user_avatar} alt={chat.other_user_name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-sm font-bold text-white">
+                            {chat.other_user_name?.charAt(0) || 'U'}
+                          </span>
+                        )}
+                        {unreadMessages.has(chat.other_user_id) && (
+                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                        )}
+                      </div>
                      <div className="flex-1">
                        <p className="font-medium text-foreground">{chat.other_user_name}</p>
                        <p className="text-sm text-muted-foreground">{chat.other_user_university}</p>
@@ -495,10 +502,12 @@ export default function Chat() {
               {!loading &&
                 recentChats.map((chat) => (
                    <div
-                     key={chat.other_user_id}
-                     className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                     onClick={() => handleUserClick(chat.other_user_id)}
-                   >
+                      key={chat.other_user_id}
+                      className={`flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer transition-all duration-300 ${
+                        chatMovedIndicator === chat.other_user_id ? 'bg-primary/10 border-l-4 border-primary animate-pulse' : ''
+                      }`}
+                      onClick={() => handleUserClick(chat.other_user_id)}
+                    >
                       <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center relative overflow-hidden">
                         {chat.other_user_avatar ? (
                           <img src={chat.other_user_avatar} alt={chat.other_user_name} className="w-full h-full object-cover" />
@@ -508,7 +517,7 @@ export default function Chat() {
                           </span>
                         )}
                         {unreadMessages.has(chat.other_user_id) && (
-                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
+                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
                         )}
                       </div>
                      <div className="flex-1">
