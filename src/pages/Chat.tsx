@@ -156,9 +156,7 @@ export default function Chat() {
       newSet.delete(userId);
       return newSet;
     });
-    console.log('Attempting to add recent chat for user:', userId);
-    await addRecentChat(userId); // This should now work
-    console.log('Successfully added to recent chats:', userId);
+    // Note: We don't add to recent chats on selection, only on send/receive
     if (isMobile) setShowUserList(false);
   } catch (error) {
     console.error('Error in handleUserClick:', JSON.stringify(error, null, 2));
