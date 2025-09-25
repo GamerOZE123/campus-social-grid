@@ -78,18 +78,14 @@ export default function Chat() {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'messages' },
-        async (payload) => {
+        (payload) => {
           const message = payload.new;
-          if (message.sender_id === user.id || message.receiver_id === user.id) {
-            const otherUserId = message.sender_id === user.id ? message.receiver_id : message.sender_id;
-            
-            // Add to recent chats (moves to top)
-            await addRecentChat(otherUserId);
-            await refreshRecentChats();
-            
-            // Add unread badge if message is from someone else
-            if (message.sender_id !== user.id && selectedUser?.user_id !== message.sender_id) {
-              setUnreadMessages((prev) => new Set(prev).add(message.sender_id));
+          if (message.sender_id !== user.id) {
+            const chatUserId = message.sender_id;
+            // Move chat to top and add to recentChats (handled by useRecentChats.ts)
+            // Add unread badge
+            if (selectedUser?.user_id !== chatUserId) {
+              setUnreadMessages((prev) => new Set(prev).add(chatUserId));
             }
           }
         }
@@ -180,7 +176,6 @@ export default function Chat() {
     const result = await sendMessage(selectedConversationId, msg);
     if (result.success && selectedUser?.user_id) {
       await addRecentChat(selectedUser.user_id);
-      await refreshRecentChats(); // Refresh to move to top
     } else {
       toast.error('Failed to send message');
     }

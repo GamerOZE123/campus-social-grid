@@ -3,6 +3,7 @@ import Layout from '@/components/layout/Layout';
 import { Search, User } from 'lucide-react';
 import { useUsers } from '@/hooks/useUsers';
 import { useNavigate } from 'react-router-dom';
+import TrendingHashtags from '@/components/explore/TrendingHashtags';
 import { supabase } from '@/integrations/supabase/client';
 import MobileHeader from '@/components/layout/MobileHeader';
 // Re-importing to force refresh
@@ -84,6 +85,8 @@ export default function Explore() {
           </div>
         </div>
 
+        {/* Trending Hashtags */}
+        {!searchQuery && <TrendingHashtags />}
 
         {/* Search Results */}
         {searchQuery && (
