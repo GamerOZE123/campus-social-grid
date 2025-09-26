@@ -28,17 +28,6 @@ export default function Auth() {
     companyName: ''
   });
 
-  // Check if user is already logged in
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        navigate('/home');
-      }
-    };
-    checkUser();
-  }, [navigate]);
-
   // Validate .edu email domain
   const validateEduEmail = (email: string): boolean => {
     return email.toLowerCase().endsWith('.edu');
@@ -86,6 +75,40 @@ export default function Auth() {
     };
 
     handleOAuthCallback();
+  }, [navigate]);
+
+  // Set up auth state listener for session management
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          // Validate .edu email for OAuth users
+          if (session.user.email && !validateEduEmail(session.user.email)) {
+            setError('Only .edu email addresses are allowed. Please use your university email.');
+            await supabase.auth.signOut();
+            setLoading(false);
+            return;
+          }
+          navigate('/home');
+        } else if (event === 'SIGNED_OUT') {
+          setLoading(false);
+        }
+      }
+    );
+
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        if (session.user.email && !validateEduEmail(session.user.email)) {
+          setError('Only .edu email addresses are allowed. Please use your university email.');
+          supabase.auth.signOut();
+          return;
+        }
+        navigate('/home');
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
