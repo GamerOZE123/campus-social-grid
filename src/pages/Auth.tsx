@@ -28,9 +28,14 @@ export default function Auth() {
     companyName: ''
   });
 
-  // Validate .edu email domain
+  // Validate .edu email domain (including international .edu domains)
   const validateEduEmail = (email: string): boolean => {
-    return email.toLowerCase().endsWith('.edu');
+    const emailLower = email.toLowerCase();
+    return emailLower.includes('.edu') && (
+      emailLower.endsWith('.edu') || 
+      emailLower.includes('.edu.') ||
+      !!emailLower.match(/\.edu\.[a-z]{2,}$/)
+    );
   };
 
   // Handle Google Sign-In
