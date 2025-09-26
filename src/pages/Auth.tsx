@@ -66,6 +66,22 @@ export default function Auth() {
   // Check for OAuth callback and validate .edu email
   useEffect(() => {
     const handleOAuthCallback = async () => {
+      // Handle OAuth callback from URL hash
+      if (window.location.hash) {
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        
+        if (accessToken) {
+          setLoading(true);
+          // Clear the hash from URL
+          window.history.replaceState(null, '', window.location.pathname);
+          
+          // Let Supabase handle the session automatically
+          return;
+        }
+      }
+      
+      // Check current user session
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user && user.email) {
@@ -86,16 +102,23 @@ export default function Auth() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state change:', event, session?.user?.email);
+        
         if (event === 'SIGNED_IN' && session?.user) {
-          // Validate .edu email for OAuth users
+          // Validate .edu email for all sign-ins
           if (session.user.email && !validateEduEmail(session.user.email)) {
             setError('Only .edu email addresses are allowed. Please use your university email.');
             await supabase.auth.signOut();
             setLoading(false);
             return;
           }
+          
+          setLoading(false);
           navigate('/home');
         } else if (event === 'SIGNED_OUT') {
+          setLoading(false);
+        } else if (event === 'TOKEN_REFRESHED' && session?.user) {
+          // Handle token refresh
           setLoading(false);
         }
       }
@@ -110,6 +133,8 @@ export default function Auth() {
           return;
         }
         navigate('/home');
+      } else {
+        setLoading(false);
       }
     });
 
