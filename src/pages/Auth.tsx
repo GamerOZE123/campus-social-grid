@@ -48,16 +48,15 @@ export default function Auth() {
     setMessage('');
 
     try {
-      // Get the current origin URL to construct the full Edge Function path
-      const origin = window.location.origin;
-      const edgeFunctionUrl = `${origin}/functions/v1/oauth-callback`;
+      // The redirectTo URL MUST be the URL of your Edge Function now,
+      // as the Edge Function is responsible for the final authentication decision and redirect.
+      const edgeFunctionUrl = `https://sdqmiwsvplykgsxrthfp.supabase.co/functions/v1/oauth-callback`;
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          // IMPORTANT: Redirect to the Supabase URL, NOT the Edge Function URL, for the initial code exchange.
-          // The Edge Function URL should ONLY be used in the `redirectTo` query param to handle the final redirection.
-          redirectTo: `https://sdqmiwsvplykgsxrthfp.supabase.co/functions/v1/oauth-callback`, 
+          // Pointing directly to the Edge Function to intercept the auth flow.
+          redirectTo: edgeFunctionUrl, 
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -74,79 +73,70 @@ export default function Auth() {
 
   // --- START MODIFICATIONS ---
 
-  // 1. Clean up and simplify the first useEffect hook
+  // 1. Session Initialization and Error Check on Component Mount
   useEffect(() => {
-    // This listener is designed to catch the final session from the URL hash 
-    // and correctly set the session in browser storage (local storage/cookies).
-    supabase.auth.getSessionFromUrl()
-    .then(({ data: { session } }) => {
-        if (session) {
-            // Once session is processed from URL, check for errors passed in query string
-            const urlParams = new URLSearchParams(window.location.search);
-            const authError = urlParams.get('error');
+    setLoading(true);
 
-            if (authError === 'edu_required') {
-                setError('Registration failed. Only .edu or recognized university emails are allowed.');
-                supabase.auth.signOut();
-            } else if (session.user.email && !validateEduEmail(session.user.email)) {
-                // Should be caught by the Edge Function, but as a fallback:
-                setError('Authentication failed. Your university email is not valid.');
-                supabase.auth.signOut();
-            } else {
-                // Session is valid and domain passed validation (in Edge Function)
-                // The onAuthStateChange listener will handle the final navigation, 
-                // but we can clear the hash here to prevent persistence on refresh.
-                window.history.replaceState(null, '', window.location.pathname + window.location.search);
-            }
-        }
-    })
-    .catch(error => {
-        console.error("Error processing session from URL:", error);
-    });
+    // 1.1: Check for external errors (e.g., redirect from Edge Function failure)
+    const urlParams = new URLSearchParams(window.location.search);
+    const authError = urlParams.get('error');
 
-    // Check for existing session on page load
-    const checkExistingSession = async () => {
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.user) {
-                if (!validateEduEmail(session.user.email || '')) {
-                    setError('Only .edu email addresses are allowed. Please use your university email.');
-                    await supabase.auth.signOut();
-                    setLoading(false);
-                    return;
-                }
-                navigate('/home');
-            }
-        } catch (error) {
-            console.error('Session check error:', error);
-            setLoading(false);
+    if (authError === 'edu_required') {
+        setError('Registration failed. Only .edu or recognized university emails are allowed.');
+        // Clear the error query parameter
+        window.history.replaceState(null, '', window.location.pathname);
+        setLoading(false);
+        return;
+    }
+
+    // 1.2: The supabase-js library automatically processes the URL hash (#access_token=...) 
+    // on page load. We just need to check the session status.
+    const checkSessionAndCleanup = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          // If the session is active, check the domain one last time (redundant but safe)
+          if (!validateEduEmail(session.user.email || '')) {
+            setError('Authentication failed. Your university email is no longer valid.');
+            await supabase.auth.signOut();
+            return;
+          }
+          // User is logged in, navigate away from the auth page
+          navigate('/home');
+          return;
         }
+
+        // Cleanup: Clear the hash manually if it still exists (common workaround for React/SPAs)
+        if (window.location.hash) {
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+
+      } catch (e) {
+        console.error('Initial session check failed:', e);
+      } finally {
+        setLoading(false);
+      }
     };
+    
+    checkSessionAndCleanup();
 
-    checkExistingSession();
-  }, [navigate]); // Only runs once on component mount
+  }, [navigate]); 
 
   // 2. Set up auth state listener for session management (SIMPLIFIED)
-  // This listener will fire after the session is successfully set by getSessionFromUrl().
+  // This listener will be the primary handler for navigation after successful login/logout.
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth state change:', event, session?.user?.email);
         
         if (event === 'SIGNED_IN' && session?.user) {
-          // Clear URL hash after successful sign-in (safety measure)
-          if (window.location.hash) {
-            window.history.replaceState(null, '', window.location.pathname + window.location.search);
-          }
-          
-          // Domain validation for email/password signup is handled separately by the form logic.
-          // For OAuth, the Edge Function has already validated the domain.
-          
+          // Navigation is handled here after the session is established
           setLoading(false);
           navigate('/home');
         } else if (event === 'SIGNED_OUT') {
           setLoading(false);
-          // Optional: navigate back to login page if user signs out from a protected route
+          // If the user signs out, ensure they are on the auth page
           if (window.location.pathname !== '/auth') {
              navigate('/auth');
           }
