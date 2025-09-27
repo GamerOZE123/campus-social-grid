@@ -105,12 +105,49 @@ export default function Auth() {
         console.log('Auth state change:', event, session?.user?.email);
         
         if (event === 'SIGNED_IN' && session?.user) {
-          // Validate .edu email for all sign-ins
-          if (session.user.email && !validateEduEmail(session.user.email)) {
-            setError('Only .edu email addresses are allowed. Please use your university email.');
-            await supabase.auth.signOut();
-            setLoading(false);
-            return;
+          // For OAuth users, validate via edge function
+          if (session.user.app_metadata?.provider === 'google') {
+            try {
+              const response = await supabase.functions.invoke('oauth-callback', {
+                body: {
+                  email: session.user.email,
+                  user_id: session.user.id,
+                  user_metadata: session.user.user_metadata
+                }
+              });
+
+              if (response.error || !response.data?.success) {
+                const errorMsg = response.data?.error || 'OAuth validation failed';
+                setError(errorMsg);
+                if (response.data?.should_delete_user) {
+                  await supabase.auth.signOut();
+                }
+                setLoading(false);
+                return;
+              }
+
+              // If account was linked to existing profile, need to sign out and redirect to login
+              if (response.data.action === 'linked_to_existing') {
+                await supabase.auth.signOut();
+                setError('Your Google account has been linked to your existing profile. Please sign in with your original credentials.');
+                setLoading(false);
+                return;
+              }
+            } catch (error) {
+              console.error('OAuth validation error:', error);
+              setError('Authentication validation failed. Please try again.');
+              await supabase.auth.signOut();
+              setLoading(false);
+              return;
+            }
+          } else {
+            // For email/password, validate client-side
+            if (session.user.email && !validateEduEmail(session.user.email)) {
+              setError('Only .edu email addresses are allowed. Please use your university email.');
+              await supabase.auth.signOut();
+              setLoading(false);
+              return;
+            }
           }
           
           setLoading(false);

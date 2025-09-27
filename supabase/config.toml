@@ -62,3 +62,6 @@ vector_port = 54328
 
 [functions.process-image]
 verify_jwt = true
+
+[functions.oauth-callback]
+verify_jwt = false

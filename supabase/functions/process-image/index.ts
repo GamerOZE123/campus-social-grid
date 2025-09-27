@@ -23,8 +23,14 @@ serve(async (req) => {
       throw new Error('No authorization header')
     }
 
-    // Set the auth token for this request
-    supabase.auth.setAuth(authHeader.replace('Bearer ', ''))
+    // Create authenticated client with the JWT
+    const authenticatedSupabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        headers: {
+          Authorization: authHeader
+        }
+      }
+    })
 
     const formData = await req.formData()
     const file = formData.get('file') as File
@@ -62,7 +68,7 @@ serve(async (req) => {
       // like https://deno.land/x/imagescript or call an external service
       
       const bucket = type === 'advertising' ? 'post-images' : 'posts'
-      const { data, error } = await supabase.storage
+      const { data, error } = await authenticatedSupabase.storage
         .from(bucket)
         .upload(fileName, processedImage, {
           contentType: file.type,
@@ -74,7 +80,7 @@ serve(async (req) => {
         throw error
       }
 
-      const { data: { publicUrl } } = supabase.storage
+      const { data: { publicUrl } } = authenticatedSupabase.storage
         .from(bucket)
         .getPublicUrl(fileName)
 
@@ -108,7 +114,7 @@ serve(async (req) => {
     console.error('Error processing image:', error)
     return new Response(JSON.stringify({
       success: false,
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
