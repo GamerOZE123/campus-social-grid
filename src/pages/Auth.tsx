@@ -63,35 +63,65 @@ export default function Auth() {
     }
   };
 
-  // Check for OAuth callback and validate .edu email
+  // Handle OAuth callback session processing
   useEffect(() => {
     const handleOAuthCallback = async () => {
-      // Handle OAuth callback from URL hash
+      // Check for OAuth session in URL fragment
       if (window.location.hash) {
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const accessToken = hashParams.get('access_token');
         
         if (accessToken) {
           setLoading(true);
-          // Clear the hash from URL
-          window.history.replaceState(null, '', window.location.pathname);
           
-          // Let Supabase handle the session automatically
-          return;
+          try {
+            // Get session from URL fragment
+            const { data: { session }, error } = await supabase.auth.getSession();
+            
+            if (error) throw error;
+            
+            if (session?.user) {
+              // Clear the hash from URL immediately after processing
+              window.history.replaceState(null, '', window.location.pathname + window.location.search);
+              
+              // Validate .edu email
+              if (!validateEduEmail(session.user.email || '')) {
+                setError('Only .edu email addresses are allowed. Please use your university email.');
+                await supabase.auth.signOut();
+                setLoading(false);
+                return;
+              }
+              
+              // Redirect to dashboard
+              navigate('/home');
+              return;
+            }
+          } catch (error) {
+            console.error('Session processing error:', error);
+            setError('Authentication failed. Please try again.');
+            // Clear the hash on error
+            window.history.replaceState(null, '', window.location.pathname + window.location.search);
+            setLoading(false);
+            return;
+          }
         }
       }
       
-      // Check current user session
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user && user.email) {
-        if (!validateEduEmail(user.email)) {
-          setError('Only .edu email addresses are allowed. Please use your university email.');
-          await supabase.auth.signOut();
-          setLoading(false);
-          return;
+      // Check for existing session on page load
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          if (!validateEduEmail(session.user.email || '')) {
+            setError('Only .edu email addresses are allowed. Please use your university email.');
+            await supabase.auth.signOut();
+            setLoading(false);
+            return;
+          }
+          navigate('/home');
         }
-        navigate('/home');
+      } catch (error) {
+        console.error('Session check error:', error);
+        setLoading(false);
       }
     };
 
@@ -105,49 +135,17 @@ export default function Auth() {
         console.log('Auth state change:', event, session?.user?.email);
         
         if (event === 'SIGNED_IN' && session?.user) {
-          // For OAuth users, validate via edge function
-          if (session.user.app_metadata?.provider === 'google') {
-            try {
-              const response = await supabase.functions.invoke('oauth-callback', {
-                body: {
-                  email: session.user.email,
-                  user_id: session.user.id,
-                  user_metadata: session.user.user_metadata
-                }
-              });
-
-              if (response.error || !response.data?.success) {
-                const errorMsg = response.data?.error || 'OAuth validation failed';
-                setError(errorMsg);
-                if (response.data?.should_delete_user) {
-                  await supabase.auth.signOut();
-                }
-                setLoading(false);
-                return;
-              }
-
-              // If account was linked to existing profile, need to sign out and redirect to login
-              if (response.data.action === 'linked_to_existing') {
-                await supabase.auth.signOut();
-                setError('Your Google account has been linked to your existing profile. Please sign in with your original credentials.');
-                setLoading(false);
-                return;
-              }
-            } catch (error) {
-              console.error('OAuth validation error:', error);
-              setError('Authentication validation failed. Please try again.');
-              await supabase.auth.signOut();
-              setLoading(false);
-              return;
-            }
-          } else {
-            // For email/password, validate client-side
-            if (session.user.email && !validateEduEmail(session.user.email)) {
-              setError('Only .edu email addresses are allowed. Please use your university email.');
-              await supabase.auth.signOut();
-              setLoading(false);
-              return;
-            }
+          // Clear URL hash after successful sign-in
+          if (window.location.hash) {
+            window.history.replaceState(null, '', window.location.pathname + window.location.search);
+          }
+          
+          // For email/password, validate client-side
+          if (session.user.email && !validateEduEmail(session.user.email)) {
+            setError('Only .edu email addresses are allowed. Please use your university email.');
+            await supabase.auth.signOut();
+            setLoading(false);
+            return;
           }
           
           setLoading(false);
@@ -155,25 +153,10 @@ export default function Auth() {
         } else if (event === 'SIGNED_OUT') {
           setLoading(false);
         } else if (event === 'TOKEN_REFRESHED' && session?.user) {
-          // Handle token refresh
           setLoading(false);
         }
       }
     );
-
-    // Check initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        if (session.user.email && !validateEduEmail(session.user.email)) {
-          setError('Only .edu email addresses are allowed. Please use your university email.');
-          supabase.auth.signOut();
-          return;
-        }
-        navigate('/home');
-      } else {
-        setLoading(false);
-      }
-    });
 
     return () => subscription.unsubscribe();
   }, [navigate]);
