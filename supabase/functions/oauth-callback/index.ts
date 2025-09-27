@@ -29,19 +29,41 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    const { email, user_id, user_metadata } = await req.json()
+    const url = new URL(req.url)
+    const redirectTo = url.searchParams.get('redirect_to') || Deno.env.get('SITE_URL') || 'http://localhost:3000/'
+    let email = ''
+    let user_id = ''
+    let user_metadata: any = {}
+    try {
+      if (req.method === 'POST' && (req.headers.get('content-type') || '').includes('application/json')) {
+        const body = await req.json()
+        email = body.email
+        user_id = body.user_id
+        user_metadata = body.user_metadata || {}
+      } else {
+        // Support optional email/user_id via query params when redirected here directly
+        email = url.searchParams.get('email') || ''
+        user_id = url.searchParams.get('user_id') || ''
+        const meta = url.searchParams.get('user_metadata')
+        user_metadata = meta ? JSON.parse(meta) : {}
+      }
+    } catch (_e) {
+      // Ignore body parse errors; we'll fall back to redirect
+    }
 
     console.log('OAuth callback validation for:', email, user_id)
 
+    // If request didn't include user info (e.g., GET redirect), bounce to client
+    if (!email || !user_id) {
+      return new Response(null, { status: 303, headers: { ...corsHeaders, 'Location': redirectTo } })
+    }
+
     // Validate .edu email
     if (!validateEduEmail(email)) {
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'Only .edu email addresses are allowed. Please use your university email.',
-        should_delete_user: true
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      const errorUrl = new URL('/auth?error=edu_required', redirectTo).toString()
+      return new Response(null, {
+        status: 303,
+        headers: { ...corsHeaders, 'Location': errorUrl },
       })
     }
 
@@ -67,13 +89,9 @@ serve(async (req) => {
         console.error('Error deleting duplicate user:', deleteError)
       }
 
-      return new Response(JSON.stringify({
-        success: true,
-        action: 'linked_to_existing',
-        existing_user_id: existingProfile.user_id,
-        message: 'Account linked to existing profile'
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      return new Response(null, {
+        status: 303,
+        headers: { ...corsHeaders, 'Location': redirectTo },
       })
     }
 
@@ -108,12 +126,9 @@ serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({
-      success: true,
-      action: existingProfile ? 'existing_profile_updated' : 'new_profile_created',
-      message: 'OAuth validation successful'
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    return new Response(null, {
+      status: 303,
+      headers: { ...corsHeaders, 'Location': redirectTo },
     })
 
   } catch (error) {
